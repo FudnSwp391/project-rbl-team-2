@@ -1,0 +1,382 @@
+/* ============================================
+   DESIGN SYSTEM — Floema-Inspired Earthy Premium
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Colors: Warm Earthy Palette ── */
+  --color-cream: #F5F0EB;
+  --color-cream-dark: #E8DDD3;
+  --color-sand: #D4C5B4;
+  --color-warm-white: #FAF8F5;
+  --color-earth: #8B7355;
+  --color-earth-dark: #5C4A32;
+  --color-moss: #6B7F5C;
+  --color-moss-light: #8FA87E;
+  --color-stone: #9B9385;
+  --color-charcoal: #2C2824;
+  --color-dark: #1A1714;
+  --color-text: #2C2824;
+  --color-text-secondary: #7A7068;
+  --color-text-muted: #A89F96;
+  --color-accent: #C4956A;
+  --color-accent-hover: #B07D50;
+  --color-highlight: #D4A574;
+
+  /* ── Background ── */
+  --background: var(--color-cream);
+  --surface: var(--color-warm-white);
+  --surface-alt: var(--color-cream-dark);
+
+  /* ── Typography ── */
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+
+  /* ── Spacing ── */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2.5rem;
+  --spacing-xl: 4rem;
+  --spacing-2xl: 6rem;
+  --spacing-3xl: 10rem;
+
+  /* ── Borders ── */
+  --border-color: rgba(44, 40, 36, 0.1);
+  --border-color-strong: rgba(44, 40, 36, 0.2);
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 2px 8px rgba(44, 40, 36, 0.06);
+  --shadow-md: 0 8px 24px rgba(44, 40, 36, 0.08);
+  --shadow-lg: 0 16px 48px rgba(44, 40, 36, 0.12);
+
+  /* ── Transitions ── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --transition-smooth: 0.6s var(--ease-out-expo);
+  --transition-fast: 0.3s var(--ease-out-expo);
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: auto; /* Lenis handles smooth scrolling */
+}
+
+/* Lenis smooth scroll */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--color-text);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: white;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--color-charcoal);
+}
+
+h1 {
+  font-size: clamp(3rem, 8vw, 7rem);
+}
+
+h2 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+h3 {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+}
+
+p {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+/* ── Layout ── */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 clamp(1.5rem, 4vw, 4rem);
+}
+
+.container--narrow {
+  max-width: 900px;
+}
+
+.container--wide {
+  max-width: 1600px;
+}
+
+.section {
+  padding: var(--spacing-3xl) 0;
+  position: relative;
+}
+
+.section--reduced {
+  padding: var(--spacing-2xl) 0;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn--primary {
+  background: var(--color-charcoal);
+  color: var(--color-cream);
+}
+
+.btn--primary:hover {
+  background: var(--color-earth-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--color-charcoal);
+  border: 1px solid var(--border-color-strong);
+}
+
+.btn--outline:hover {
+  background: var(--color-charcoal);
+  color: var(--color-cream);
+  border-color: var(--color-charcoal);
+}
+
+.btn--accent {
+  background: var(--color-accent);
+  color: white;
+}
+
+.btn--accent:hover {
+  background: var(--color-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Glass Card (Earthy version) ── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-smooth);
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+/* ── Grid ── */
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* ── Divider ── */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border-color);
+  margin: var(--spacing-xl) 0;
+}
+
+/* ── Label / Tag ── */
+.label {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 50px;
+}
+
+/* ── Scroll Indicator ── */
+.scroll-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.scroll-indicator:hover {
+  color: var(--color-charcoal);
+}
+
+.scroll-indicator__line {
+  width: 40px;
+  height: 1px;
+  background: var(--color-text-muted);
+  transition: width var(--transition-smooth);
+}
+
+.scroll-indicator:hover .scroll-indicator__line {
+  width: 60px;
+}
+
+/* ── Reveal Animations ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(60px);
+  transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal--delay-1 { transition-delay: 0.1s; }
+.reveal--delay-2 { transition-delay: 0.2s; }
+.reveal--delay-3 { transition-delay: 0.3s; }
+.reveal--delay-4 { transition-delay: 0.4s; }
+
+.reveal--slide-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+}
+
+.reveal--slide-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal--slide-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+}
+
+.reveal--slide-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal--scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
+}
+
+.reveal--scale.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Gradient Text (Earthy) ── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-earth), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Horizontal Rule ── */
+hr {
+  border: none;
+  height: 1px;
+  background: var(--border-color);
+}
+
+/* ── Image Styles ── */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Flex utilities ── */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .section {
+    padding: var(--spacing-2xl) 0;
+  }
+
+  .grid-auto {
+    grid-template-columns: 1fr;
+  }
+}

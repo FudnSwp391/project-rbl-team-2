@@ -1,0 +1,200 @@
+-- ==============================================================================
+-- DATABASE SCHEMA CHO DỰ ÁN AI MOCK INTERVIEW (SUPABASE / POSTGRESQL)
+-- Copy toàn bộ nội dung file này dán vào SQL Editor của Supabase và chạy (Run)
+-- ==============================================================================
+
+-- --------------------------------------------------------
+-- 1. EXTENSIONS
+-- --------------------------------------------------------
+-- Cài đặt extension để tạo UUID tự động
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- --------------------------------------------------------
+-- 2. BẢNG NGƯỜI DÙNG (PROFILES)
+-- Bảng này mở rộng từ bảng auth.users mặc định của Supabase
+-- --------------------------------------------------------
+CREATE TABLE profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    full_name TEXT,
+    avatar_url TEXT,
+    role TEXT CHECK (role IN ('candidate', 'recruiter', 'admin')) DEFAULT 'candidate',
+    status TEXT CHECK (status IN ('active', 'pending', 'banned')) DEFAULT 'active', -- Recruiter mới đăng ký sẽ là 'pending'
+    points INTEGER DEFAULT 0, -- Điểm thưởng từ Daily Challenges
+    streak_days INTEGER DEFAULT 0, -- Số ngày đăng nhập liên tiếp
+    last_login_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- --------------------------------------------------------
+-- 3. BẢNG GÓI DỊCH VỤ & THANH TOÁN (SUBSCRIPTIONS)
+-- --------------------------------------------------------
+CREATE TABLE subscription_plans (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL, -- Ví dụ: Basic, Pro, Premium
+    price DECIMAL(10, 2) NOT NULL,
+    features JSONB, -- Danh sách các tính năng được hưởng
+    duration_days INTEGER NOT NULL DEFAULT 30
+);
+
+CREATE TABLE user_subscriptions (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    plan_id UUID REFERENCES subscription_plans(id),
+    start_date TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    end_date TIMESTAMP WITH TIME ZONE,
+    status TEXT CHECK (status IN ('active', 'expired', 'cancelled')) DEFAULT 'active'
+);
+
+-- --------------------------------------------------------
+-- 4. BẢNG QUẢN LÝ CV
+-- --------------------------------------------------------
+CREATE TABLE cvs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    file_name TEXT NOT NULL,
+    file_url TEXT NOT NULL, -- Link file lưu trên Supabase Storage
+    is_default BOOLEAN DEFAULT false,
+    ai_analysis_result JSONB, -- Điểm mạnh, điểm yếu, lời khuyên (Lưu dưới dạng JSON)
+    ai_score INTEGER, -- Điểm đánh giá tổng quan (0-100)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- --------------------------------------------------------
+-- 5. BẢNG NGÀNH NGHỀ & CÂU HỎI (QUESTION BANK)
+-- --------------------------------------------------------
+CREATE TABLE industries (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE, -- IT, Marketing, HR, Finance...
+    description TEXT
+);
+
+CREATE TABLE questions (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    industry_id UUID REFERENCES industries(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    difficulty TEXT CHECK (difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'medium',
+    question_type TEXT CHECK (question_type IN ('behavioral', 'technical')) DEFAULT 'technical'
+);
+
+-- --------------------------------------------------------
+-- 6. BẢNG PHỎNG VẤN GIẢ LẬP (MOCK INTERVIEWS)
+-- --------------------------------------------------------
+CREATE TABLE interviews (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    industry_id UUID REFERENCES industries(id),
+    status TEXT CHECK (status IN ('in_progress', 'completed', 'cancelled')) DEFAULT 'in_progress',
+    overall_score INTEGER,
+    overall_feedback TEXT, -- Lời khuyên chung từ AI
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE interview_answers (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    interview_id UUID REFERENCES interviews(id) ON DELETE CASCADE,
+    question_id UUID REFERENCES questions(id),
+    user_answer_text TEXT, -- Text từ Speech-to-Text
+    user_answer_audio_url TEXT, -- Link file ghi âm (nếu có)
+    ai_evaluation JSONB, -- Phân tích của AI cho từng câu hỏi (ngữ điệu, từ vựng, độ chính xác)
+    score INTEGER -- Điểm cho câu hỏi này
+);
+
+-- --------------------------------------------------------
+-- 7. BẢNG TUYỂN DỤNG (RECRUITER)
+-- --------------------------------------------------------
+CREATE TABLE jobs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    recruiter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    industry_id UUID REFERENCES industries(id),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    requirements TEXT,
+    salary_range TEXT,
+    status TEXT CHECK (status IN ('draft', 'open', 'closed')) DEFAULT 'open',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE job_applications (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+    candidate_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    cv_id UUID REFERENCES cvs(id),
+    status TEXT CHECK (status IN ('applied', 'reviewing', 'interviewing', 'accepted', 'rejected')) DEFAULT 'applied',
+    recruiter_notes TEXT,
+    applied_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- --------------------------------------------------------
+-- 8. BẢNG BÀI VIẾT (BLOG / TIPS)
+-- --------------------------------------------------------
+CREATE TABLE blogs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    author_id UUID REFERENCES profiles(id), -- Admin hoặc Mentor
+    title TEXT NOT NULL,
+    content TEXT NOT NULL, -- Lưu dưới dạng Markdown hoặc HTML
+    cover_image_url TEXT,
+    tags TEXT[], -- Mảng các tag (VD: ['interview', 'tips', 'it'])
+    status TEXT CHECK (status IN ('draft', 'published')) DEFAULT 'published',
+    views INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- --------------------------------------------------------
+-- 9. BẢNG THỬ THÁCH HÀNG NGÀY (DAILY CHALLENGES)
+-- --------------------------------------------------------
+CREATE TABLE challenges (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    points_reward INTEGER NOT NULL DEFAULT 10,
+    active_date DATE UNIQUE NOT NULL -- Mỗi ngày có 1 thử thách
+);
+
+CREATE TABLE user_challenges (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    challenge_id UUID REFERENCES challenges(id) ON DELETE CASCADE,
+    is_completed BOOLEAN DEFAULT true,
+    completed_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(user_id, challenge_id) -- Một user chỉ hoàn thành 1 thử thách 1 lần
+);
+
+-- ==============================================================================
+-- CÀI ĐẶT ROW LEVEL SECURITY (RLS) BẢO MẬT DỮ LIỆU
+-- Lưu ý: Đây là cấu hình cơ bản, có thể chỉnh sửa tùy nhu cầu
+-- ==============================================================================
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cvs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interviews ENABLE ROW LEVEL SECURITY;
+
+-- User chỉ có thể xem và sửa Profile của chính mình
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- User chỉ có thể xem và sửa CV của chính mình
+CREATE POLICY "Users can view own CVs" ON cvs FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own CVs" ON cvs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own CVs" ON cvs FOR UPDATE USING (auth.uid() = user_id);
+
+-- User chỉ xem được bài phỏng vấn của mình
+CREATE POLICY "Users can view own interviews" ON interviews FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own interviews" ON interviews FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Trigger tự động tạo Profile khi user mới đăng ký qua Supabase Auth
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name', COALESCE(new.raw_user_meta_data->>'role', 'candidate'));
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
