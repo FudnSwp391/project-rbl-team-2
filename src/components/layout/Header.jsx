@@ -1,43 +1,195 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { BrainCircuit, User, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location]);
+
+  const navLinks = [
+    { to: '/', label: 'Trang chủ' },
+    { to: '/interview', label: 'Phỏng vấn' },
+    { to: '/cv-analysis', label: 'Phân tích CV' },
+    { to: '/dashboard', label: 'Thử thách' },
+  ];
+
   return (
-    <header style={{
-      padding: 'var(--spacing-sm) 0',
-      borderBottom: '1px solid var(--glass-border)',
-      position: 'sticky',
+    <header id="main-header" style={{
+      position: 'fixed',
       top: 0,
-      background: 'rgba(9, 11, 18, 0.8)',
-      backdropFilter: 'blur(10px)',
-      zIndex: 100
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+      padding: scrolled ? '0.75rem 0' : '1.25rem 0',
+      background: scrolled ? 'rgba(245, 240, 235, 0.92)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(20px)' : 'none',
+      WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+      borderBottom: scrolled ? '1px solid var(--border-color)' : '1px solid transparent',
+      transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
       <div className="container" style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
       }}>
-        <Link to="/" style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '10px', 
+        {/* Logo */}
+        <Link to="/" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
           textDecoration: 'none',
-          color: 'inherit'
+          color: 'var(--color-charcoal)',
         }}>
-          <BrainCircuit size={32} color="hsl(var(--primary-hsl))" />
-          <span style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-1px' }}>
-            AI<span className="gradient-text">Interview</span>
+          <span style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1.6rem',
+            fontWeight: 400,
+            letterSpacing: '-0.02em',
+          }}>
+            ITA
+          </span>
+          <span style={{
+            fontSize: '0.6rem',
+            fontWeight: 500,
+            letterSpacing: '0.03em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            borderLeft: '1px solid var(--border-color-strong)',
+            paddingLeft: '12px',
+          }}>
+            Interview<br />Technology AI
           </span>
         </Link>
 
-        <nav style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
-          <Link to="/interview" className="nav-link" style={{ textDecoration: 'none', color: 'var(--text-secondary)' }}>Phỏng vấn</Link>
-          <Link to="/cv-analysis" className="nav-link" style={{ textDecoration: 'none', color: 'var(--text-secondary)' }}>Phân tích CV</Link>
-          <Link to="/dashboard" className="nav-link" style={{ textDecoration: 'none', color: 'var(--text-secondary)' }}>Thử thách</Link>
-          <Link to="/login" className="btn-primary" style={{ padding: '0.5rem 1.2rem' }}>Bắt đầu</Link>
+        {/* Desktop Nav */}
+        <nav style={{
+          display: 'flex',
+          gap: '2.5rem',
+          alignItems: 'center',
+        }} className="desktop-nav">
+          {navLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              style={{
+                textDecoration: 'none',
+                color: location.pathname === link.to ? 'var(--color-charcoal)' : 'var(--color-text-muted)',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                letterSpacing: '0',
+                transition: 'color 0.3s ease',
+                position: 'relative',
+              }}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <Link to="/login" className="btn btn--primary" style={{
+            padding: '0.6rem 1.5rem',
+            fontSize: '0.75rem',
+          }}>
+            Bắt đầu
+          </Link>
         </nav>
+
+        {/* Mobile Menu Toggle */}
+        <button
+          id="mobile-menu-toggle"
+          onClick={() => setMenuOpen(!menuOpen)}
+          style={{
+            display: 'none',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '8px',
+            position: 'relative',
+            width: '32px',
+            height: '32px',
+          }}
+          className="mobile-toggle"
+          aria-label="Menu"
+        >
+          <span style={{
+            display: 'block',
+            width: '24px',
+            height: '2px',
+            background: 'var(--color-charcoal)',
+            transition: 'all 0.3s ease',
+            transform: menuOpen ? 'rotate(45deg) translateY(0)' : 'translateY(-4px)',
+            position: 'absolute',
+            left: '4px',
+          }} />
+          <span style={{
+            display: 'block',
+            width: '24px',
+            height: '2px',
+            background: 'var(--color-charcoal)',
+            transition: 'all 0.3s ease',
+            transform: menuOpen ? 'rotate(-45deg) translateY(0)' : 'translateY(4px)',
+            position: 'absolute',
+            left: '4px',
+          }} />
+        </button>
       </div>
+
+      {/* Mobile Menu */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'var(--color-cream)',
+        display: 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '2rem',
+        transform: menuOpen ? 'translateY(0)' : 'translateY(-100%)',
+        visibility: menuOpen ? 'visible' : 'hidden',
+        pointerEvents: menuOpen ? 'auto' : 'none',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s',
+        zIndex: 999,
+      }} className="mobile-menu">
+        {navLinks.map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            onClick={() => setMenuOpen(false)}
+            style={{
+              textDecoration: 'none',
+              color: 'var(--color-charcoal)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '2rem',
+            }}
+          >
+            {link.label}
+          </Link>
+        ))}
+        <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
+          Bắt đầu
+        </Link>
+      </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-toggle { display: flex !important; align-items: center; justify-content: center; }
+          .mobile-menu { display: flex !important; }
+        }
+      `}</style>
     </header>
   );
 };
