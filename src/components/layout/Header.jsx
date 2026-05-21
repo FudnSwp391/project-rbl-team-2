@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../utils/AuthContext';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+    setMenuOpen(false);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -96,12 +105,48 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
-          <Link to="/login" className="btn btn--primary" style={{
-            padding: '0.6rem 1.5rem',
-            fontSize: '0.75rem',
-          }}>
-            Bắt đầu
-          </Link>
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Link to="/profile" style={{ 
+                fontSize: '0.85rem', 
+                fontWeight: 600, 
+                color: 'var(--color-charcoal)',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '50%', 
+                  background: 'var(--color-earth)', 
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.9rem'
+                }}>
+                  {(user.user_metadata?.full_name || user.email).charAt(0).toUpperCase()}
+                </div>
+                {user.user_metadata?.full_name || user.email}
+              </Link>
+              <button 
+                onClick={handleLogout}
+                className="btn btn--outline" 
+                style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}
+              >
+                Đăng xuất
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="btn btn--primary" style={{
+              padding: '0.6rem 1.5rem',
+              fontSize: '0.75rem',
+            }}>
+              Bắt đầu
+            </Link>
+          )}
         </nav>
 
         {/* Mobile Menu Toggle */}
@@ -178,9 +223,28 @@ const Header = () => {
             {link.label}
           </Link>
         ))}
-        <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
-          Bắt đầu
-        </Link>
+        {user ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <Link to="/profile" onClick={() => setMenuOpen(false)} style={{
+              textDecoration: 'none',
+              color: 'var(--color-charcoal)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '1.5rem',
+            }}>
+              Hồ sơ của tôi
+            </Link>
+            <button 
+              onClick={handleLogout}
+              className="btn btn--outline" 
+            >
+              Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
+            Bắt đầu
+          </Link>
+        )}
       </div>
 
       <style>{`
