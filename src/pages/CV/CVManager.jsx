@@ -4,7 +4,7 @@ import {
   Eye, Search, Sparkles, Shield, Target, BookOpen, Wrench,
   ChevronRight, Zap, Award
 } from 'lucide-react';
-import { analyzeCV } from '../../utils/cvAnalysisService';
+import { analyzeCV, extractDocxHtml } from '../../utils/cvAnalysisService';
 import './CVManager.css';
 
 // NOTE: Supabase upload is ready in cvStorageService.js
@@ -21,6 +21,7 @@ const CVManager = () => {
   const [analysisStatus, setAnalysisStatus] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [docxHtml, setDocxHtml] = useState(null);
   const fileInputRef = useRef(null);
 
   /* ---------- Drag & Drop handlers ---------- */
@@ -47,7 +48,7 @@ const CVManager = () => {
     e.target.value = '';
   };
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     const allowed = ['application/pdf', 'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowed.includes(file.type)) {
@@ -59,9 +60,19 @@ const CVManager = () => {
       return;
     }
     setPendingFile(file);
-    // Create preview URL for PDFs
+    setPreviewUrl(null);
+    setDocxHtml(null);
+
+    // Create preview based on file type
     if (file.type === 'application/pdf') {
       setPreviewUrl(URL.createObjectURL(file));
+    } else if (
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.name.endsWith('.docx')
+    ) {
+      // Generate DOCX preview using mammoth
+      const html = await extractDocxHtml(file);
+      if (html) setDocxHtml(html);
     }
   };
 
@@ -117,11 +128,20 @@ const CVManager = () => {
   };
 
   /* ---------- File list actions ---------- */
-  const handleSelectCV = (file) => {
+  const handleSelectCV = async (file) => {
     setSelectedFile(file);
     setAnalysisResult(file.analysis);
+    setPreviewUrl(null);
+    setDocxHtml(null);
+
     if (file.localFile?.type === 'application/pdf') {
       setPreviewUrl(URL.createObjectURL(file.localFile));
+    } else if (
+      file.localFile?.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.localFile?.name?.endsWith('.docx')
+    ) {
+      const html = await extractDocxHtml(file.localFile);
+      if (html) setDocxHtml(html);
     }
   };
 
@@ -132,6 +152,7 @@ const CVManager = () => {
       setSelectedFile(null);
       setAnalysisResult(null);
       setPreviewUrl(null);
+      setDocxHtml(null);
     }
   };
 
@@ -305,8 +326,22 @@ const CVManager = () => {
             </div>
           )}
 
+          {/* DOCX Preview */}
+          {!previewUrl && docxHtml && (
+            <div className="glass-card cv-preview animate-fade">
+              <div className="cv-preview__docx-header">
+                <FileText size={16} color="var(--color-earth)" />
+                <span>Xem trước DOCX</span>
+              </div>
+              <div
+                className="cv-preview__docx-content"
+                dangerouslySetInnerHTML={{ __html: docxHtml }}
+              />
+            </div>
+          )}
+
           {/* No preview placeholder */}
-          {!previewUrl && !isAnalyzing && !analysisResult && (
+          {!previewUrl && !docxHtml && !isAnalyzing && !analysisResult && (
             <div className="glass-card">
               <div className="cv-preview__placeholder">
                 <div className="cv-preview__placeholder-icon">
@@ -365,7 +400,7 @@ const CVManager = () => {
                     {Object.entries(analysisResult.sectionScores).map(([key, val]) => (
                       <div key={key} className="cv-section-score">
                         <div className="cv-section-score__label">
-                          {({ format: 'Định dạng', experience: 'Kinh nghiệm', skills: 'Kỹ năng', education: 'Học vấn', keywords: 'Từ khóa' })[key] || key}
+                          {({ jdRelevance: 'Phù hợp JD', experience: 'Kinh nghiệm & Dự án', skills: 'Kỹ năng & Chứng chỉ', achievements: 'Thành tích (STAR)', presentation: 'Trình bày' })[key] || key}
                         </div>
                         <div className="cv-section-score__value" style={{ color: getScoreColor(val) }}>{val}</div>
                         <div className="cv-section-score__bar">
