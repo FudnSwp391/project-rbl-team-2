@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import itaLogo from '../../assets/ita-logo.png';
 import './LandingPage.css';
@@ -6,7 +6,10 @@ import './LandingPage.css';
 const LandingPage = () => {
   const heroRef = useRef(null);
   const [scrollY, setScrollY] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [targetMousePos, setTargetMousePos] = useState({ x: 0, y: 0 });
 
+  // Handle scroll events
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY);
@@ -15,22 +18,61 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Floema-style scroll-driven zoom calculations
-  const heroScrollHeight = typeof window !== 'undefined' ? window.innerHeight * 1.8 : 1200;
-  const scrollProgress = Math.min(scrollY / heroScrollHeight, 1); // 0 → 1
+  // Handle mouse movements for the 3D tilt effect
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      // Get mouse position relative to center of viewport (-0.5 to 0.5)
+      const x = (e.clientX / window.innerWidth) - 0.5;
+      const y = (e.clientY / window.innerHeight) - 0.5;
+      setTargetMousePos({ x, y });
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
-  // Logo: starts at scale 1, zooms up to scale 8
-  const logoScale = 1 + scrollProgress * 7;
-  // Fade out logo after 60% scroll progress
-  const logoOpacity = scrollProgress > 0.6 ? Math.max(0, 1 - (scrollProgress - 0.6) / 0.3) : 1;
+  // Butter-smooth LERP (Linear Interpolation) animation loop for 60fps mouse tracking
+  useEffect(() => {
+    let animId;
+    const updatePhysics = () => {
+      setMousePos((prev) => {
+        const dx = targetMousePos.x - prev.x;
+        const dy = targetMousePos.y - prev.y;
+        return {
+          x: prev.x + dx * 0.08, // Smooth LERP factor
+          y: prev.y + dy * 0.08,
+        };
+      });
+      animId = requestAnimationFrame(updatePhysics);
+    };
+    animId = requestAnimationFrame(updatePhysics);
+    return () => cancelAnimationFrame(animId);
+  }, [targetMousePos]);
 
-  // Background text: scale up faster, fade out earlier
-  const bgTextScale = 1 + scrollProgress * 5;
-  const bgTextOpacity = scrollProgress > 0.4 ? Math.max(0, 0.4 * (1 - (scrollProgress - 0.4) / 0.4)) : 0.4;
+  // Cinematic scroll rates based on page viewport height
+  const viewHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
 
-  // Hero content (subtitle/CTA): fade out quickly
-  const contentOpacity = Math.max(0, 1 - scrollProgress * 3);
-  const contentTranslateY = scrollProgress * -60;
+  // 1. Watermark background typography: glides up behind the sculpture
+  // Lower counteraction than sculpture (0.25 vs 0.6) because text starts centered in 140vh hero
+  // while sculpture starts at bottom:-24vh — lower factor makes text exit viewport faster to match
+  const watermarkTranslateY = scrollY * 0.25;
+  const watermarkScale = 1; // Constant scale, no zoom effect
+  const watermarkOpacity = 1; // Always fully solid, never fades
+
+  // 2. Leaf shadow: subtle fade out as we scroll deep
+  const shadowOpacity = Math.max(0, 0.85 - scrollY / 1000);
+
+  // (Left title & Right glass card removed for ultra-minimalist sculpture aesthetic)
+
+  // 4. Sculpture (ITA Logo) synced speed (glides UP in viewport at exactly 40% speed, matching the text)
+  const logoOpacity = Math.max(0.1, 1 - scrollY / 1800); // Fades out extremely late to stay visible
+  const sculptureScale = 1; // Locked scale, no zoom effect
+  const sculptureTranslateY = scrollY * 0.6; // translates down 60% inside container (V_viewport = 0.4)
+
+  // Combined 3D transforms for sculpture wrapper: centering + scroll parallax only
+  const sculptureTransform = `translate3d(-50%, ${sculptureTranslateY}px, 0) scale(${sculptureScale})`;
+  
+  // Static shadow
+  const shadowFilter = `drop-shadow(0px 30px 65px rgba(44, 40, 36, 0.24))`;
 
   // Intersection Observer for reveal animations
   useEffect(() => {
@@ -54,68 +96,46 @@ const LandingPage = () => {
 
   return (
     <div className="landing">
-      {/* ══════════════ HERO SECTION — Floema-style scroll zoom ══════════════ */}
-      <div className="hero-scroll-container">
-        <section className="hero" ref={heroRef}>
-          <div className="hero__background">
-            {/* Large background text — "INTERVIEW TECHNOLOGY AI" */}
-            <div
-              className="hero__bg-text"
-              style={{
-                transform: `scale(${bgTextScale})`,
-                opacity: bgTextOpacity,
-              }}
-            >
-              <span className="hero__bg-text-line">INTERVIEW</span>
-              <span className="hero__bg-text-line">TECHNOLOGY</span>
-              <span className="hero__bg-text-line">AI</span>
-            </div>
-          </div>
+      {/* ══════════════ HERO SECTION — Floema-style overlap layout ══════════════ */}
+      <section className="hero-section" ref={heroRef}>
+        {/* Blurred organic leaf shadow overlay for natural sunlight aesthetic */}
+        <div
+          className="hero__leaf-shadow"
+          style={{ opacity: shadowOpacity }}
+        />
 
-          {/* ITA Logo — positioned in front of the background text */}
-          <div
-            className="hero__logo-wrapper"
-            style={{
-              transform: `scale(${logoScale})`,
-              opacity: logoOpacity,
-            }}
-          >
-            <img
-              src={itaLogo}
-              alt="ITA - Interview Technology AI"
-              className="hero__logo"
-            />
+        {/* Giant editorial watermark behind the 3D object */}
+        <div
+          className="background-watermark"
+          style={{
+            transform: `translate3d(0, ${watermarkTranslateY}px, 0) scale(${watermarkScale})`,
+            opacity: watermarkOpacity,
+          }}
+        >
+          <div className="hero__bg-text-wrapper">
+            <span className="hero__bg-text-word font-serif">INTERVIEW</span>
+            <span className="hero__bg-text-word font-serif">TECHNOLOGY</span>
+            <span className="hero__bg-text-word font-serif">AI</span>
           </div>
+        </div>
 
-          {/* Hero subtitle and CTA */}
-          <div
-            className="hero__content"
-            style={{
-              transform: `translateY(${contentTranslateY}px)`,
-              opacity: contentOpacity,
-            }}
-          >
-            <p className="hero__subtitle">
-              Nền tảng phỏng vấn giả lập thông minh
-            </p>
-            <div className="hero__cta">
-              <Link to="/interview" className="btn btn--primary">
-                Khám phá ngay
-              </Link>
-              <Link to="/cv-analysis" className="btn btn--outline">
-                Phân tích CV
-              </Link>
-            </div>
-          </div>
+        {/* Left title & Right glass card removed for ultra-minimalist aesthetic */}
 
-          {/* Scroll indicator */}
-          <div className="hero__scroll-indicator" style={{
-            opacity: Math.max(0, 1 - scrollProgress * 5),
-          }}>
-            <div className="hero__scroll-line" />
-          </div>
-        </section>
-      </div>
+        {/* ITA 3D Mossy Stone Logo — anchored to transition floor, overlaps Page 1 & 2 */}
+        <div
+          className="ita-sculpture-wrapper"
+          style={{
+            transform: sculptureTransform,
+            filter: shadowFilter,
+            opacity: logoOpacity,
+          }}
+        >
+          <img
+            src={itaLogo}
+            alt="ITA - Interview Technology AI"
+          />
+        </div>
+      </section>
 
       {/* ══════════════ INTRO SECTION ══════════════ */}
       <section className="section intro">

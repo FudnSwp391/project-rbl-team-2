@@ -4,7 +4,7 @@
    ============================================ */
 
 .cv-manager {
-  padding: var(--spacing-lg) 0;
+  padding: 120px 0 var(--spacing-lg);
   min-height: calc(100vh - 80px);
 }
 

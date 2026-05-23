@@ -370,6 +370,49 @@ img {
   justify-content: center;
 }
 
+/* ── Cinematic Premium Utilities ── */
+.glass-premium {
+  background: rgba(250, 248, 245, 0.4);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 40px 90px rgba(44, 40, 36, 0.08);
+}
+
+.text-editorial {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* Dappled sunlight / organic branch shadows */
+.foliage-shadow {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(107, 127, 92, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 85% 20%, rgba(92, 74, 50, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(44, 40, 36, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Custom premium hover effect for buttons */
+.btn--pill {
+  border-radius: 9999px;
+  padding: 1rem 2.2rem;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-transform: none;
+  transition: all 0.6s var(--ease-out-expo);
+}
+
+.btn--pill:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(44, 40, 36, 0.15);
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .section {

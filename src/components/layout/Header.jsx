@@ -37,21 +37,26 @@ const Header = () => {
   return (
     <header id="main-header" style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
+      top: '1.5rem',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'calc(100% - 3rem)',
+      maxWidth: '1200px',
       zIndex: 1000,
-      padding: scrolled ? '0.75rem 0' : '1.25rem 0',
-      background: scrolled ? 'rgba(245, 240, 235, 0.92)' : 'transparent',
-      backdropFilter: scrolled ? 'blur(20px)' : 'none',
-      WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-      borderBottom: scrolled ? '1px solid var(--border-color)' : '1px solid transparent',
-      transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+      padding: '0.6rem 2.5rem',
+      background: scrolled ? 'rgba(250, 248, 245, 0.65)' : 'rgba(250, 248, 245, 0.45)',
+      backdropFilter: 'blur(25px)',
+      WebkitBackdropFilter: 'blur(25px)',
+      border: '1px solid rgba(255, 255, 255, 0.55)',
+      borderRadius: '9999px',
+      boxShadow: scrolled ? '0 25px 50px rgba(44, 40, 36, 0.08)' : '0 15px 35px rgba(44, 40, 36, 0.04)',
+      transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
-      <div className="container" style={{
+      <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        width: '100%'
       }}>
         {/* Logo */}
         <Link to="/" style={{
@@ -63,21 +68,22 @@ const Header = () => {
         }}>
           <span style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: '1.6rem',
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
+            fontSize: '1.45rem',
+            fontWeight: 500,
+            letterSpacing: '-0.03em',
           }}>
-            ITA
+            ita.
           </span>
           <span style={{
-            fontSize: '0.6rem',
+            fontSize: '0.55rem',
             fontWeight: 500,
-            letterSpacing: '0.03em',
+            letterSpacing: '0.05em',
             textTransform: 'uppercase',
-            color: 'var(--color-text-muted)',
-            borderLeft: '1px solid var(--border-color-strong)',
+            color: 'var(--color-text-secondary)',
+            borderLeft: '1px solid rgba(44, 40, 36, 0.15)',
             paddingLeft: '12px',
-          }}>
+            lineHeight: '1.2'
+          }} className="logo-subtitle">
             Interview<br />Technology AI
           </span>
         </Link>
@@ -85,7 +91,7 @@ const Header = () => {
         {/* Desktop Nav */}
         <nav style={{
           display: 'flex',
-          gap: '2.5rem',
+          gap: '2.2rem',
           alignItems: 'center',
         }} className="desktop-nav">
           {navLinks.map((link) => (
@@ -105,48 +111,12 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Link to="/profile" style={{ 
-                fontSize: '0.85rem', 
-                fontWeight: 600, 
-                color: 'var(--color-charcoal)',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <div style={{ 
-                  width: '32px', 
-                  height: '32px', 
-                  borderRadius: '50%', 
-                  background: 'var(--color-earth)', 
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.9rem'
-                }}>
-                  {(user.user_metadata?.full_name || user.email).charAt(0).toUpperCase()}
-                </div>
-                {user.user_metadata?.full_name || user.email}
-              </Link>
-              <button 
-                onClick={handleLogout}
-                className="btn btn--outline" 
-                style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}
-              >
-                Đăng xuất
-              </button>
-            </div>
-          ) : (
-            <Link to="/login" className="btn btn--primary" style={{
-              padding: '0.6rem 1.5rem',
-              fontSize: '0.75rem',
-            }}>
-              Bắt đầu
-            </Link>
-          )}
+          <Link to="/login" className="btn btn--primary" style={{
+            padding: '0.6rem 1.5rem',
+            fontSize: '0.75rem',
+          }}>
+            Bắt đầu
+          </Link>
         </nav>
 
         {/* Mobile Menu Toggle */}
@@ -162,29 +132,30 @@ const Header = () => {
             position: 'relative',
             width: '32px',
             height: '32px',
+            zIndex: 1001,
           }}
           className="mobile-toggle"
           aria-label="Menu"
         >
           <span style={{
             display: 'block',
-            width: '24px',
-            height: '2px',
+            width: '20px',
+            height: '1.5px',
             background: 'var(--color-charcoal)',
             transition: 'all 0.3s ease',
-            transform: menuOpen ? 'rotate(45deg) translateY(0)' : 'translateY(-4px)',
+            transform: menuOpen ? 'rotate(45deg) translateY(0)' : 'translateY(-3px)',
             position: 'absolute',
-            left: '4px',
+            left: '6px',
           }} />
           <span style={{
             display: 'block',
-            width: '24px',
-            height: '2px',
+            width: '20px',
+            height: '1.5px',
             background: 'var(--color-charcoal)',
             transition: 'all 0.3s ease',
-            transform: menuOpen ? 'rotate(-45deg) translateY(0)' : 'translateY(4px)',
+            transform: menuOpen ? 'rotate(-45deg) translateY(0)' : 'translateY(3px)',
             position: 'absolute',
-            left: '4px',
+            left: '6px',
           }} />
         </button>
       </div>
@@ -201,7 +172,7 @@ const Header = () => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '2rem',
+        gap: '2.5rem',
         transform: menuOpen ? 'translateY(0)' : 'translateY(-100%)',
         visibility: menuOpen ? 'visible' : 'hidden',
         pointerEvents: menuOpen ? 'auto' : 'none',
@@ -218,33 +189,16 @@ const Header = () => {
               color: 'var(--color-charcoal)',
               fontFamily: 'var(--font-serif)',
               fontSize: '2rem',
+              transition: 'color 0.3s ease'
             }}
+            className="mobile-nav-link"
           >
             {link.label}
           </Link>
         ))}
-        {user ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <Link to="/profile" onClick={() => setMenuOpen(false)} style={{
-              textDecoration: 'none',
-              color: 'var(--color-charcoal)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '1.5rem',
-            }}>
-              Hồ sơ của tôi
-            </Link>
-            <button 
-              onClick={handleLogout}
-              className="btn btn--outline" 
-            >
-              Đăng xuất
-            </button>
-          </div>
-        ) : (
-          <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
-            Bắt đầu
-          </Link>
-        )}
+        <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
+          Bắt đầu
+        </Link>
       </div>
 
       <style>{`
@@ -252,6 +206,18 @@ const Header = () => {
           .desktop-nav { display: none !important; }
           .mobile-toggle { display: flex !important; align-items: center; justify-content: center; }
           .mobile-menu { display: flex !important; }
+          .logo-subtitle { display: none !important; }
+        }
+        .nav-link-item:hover {
+          color: var(--color-charcoal) !important;
+          transform: translateY(-1px);
+        }
+        .mobile-nav-link:hover {
+          color: var(--color-accent) !important;
+        }
+        .btn-start-nav:hover {
+          transform: translateY(-2px) scale(1.03);
+          box-shadow: 0 10px 20px rgba(44, 40, 36, 0.15) !important;
         }
       `}</style>
     </header>
