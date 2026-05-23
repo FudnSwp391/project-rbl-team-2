@@ -2,141 +2,221 @@
    LANDING PAGE — Floema-Inspired Styling
    ════════════════════════════════════════ */
 
-/* ── HERO SECTION ── */
-.hero {
+/* ── HERO SECTION — Floema Overlap Style ── */
+.hero-section {
   position: relative;
-  min-height: 100vh;
+  min-height: 140vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  background: var(--color-cream);
-  padding-top: 80px;
+  overflow: visible; /* CRITICAL: Allows sculpture to bleed and hang out below the viewport folder */
+  background: radial-gradient(circle at 0% 0%, rgba(232, 221, 211, 0.18) 0%, transparent 60%),
+              radial-gradient(circle at 100% 100%, rgba(212, 197, 180, 0.18) 0%, transparent 60%),
+              var(--color-cream);
 }
 
-.hero__background {
+/* Blurred leaf/cloud shadow overlay — Floema-style dappled dark aesthetic */
+.hero__leaf-shadow {
+  position: absolute;
+  inset: -15%; /* Extended past boundaries to avoid harsh edges with blur */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 900' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M -50,-50 C 80,30 200,-20 350,40 C 450,80 400,160 520,130 C 640,100 700,200 800,150 C 900,100 1000,180 1100,80 C 1200,0 1250,-50 1250,-50 L 1250,350 C 1100,280 950,350 800,300 C 650,250 550,350 400,280 C 300,230 180,300 50,250 C -50,210 -50,150 -50,-50 Z' fill='%231a1510' opacity='0.4'/%3E%3Cpath d='M 900,-50 C 850,80 950,120 1050,60 C 1150,10 1250,100 1250,200 C 1250,300 1100,250 1000,320 C 880,400 800,350 750,280 C 700,200 780,100 900,-50 Z' fill='%23221e18' opacity='0.3'/%3E%3Cpath d='M -50,100 C 50,180 150,120 250,180 C 350,240 280,340 180,300 C 80,260 -50,320 -50,250 Z' fill='%231e1a14' opacity='0.35'/%3E%3Cpath d='M 400,-50 C 450,50 550,30 600,-20 C 650,40 580,130 500,100 C 420,70 380,30 400,-50 Z' fill='%23201c16' opacity='0.25'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: top center;
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: multiply;
+  will-change: transform, opacity;
+  transition: opacity 0.5s ease;
+  animation: cloudDrift 25s ease-in-out infinite;
+}
+
+@keyframes cloudDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(80px, -25px) scale(1.08); }
+  50%  { transform: translate(-60px, 20px) scale(0.94); }
+  75%  { transform: translate(50px, -15px) scale(1.05); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.background-watermark {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-bottom: 28vh; /* Push text upward to reduce empty space above */
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
+  will-change: transform, opacity;
+  overflow: hidden; /* Clip text when it moves out of hero bounds */
 }
 
-.hero__bg-text {
+.hero__bg-text-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  user-select: none;
-  will-change: transform;
+  gap: 0;
 }
 
-.hero__bg-text-line {
-  font-family: var(--font-serif);
-  font-size: clamp(4rem, 14vw, 14rem);
-  font-weight: 400;
-  line-height: 0.85;
-  letter-spacing: -0.02em;
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--color-sand);
-  text-stroke: 1.5px var(--color-sand);
-  opacity: 0.5;
-  animation: heroTextFadeIn 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: calc(var(--i, 0) * 0.15s);
-  transform: translateY(40px);
-}
-
-.hero__bg-text-line:nth-child(1) {
-  --i: 0;
-}
-
-.hero__bg-text-line:nth-child(2) {
-  --i: 1;
-}
-
-.hero__bg-text-line:nth-child(3) {
-  --i: 2;
+/* Giant solid background wordmarks for "Interview Technology AI" */
+.hero__bg-text-word {
+  font-family: var(--font-display), 'Space Grotesk', 'Inter', sans-serif;
+  font-size: clamp(3rem, 13vw, 15rem);
+  font-weight: 800; /* Extra bold for solid geometric brand presence */
+  line-height: 0.82;
+  letter-spacing: -0.06em; /* Tight letter spacing like the Floema logo */
+  color: var(--color-dark); /* Solid modern dark black (#1A1714) */
+  text-transform: uppercase;
+  text-align: center;
+  will-change: transform, opacity;
+  animation: heroTextFadeIn 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes heroTextFadeIn {
   from {
     opacity: 0;
-    transform: translateY(60px);
+    transform: translateY(60px) scale(0.95);
   }
 
   to {
-    opacity: 0.4;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-/* ITA Logo — in front of background text */
-.hero__logo-wrapper {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  will-change: transform;
-  animation: logoEnter 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+/* ITA 3D Mossy Stone Sculpture Wrapper — Anchored to bottom boundary and overlapping Page 2 */
+.ita-sculpture-wrapper {
+  position: absolute;
+  left: 50%;
+  bottom: -24vh; /* Anchored slightly deeper to match massive base overlap */
+  transform: translateX(-50%);
+  transform-origin: center bottom; /* Anchor zooming and tilt scaling to bottom base */
+  z-index: 10;
+  pointer-events: none;
+  will-change: transform, opacity, filter;
+  animation: logoEnter 2s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  transform-style: preserve-3d;
 }
 
-.hero__logo {
-  width: clamp(280px, 40vw, 550px);
+.ita-sculpture-wrapper img {
+  width: min(90vw, 1320px); /* Restored to monumental screen-filling Floema size */
+  max-width: none !important; /* OVERRIDE global design-system image reset to unlock giant colossal sizing */
   height: auto;
-  filter: drop-shadow(0 20px 60px rgba(44, 40, 36, 0.15));
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.hero__logo:hover {
-  transform: scale(1.03);
+  object-fit: contain;
+  transform-origin: center bottom;
+  will-change: transform;
+  mix-blend-mode: darken; /* Blend image bg with page bg for seamless transition */
 }
 
 @keyframes logoEnter {
   from {
     opacity: 0;
-    transform: translateY(30px) scale(0.95);
+    transform: translate3d(-50%, 60px, -100px) scale(0.92);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(-50%, 0, 0) scale(1);
   }
 }
 
-/* Hero content below logo */
-.hero__content {
-  position: relative;
-  z-index: 3;
-  text-align: center;
-  margin-top: 2rem;
+/* Premium Floema-style Side-by-Side Footer CTA */
+.hero__footer {
+  position: absolute;
+  bottom: 4.5rem;
+  left: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Balanced side columns pushed to the edges */
+  padding: 0 4.5%; /* Widen layout padding to keep clear of the massive central sculpture */
+  z-index: 12; /* Sits in front of the sculpture wrapper (z-index: 10) so text/card are never hidden behind grass */
+  pointer-events: auto; /* Clickable CTA card */
   will-change: transform, opacity;
-  animation: contentFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both;
+  animation: contentFadeUp 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
 }
 
-.hero__subtitle {
-  font-family: var(--font-sans);
-  font-size: clamp(0.9rem, 2vw, 1.15rem);
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--color-text-secondary);
-  margin-bottom: 2rem;
-}
-
-.hero__cta {
+.hero-content-left {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  will-change: transform, opacity;
+}
+
+.hero__footer-title {
+  font-size: clamp(1.8rem, 3.2vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-charcoal);
+  margin-bottom: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.hero__footer-scroll-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  position: relative;
+  padding-bottom: 6px;
+  opacity: 0.85;
+}
+
+.hero__footer-scroll-text::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 32px;
+  height: 1px;
+  background: var(--color-accent);
+}
+
+.floating-glass-card {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  will-change: transform, opacity;
+}
+
+/* Glassmorphism premium box for CTA */
+.hero__cta-box {
+  padding: 2.8rem;
+  border-radius: 28px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero__cta-box:hover {
+  transform: translateY(-6px);
+  background: rgba(250, 248, 245, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 45px 100px rgba(44, 40, 36, 0.12) !important;
+}
+
+.hero__cta-desc {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+}
+
+.hero__cta-actions {
+  display: flex;
+  gap: 1.2rem;
 }
 
 @keyframes contentFadeUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(50px);
   }
 
   to {
@@ -145,66 +225,47 @@
   }
 }
 
-/* Scroll Indicator */
-.hero__scroll-indicator {
-  position: absolute;
-  bottom: 3rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  z-index: 3;
-  animation: scrollIndicatorPulse 2s ease-in-out infinite;
+/* Next Section Overlap Rules to complete the Floema K look */
+.next-section {
+  position: relative;
+  z-index: 11; /* Sits higher to overlap the bleeding sculpture details beautifully */
+  margin-top: -5vh; /* Pulls Section 2 up to overlap the sculpture border */
+  background: var(--color-cream) !important; /* Solid warm ivory floor that masks bottom parts */
 }
 
-.hero__scroll-indicator span {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.hero__scroll-line {
-  width: 1px;
-  height: 40px;
-  background: linear-gradient(to bottom, var(--color-text-muted), transparent);
-  animation: scrollLineMove 2s ease-in-out infinite;
-}
-
-@keyframes scrollIndicatorPulse {
-
-  0%,
-  100% {
-    opacity: 1;
+@media (max-width: 992px) {
+  .hero-section {
+    min-height: 110vh;
+    padding-bottom: 25vh;
   }
 
-  50% {
-    opacity: 0.5;
+  .hero__footer {
+    grid-template-columns: 1fr;
+    gap: 3.5rem;
+    bottom: 22vh; /* Shifts text up so it doesn't conflict with bottom logo */
+    padding: 0 2.5rem;
   }
-}
-
-@keyframes scrollLineMove {
-  0% {
-    transform: scaleY(0);
-    transform-origin: top;
+  
+  .hero-content-left {
+    justify-content: flex-start;
+  }
+  
+  .floating-glass-card {
+    justify-content: flex-start;
+  }
+  
+  .hero__cta-box {
+    max-width: 100%;
+    width: 100%;
+    padding: 2.2rem;
   }
 
-  50% {
-    transform: scaleY(1);
-    transform-origin: top;
+  .ita-sculpture-wrapper {
+    bottom: -10vh;
   }
 
-  51% {
-    transform: scaleY(1);
-    transform-origin: bottom;
-  }
-
-  100% {
-    transform: scaleY(0);
-    transform-origin: bottom;
+  .ita-sculpture-wrapper img {
+    width: clamp(280px, 80vw, 680px);
   }
 }
 
