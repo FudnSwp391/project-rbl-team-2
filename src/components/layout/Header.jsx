@@ -8,6 +8,11 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  
+  // Debugging log to see if user state is populated
+  useEffect(() => {
+    console.log("Current user state in Header:", user);
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -111,12 +116,49 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
-          <Link to="/login" className="btn btn--primary" style={{
-            padding: '0.6rem 1.5rem',
-            fontSize: '0.75rem',
-          }}>
-            Bắt đầu
-          </Link>
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Link to="/profile" style={{
+                textDecoration: 'none',
+                color: 'var(--color-charcoal)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }} className="nav-link-item">
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: 'var(--color-earth, #c4956a)', color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 'bold', fontSize: '14px'
+                }}>
+                  {user.user_metadata?.full_name 
+                    ? user.user_metadata.full_name.charAt(0).toUpperCase() 
+                    : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
+                </div>
+                {user.user_metadata?.full_name || user.email?.split('@')[0]}
+              </Link>
+              <button onClick={handleLogout} className="btn btn--outline" style={{
+                padding: '0.4rem 1rem',
+                fontSize: '0.75rem',
+                borderRadius: '9999px',
+                border: '1px solid var(--border-color, #e0d5c1)',
+                background: 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}>
+                Đăng xuất
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="btn btn--primary" style={{
+              padding: '0.6rem 1.5rem',
+              fontSize: '0.75rem',
+            }}>
+              Bắt đầu
+            </Link>
+          )}
         </nav>
 
         {/* Mobile Menu Toggle */}
@@ -196,9 +238,35 @@ const Header = () => {
             {link.label}
           </Link>
         ))}
-        <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
-          Bắt đầu
-        </Link>
+        {user ? (
+          <>
+            <Link to="/profile" onClick={() => setMenuOpen(false)} style={{
+              textDecoration: 'none',
+              color: 'var(--color-earth, #c4956a)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '1.5rem',
+              fontWeight: 600,
+            }}>
+              Xin chào, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+            </Link>
+            <button onClick={handleLogout} className="btn btn--outline" style={{
+                padding: '0.6rem 2rem',
+                borderRadius: '9999px',
+                border: '1px solid var(--color-earth, #c4956a)',
+                background: 'transparent',
+                color: 'var(--color-earth, #c4956a)',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                marginTop: '1rem'
+            }}>
+              Đăng xuất
+            </button>
+          </>
+        ) : (
+          <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
+            Bắt đầu
+          </Link>
+        )}
       </div>
 
       <style>{`
