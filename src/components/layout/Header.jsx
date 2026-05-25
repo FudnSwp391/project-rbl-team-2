@@ -7,7 +7,7 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -130,6 +130,18 @@ const Header = () => {
                   {(user.user_metadata?.full_name || user.email).charAt(0).toUpperCase()}
                 </div>
                 {user.user_metadata?.full_name || user.email}
+                {profile?.plan && (
+                  <span style={{ 
+                    background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
+                    color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                  }}>
+                    {profile.plan}
+                  </span>
+                )}
               </Link>
               <button 
                 onClick={handleLogout}

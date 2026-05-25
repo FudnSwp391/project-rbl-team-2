@@ -1,0 +1,181 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../utils/supabaseClient';
+import { Edit2, Trash2, Plus, X } from 'lucide-react';
+
+const SubscriptionPlansView = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentItem, setCurrentItem] = useState(null);
+  const [featuresInput, setFeaturesInput] = useState('');
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('subscription_plans')
+      .select('*')
+      .order('price', { ascending: true });
+      
+    if (error) console.error('Error fetching subscription_plans:', error);
+    else setItems(data || []);
+    setLoading(false);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa gói dịch vụ này?')) {
+      const { error } = await supabase.from('subscription_plans').delete().eq('id', id);
+      if (error) alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      else setItems(items.filter(item => item.id !== id));
+    }
+  };
+
+  const handleEdit = (item) => {
+    setCurrentItem(item);
+    setFeaturesInput(item.features ? (Array.isArray(item.features) ? item.features.join('\n') : JSON.stringify(item.features)) : '');
+    setIsEditing(true);
+  };
+
+  const handleAdd = () => {
+    setCurrentItem({ name: '', price: 0, duration_days: 30 });
+    setFeaturesInput('');
+    setIsEditing(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    let featuresArray = [];
+    try {
+      featuresArray = featuresInput.split('\n').filter(s => s.trim() !== '');
+    } catch (err) {}
+
+    const payload = { 
+      name: currentItem.name, 
+      price: currentItem.price,
+      duration_days: currentItem.duration_days,
+      features: featuresArray
+    };
+
+    if (currentItem.id) {
+      const { error } = await supabase.from('subscription_plans').update(payload).eq('id', currentItem.id);
+      if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+    } else {
+      const { error } = await supabase.from('subscription_plans').insert([payload]);
+      if (error) return alert('Lỗi thêm mới: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+    }
+    
+    setIsEditing(false);
+    setCurrentItem(null);
+    fetchItems();
+  };
+
+  return (
+    <div className="animate-fade" style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+        <h2>Gói dịch vụ ({items.length})</h2>
+        <button 
+          className="btn-primary" 
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+            background: 'linear-gradient(135deg, #ffffff, #e2e8f0)',
+            color: '#000000',
+            fontWeight: '600',
+            padding: '0.6rem 1.2rem',
+            borderRadius: '8px',
+            border: 'none', 
+            boxShadow: '0 4px 15px rgba(255, 255, 255, 0.15)',
+            transition: 'all 0.3s ease'
+          }} 
+          onClick={handleAdd}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        >
+          <Plus size={18} /> Thêm mới
+        </button>
+      </div>
+
+      <div className="glass-card" style={{ overflowX: 'auto', padding: 0 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
+              <th style={{ padding: '1rem', fontWeight: '500' }}>Tên gói</th>
+              <th style={{ padding: '1rem', fontWeight: '500' }}>Giá</th>
+              <th style={{ padding: '1rem', fontWeight: '500' }}>Thời hạn</th>
+              <th style={{ padding: '1rem', fontWeight: '500' }}>Tính năng</th>
+              <th style={{ padding: '1rem', fontWeight: '500', width: '100px', textAlign: 'center' }}>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(item => (
+              <tr key={item.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                <td style={{ padding: '1rem', fontWeight: 'bold', color: 'hsl(var(--primary-hsl))' }}>{item.name}</td>
+                <td style={{ padding: '1rem' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}</td>
+                <td style={{ padding: '1rem' }}>{item.duration_days} ngày</td>
+                <td style={{ padding: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  {item.features && Array.isArray(item.features) ? item.features.join(', ') : ''}
+                </td>
+                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                  <button onClick={() => handleEdit(item)} style={iconBtnStyle} title="Sửa"><Edit2 size={18} color="hsl(var(--primary-hsl))" /></button>
+                  <button onClick={() => handleDelete(item.id)} style={iconBtnStyle} title="Xóa"><Trash2 size={18} color="#ff4d4d" /></button>
+                </td>
+              </tr>
+            ))}
+            {items.length === 0 && !loading && <tr><td colSpan="5" style={{ padding: '1rem', textAlign: 'center' }}>Không có dữ liệu</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {isEditing && (
+        <div style={modalOverlayStyle}>
+          <div className="animate-fade glass-card" style={modalContentStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0 }}>{currentItem.id ? 'Sửa gói dịch vụ' : 'Thêm gói dịch vụ'}</h2>
+              <button onClick={() => setIsEditing(false)} style={closeBtnStyle}><X size={24} /></button>
+            </div>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={labelStyle}>Tên gói</label>
+                <input required type="text" value={currentItem.name} onChange={e => setCurrentItem({ ...currentItem, name: e.target.value })} style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Giá (VND)</label>
+                  <input required type="number" value={currentItem.price} onChange={e => setCurrentItem({ ...currentItem, price: e.target.value })} style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Thời hạn (ngày)</label>
+                  <input required type="number" value={currentItem.duration_days} onChange={e => setCurrentItem({ ...currentItem, duration_days: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Các tính năng (Mỗi tính năng 1 dòng)</label>
+                <textarea rows={5} value={featuresInput} onChange={e => setFeaturesInput(e.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="submit" className="btn-primary" style={{ flex: 1 }}>Lưu</button>
+                <button type="button" onClick={() => setIsEditing(false)} style={cancelBtnStyle}>Hủy</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const inputStyle = { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', color: '#000000', outline: 'none' };
+const labelStyle = { display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' };
+const iconBtnStyle = { background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', margin: '0 0.25rem' };
+const cancelBtnStyle = { flex: 1, padding: '0.75rem', background: 'transparent', border: '1px solid var(--text-secondary)', color: 'white', borderRadius: '8px', cursor: 'pointer' };
+const closeBtnStyle = { background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' };
+const modalOverlayStyle = {
+  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+};
+const modalContentStyle = { width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem' };
+
+export default SubscriptionPlansView;
