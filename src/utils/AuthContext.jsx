@@ -66,11 +66,19 @@ export const AuthProvider = ({ children }) => {
         });
     };
 
+    // Login with OAuth Provider (Google, Facebook, etc.)
+    const loginWithOAuth = async (provider) => {
+        return await supabase.auth.signInWithOAuth({
+            provider: provider,
+        });
+    };
+
     const value = {
         user,
         loading,
         register,
         login,
+        loginWithOAuth,
         logout,
         resetPassword,
         updateProfile,
