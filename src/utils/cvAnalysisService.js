@@ -120,24 +120,8 @@ function validateCVContent(text) {
 function createEmptyCVResult(fileName, reason) {
   return {
     atsScore: 0,
-    summary: `⚠️ KHÔNG THỂ PHÂN TÍCH: ${reason} File "${fileName}" không chứa nội dung CV hợp lệ. Điểm ATS: 0/100.`,
-    strengths: [],
-    weaknesses: [
-      'CV trống hoặc không có nội dung',
-      'Không có thông tin cá nhân',
-      'Không có kinh nghiệm làm việc',
-      'Không có kỹ năng được liệt kê',
-      'Không có thông tin học vấn',
-    ],
-    keywords: { found: [], missing: ['Tất cả từ khóa quan trọng đều bị thiếu'] },
-    suggestions: [
-      {
-        category: 'Nội dung',
-        issue: 'CV hoàn toàn trống',
-        fix: 'Vui lòng tải lên CV có nội dung thực tế bao gồm: thông tin cá nhân, học vấn, kinh nghiệm, và kỹ năng.',
-      },
-    ],
     sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
+    detailedReport: `# 1. Executive Summary\n\n⚠️ KHÔNG THỂ PHÂN TÍCH: ${reason}\n\nFile "${fileName}" không chứa nội dung CV hợp lệ. Vui lòng tải lên CV có nội dung thực tế bao gồm thông tin cá nhân, học vấn, kinh nghiệm, và kỹ năng.\n\n# 2. Phân tích độ tương thích ATS\n\nĐiểm ATS: 0/100. CV trống hoặc định dạng không thể trích xuất text.`
   }
 }
 
@@ -275,102 +259,100 @@ async function extractDocxText(file) {
 // ─────────────────────────────────────────────
 
 async function callGeminiAnalysis(cvText, fileName) {
-  const prompt = `You are a senior IT recruiter (HR + Tech Lead) evaluating CVs for IT/Software positions. You must analyze STRICTLY, HONESTLY, and in GREAT DETAIL based on the 5 core professional criteria below.
+  const prompt = `You are an elite Senior Technical Recruiter, ATS System, and IT Career Mentor with 15+ years of experience hiring candidates in the software industry for top tech companies and FAANG.
+Your task is to deeply analyze uploaded IT resumes/CVs and provide extremely detailed, strict, professional, and realistic evaluations.
+
+You must think like:
+- FAANG recruiter
+- Senior HR manager
+- Tech lead
+- ATS screening system
+- Engineering manager
+
+You are STRICT. You DO NOT give fake compliments. You evaluate based on real-world hiring standards from 2025+.
 
 ## STEP 0 — NON-IT CV CHECK:
 First, determine if this CV is for an IT/Software/Tech role. If the CV is CLEARLY for a NON-IT field (e.g., accounting, marketing, nursing, teaching with NO tech skills), you MUST:
 - Set isNonIT to true
 - Set atsScore to 0
-- Set summary to: "CV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được."
+- Set detailedReport to: "# 1. Executive Summary\\n\\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được."
 - Leave all section scores at 0
 
-## THE 5 CORE EVALUATION CRITERIA:
+## THE 5 CORE EVALUATION CRITERIA (For sectionScores):
+1. jdRelevance (20%): IT keywords, career goals alignment.
+2. experience (30%): Project size, role, tech stack, real companies, GitHub/demo links.
+3. skills (20%): Categorized skills, certs (AWS, GCP, Cisco), evidence of proficiency.
+4. achievements (20%): STAR model, specific metrics (response time, users, coverage).
+5. presentation (10%): 1-2 pages, professional tone, ATS-friendly layout.
 
-### 1. JD Relevance (jdRelevance) — 20% weight
-- Does the CV contain technical keywords that ATS systems look for? (e.g., ReactJS, AWS, Docker, Python, Java, Spring Boot, etc.)
-- Does the career objective align with an IT career path?
-- Are job titles and descriptions relevant to software/IT positions?
-- Score HIGH (70-90) if many relevant IT keywords and clear IT career direction
-- Score LOW (0-30) if no IT keywords, vague objectives, or non-IT content
-
-### 2. Work Experience & Projects (experience) — 30% weight
-- Does the CV clearly describe project size, role (Frontend/Backend/Full-stack), team size, and core technologies used?
-- Are there links to live products, GitHub/GitLab repositories?
-- Is there REAL work experience at actual companies with specific timeframes?
-- Score HIGH (70-90) if detailed project descriptions with tech stack, role clarity, and real company names
-- Score LOW (0-30) if no real projects, only vague mentions, or no work history
-
-### 3. Professional Skills & Certifications (skills) — 20% weight
-- Are skills clearly categorized? (Languages, Frameworks, Databases, DevOps Tools)
-- Are there valuable certifications? (AWS, Google Cloud, Cisco, Oracle, etc.)
-- Is there evidence of proficiency (not just "heard of" a technology)?
-- Score HIGH (70-90) if well-organized skills with certifications
-- Score LOW (0-30) if skills are vague, fake, or just a list of names without depth
-
-### 4. Measurable Achievements — STAR Model (achievements) — 20% weight
-- Does the CV use the STAR model (Situation, Task, Action, Result)?
-- Are there SPECIFIC METRICS? (e.g., "Reduced API response time from 2s to 0.5s", "System handles 10,000+ concurrent users", "Increased test coverage to 85%")
-- Score HIGH (70-90) if multiple quantified achievements with clear impact
-- Score LOW (0-30) if only lists tasks without any measurable results
-
-### 5. Presentation & Authenticity (presentation) — 10% weight
-- Is the CV 1-2 pages, concise, and well-formatted?
-- Does it have serious contact info (professional email, phone, LinkedIn)?
-- Is the layout ATS-friendly (avoids complex tables, images, fancy formatting)?
-- Is the tone professional throughout?
-- Score HIGH (70-90) if clean, professional, ATS-friendly layout
-- Score LOW (0-30) if messy, too long/short, or unprofessional tone
-
-## SCORING SCALE:
-- 0-15: UNACCEPTABLE (blank, joke, troll, non-IT)
-- 16-30: VERY POOR (severely lacking, unprofessional)
-- 31-45: POOR (basic structure but missing critical content)
-- 46-60: BELOW AVERAGE (has content but weak/vague)
-- 61-75: AVERAGE (decent, some real experience, needs improvement)
-- 76-85: GOOD (well-structured, specific, quantifiable)
-- 86-100: EXCELLENT (outstanding, perfect ATS optimization)
-
-## RED FLAGS:
-- Joke/troll content → atsScore ≤ 20
-- Fake skills like "Ctrl+C Ctrl+V" → ≤ 25
-- No real work experience → atsScore ≤ 40
-- Relationship status in CV → -5 points
-- A genuinely good IT CV with real experience MUST score fairly (60-85)
-
-Return ONLY a JSON object (no markdown fences, no extra text):
+Return ONLY a JSON object (no markdown fences around the JSON, no extra text):
 
 {
   "isNonIT": <true if CV is not IT-related, false otherwise>,
-  "atsScore": <0-100 overall weighted score>,
-  "summary": "<detailed 3-4 sentence assessment in Vietnamese covering all 5 criteria>",
-  "strengths": ["<specific strengths tied to the 5 criteria>"],
-  "weaknesses": ["<specific weaknesses tied to the 5 criteria>"],
-  "keywords": {
-    "found": ["<real IT keywords found in CV>"],
-    "missing": ["<important IT keywords that should be added>"]
-  },
-  "suggestions": [
-    {
-      "category": "<Phù hợp JD|Kinh nghiệm & Dự án|Kỹ năng & Chứng chỉ|Thành tích (STAR)|Trình bày & Tính xác thực|Tính chuyên nghiệp>",
-      "issue": "<specific problem in Vietnamese>",
-      "fix": "<actionable, detailed fix in Vietnamese>"
-    }
-  ],
+  "atsScore": <0-100 overall weighted score based on criteria>,
   "sectionScores": {
     "jdRelevance": <0-100>,
     "experience": <0-100>,
     "skills": <0-100>,
     "achievements": <0-100>,
     "presentation": <0-100>
-  }
+  },
+  "detailedReport": "<The COMPLETE 12-section markdown report in Vietnamese. Use markdown headers (# and ##), bold (**text**), lists (-), etc. Follow the EXACT structure below. MUST BE A VALID JSON ESCAPED STRING.>"
 }
+
+## DETAILED REPORT STRUCTURE (Must be exactly these 12 sections in Vietnamese):
+
+# 1. Executive Summary
+- Đánh giá tổng quan ngắn gọn, nhận định level hiện tại (Beginner / Junior / Mid-level / Senior-ready).
+
+# 2. Phân tích độ tương thích ATS
+- Khả năng đọc của ATS, mật độ từ khóa, rủi ro cấu trúc file, chấm điểm ATS phần này.
+
+# 3. Đánh giá bố cục và thiết kế
+- Cấu trúc trực quan, khoảng trắng, sự chuyên nghiệp, gợi ý sửa đổi.
+
+# 4. Phân tích Kỹ năng Chuyên môn
+- Đánh giá độ sâu kỹ năng cứng, cập nhật xu hướng 2025+, phát hiện buzzword stuffing. Gợi ý kỹ năng cần bổ sung gấp.
+
+# 5. Phân tích Dự án Thực tế (CỰC KỲ QUAN TRỌNG)
+- Đánh giá từng dự án: độ phức tạp, kiến trúc, tech stack. Phân loại: Đồ án sinh viên hay Production-level? Bắt lỗi dự án CRUD sơ sài.
+
+# 6. Phân tích Kinh nghiệm làm việc
+- Chất lượng công việc, mức độ ảnh hưởng, làm việc nhóm. Viết lại các bullet points yếu.
+
+# 7. Đánh giá Thành tích & Mức độ ảnh hưởng (STAR)
+- Bắt buộc phải có con số (metrics), business impact. Đề xuất cách viết thành tích tốt hơn.
+
+# 8. Cờ Đỏ & Điểm Yếu (Red Flags)
+- Bắt lỗi gay gắt: không có deploy, thiếu metrics, ôm đồm công nghệ, thiếu chuyên sâu.
+
+# 9. Khả năng được tuyển dụng (Hiring Probability)
+- Ước lượng % cơ hội. Đánh giá độ sẵn sàng cho Startup, Outsourcing, Product, FAANG.
+
+# 10. Lộ trình Cải thiện (Roadmap)
+- Chia ra: HIGH PRIORITY, MEDIUM PRIORITY, LOW PRIORITY.
+
+# 11. Các Mục Còn Thiếu Nên Bổ Sung
+- Chứng chỉ, Portfolio website, Blog IT, Open source, v.v.
+
+# 12. Tổng Kết (Final Verdict)
+- Ưu điểm, khuyết điểm lớn nhất, điều gì ngăn cản việc nhận phỏng vấn, Exact next steps.
+
+==================================================
+SPECIAL RULES FOR IT CVs
+==================================================
+- If Frontend: Focus on React ecosystem, State management, UI/UX, Performance.
+- If Backend: Focus on API design, DB design, Scalability, Security, Architecture.
+- If Fullstack: Evaluate balance between frontend/backend depth.
+- If AI/ML: Focus on Model understanding, MLOps, dataset, deployment.
+
+RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN FENCES. NO EXTRA TEXT.
+MUST FORMAT THE detailedReport FIELD AS A PROPER JSON ESCAPED STRING.
 
 CV CONTENT FROM FILE "${fileName}":
 ---
 ${cvText.substring(0, 12000)}
----
-
-RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN. NO EXTRA TEXT.`
+---`
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -405,16 +387,8 @@ RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN. NO EXTRA TEXT.`
   if (result.isNonIT) {
     return {
       atsScore: 0,
-      summary: 'CV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống này chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ.',
-      strengths: [],
-      weaknesses: ['CV không thuộc ngành IT/Công nghệ thông tin'],
-      keywords: { found: [], missing: [] },
-      suggestions: [{
-        category: 'Phù hợp JD',
-        issue: 'CV không liên quan đến IT',
-        fix: 'Hệ thống chỉ hỗ trợ đánh giá CV cho ngành IT. Vui lòng gửi CV cho vị trí IT/phần mềm.',
-      }],
       sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
+      detailedReport: "# 1. Executive Summary\n\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống này chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ."
     }
   }
 
@@ -426,11 +400,10 @@ RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN. NO EXTRA TEXT.`
     }
   }
 
-  // Ensure arrays exist
-  if (!Array.isArray(result.strengths)) result.strengths = []
-  if (!Array.isArray(result.weaknesses)) result.weaknesses = []
-  if (!Array.isArray(result.suggestions)) result.suggestions = []
-  if (!result.keywords) result.keywords = { found: [], missing: [] }
+  // Ensure detailedReport exists
+  if (!result.detailedReport) {
+    result.detailedReport = "# Lỗi phân tích\n\nKhông thể tạo báo cáo chi tiết. Vui lòng thử lại.";
+  }
 
   return result
 }
@@ -464,12 +437,8 @@ function localAnalysis(text, fileName) {
   if (itFound.length <= 1 && nonItFields.test(text) && len > 100) {
     return {
       atsScore: 0,
-      summary: 'CV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ.',
-      strengths: [],
-      weaknesses: ['CV không thuộc ngành IT/Công nghệ thông tin'],
-      keywords: { found: [], missing: [] },
-      suggestions: [{ category: 'Phù hợp JD', issue: 'CV không liên quan đến IT', fix: 'Hệ thống chỉ hỗ trợ đánh giá CV cho ngành IT.' }],
       sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
+      detailedReport: '# 1. Executive Summary\n\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ.'
     }
   }
 
@@ -605,28 +574,87 @@ function localAnalysis(text, fileName) {
   const missingKeywords = ['TypeScript', 'Docker', 'CI/CD', 'Unit Testing', 'Agile/Scrum', 'Cloud (AWS/GCP/Azure)', 'Microservices']
     .filter((k) => !lower.includes(k.toLowerCase().split(' ')[0].split('/')[0]))
 
-  // --- Summary ---
-  let summary
+  let detailedReport = `# 1. Executive Summary\n\n`;
   if (jokeCount >= 3) {
-    summary = `⚠️ CV "${fileName}" chứa nội dung hài hước/troll và KHÔNG phù hợp để nộp. Điểm ATS: ${atsScore}/100. Cần viết lại toàn bộ.`
+    detailedReport += `⚠️ CV "${fileName}" chứa nội dung hài hước/troll và KHÔNG phù hợp để nộp. Cần viết lại toàn bộ.\n\nĐánh giá Level: Không hợp lệ.`;
   } else if (atsScore < 30) {
-    summary = `CV "${fileName}" còn rất yếu (${atsScore}/100). Thiếu nhiều yếu tố quan trọng: kinh nghiệm dự án, từ khóa ATS, thành tích đo lường. Cần cải thiện đáng kể.`
+    detailedReport += `CV "${fileName}" còn rất yếu. Thiếu nhiều yếu tố quan trọng: kinh nghiệm dự án, từ khóa ATS, thành tích đo lường. Cần cải thiện đáng kể.\n\nĐánh giá Level: Beginner.`;
   } else if (atsScore < 60) {
-    summary = `CV "${fileName}" ở mức dưới trung bình (${atsScore}/100). Có cấu trúc cơ bản nhưng cần bổ sung chi tiết dự án, số liệu thành tích (STAR model), và tối ưu từ khóa ATS.`
+    detailedReport += `CV "${fileName}" ở mức dưới trung bình. Có cấu trúc cơ bản nhưng cần bổ sung chi tiết dự án, số liệu thành tích (STAR model), và tối ưu từ khóa ATS.\n\nĐánh giá Level: Junior.`;
   } else {
-    summary = `CV "${fileName}" đạt mức ${atsScore}/100. Có nền tảng IT tốt nhưng vẫn cần tối ưu thêm: bổ sung thành tích cụ thể, chứng chỉ chuyên môn, và link portfolio.`
+    detailedReport += `CV "${fileName}" có nền tảng IT tốt nhưng vẫn cần tối ưu thêm: bổ sung thành tích cụ thể, chứng chỉ chuyên môn, và link portfolio.\n\nĐánh giá Level: Mid-level.`;
   }
 
+  detailedReport += `\n\n# 2. Phân tích độ tương thích ATS\n`;
+  detailedReport += `- Điểm ATS: **${atsScore}/100**\n`;
+  detailedReport += `- Mật độ từ khóa: Tìm thấy ${itFound.length} từ khóa chuyên ngành.\n`;
+  if (itFound.length < 5) detailedReport += `- ⚠️ Cảnh báo: Số lượng từ khóa quá thấp, rất dễ bị ATS loại bỏ.\n`;
+
+  detailedReport += `\n\n# 3. Đánh giá bố cục và thiết kế\n`;
+  if (presentation >= 60) {
+    detailedReport += `- Bố cục cơ bản đáp ứng được yêu cầu đọc của ATS. Có đầy đủ thông tin liên hệ và học vấn.\n`;
+  } else {
+    detailedReport += `- Bố cục còn yếu, thiếu thông tin liên hệ chuyên nghiệp hoặc mục tiêu nghề nghiệp.\n`;
+  }
+
+  detailedReport += `\n\n# 4. Phân tích Kỹ năng Chuyên môn\n`;
+  detailedReport += `- Kỹ năng tìm thấy: ${itFound.slice(0, 10).join(', ')}${itFound.length > 10 ? '...' : ''}\n`;
+  if (!hasCerts) detailedReport += `- Đang thiếu hoàn toàn các chứng chỉ chuyên môn (AWS, GCP, Cisco).\n`;
+
+  detailedReport += `\n\n# 5. Phân tích Dự án Thực tế\n`;
+  if (hasProjectDetails) {
+    detailedReport += `- Đã có đề cập đến dự án thực tế, tuy nhiên cần làm rõ hơn về kiến trúc và độ phức tạp.\n`;
+  } else {
+    detailedReport += `- ⚠️ Đang thiếu trầm trọng phần mô tả chi tiết dự án (Role, Tech Stack, Team size).\n`;
+  }
+
+  detailedReport += `\n\n# 6. Phân tích Kinh nghiệm làm việc\n`;
+  if (hasExperience) {
+    detailedReport += `- Đã liệt kê kinh nghiệm làm việc. Cần đảm bảo các mô tả công việc mang tính đóng góp thực tế thay vì chỉ liệt kê nhiệm vụ.\n`;
+  } else {
+    detailedReport += `- ⚠️ Không tìm thấy kinh nghiệm làm việc rõ ràng. Hãy bổ sung ngay các dự án cá nhân hoặc thời gian thực tập.\n`;
+  }
+
+  detailedReport += `\n\n# 7. Đánh giá Thành tích & Mức độ ảnh hưởng (STAR)\n`;
+  if (hasMetrics) {
+    detailedReport += `- Đã có sự xuất hiện của số liệu đo lường. Cần tối ưu thêm theo mô hình STAR (Tình huống - Nhiệm vụ - Hành động - Kết quả).\n`;
+  } else {
+    detailedReport += `- ⚠️ Gần như không có số liệu (Metrics) đo lường nào. Nhà tuyển dụng rất khó đánh giá năng lực thực sự của bạn.\n`;
+  }
+
+  detailedReport += `\n\n# 8. Cờ Đỏ & Điểm Yếu\n`;
+  if (weaknesses.length > 0) {
+    weaknesses.forEach(w => detailedReport += `- ${w}\n`);
+  } else {
+    detailedReport += `- Không có điểm yếu nghiêm trọng.\n`;
+  }
+
+  detailedReport += `\n\n# 9. Khả năng được tuyển dụng (Hiring Probability)\n`;
+  if (atsScore > 75) detailedReport += `- Cơ hội tốt cho các vai trò Junior/Mid-level tại các công ty Product/Outsourcing.\n`;
+  else if (atsScore > 50) detailedReport += `- Có cơ hội cho vai trò Intern/Fresher, nhưng sẽ khó cạnh tranh tại các công ty lớn.\n`;
+  else detailedReport += `- Cơ hội rất thấp ở thời điểm hiện tại. Cần cải thiện CV ngay lập tức.\n`;
+
+  detailedReport += `\n\n# 10. Lộ trình Cải thiện\n`;
+  if (suggestions.length > 0) {
+    suggestions.forEach(s => detailedReport += `- **${s.category}**: ${s.issue} -> ${s.fix}\n`);
+  } else {
+    detailedReport += `- Tiếp tục phát huy và bổ sung thêm các dự án phức tạp hơn.\n`;
+  }
+
+  detailedReport += `\n\n# 11. Các Mục Còn Thiếu Nên Bổ Sung\n`;
+  if (missingKeywords.length > 0) {
+    detailedReport += `- **Từ khóa nên bổ sung**: ${missingKeywords.join(', ')}\n`;
+  }
+  if (!hasLinks) detailedReport += `- **Hồ sơ online**: GitHub, Portfolio cá nhân, LinkedIn (RẤT QUAN TRỌNG).\n`;
+
+  detailedReport += `\n\n# 12. Tổng Kết\n`;
+  detailedReport += `- **Điểm mạnh**: ${strengths.join('; ')}\n`;
+  detailedReport += `- **Next Steps**: Dựa vào Lộ trình cải thiện (Mục 10) để chỉnh sửa CV, sau đó upload lại để kiểm tra.\n`;
+
   return {
-    atsScore, summary,
-    strengths: strengths.length > 0 ? strengths : ['Không tìm thấy điểm mạnh nổi bật'],
-    weaknesses,
-    keywords: {
-      found: itFound.map((k) => k.charAt(0).toUpperCase() + k.slice(1)),
-      missing: missingKeywords,
-    },
-    suggestions,
+    atsScore,
     sectionScores: { jdRelevance, experience, skills, achievements, presentation },
+    detailedReport
   }
 }
 
