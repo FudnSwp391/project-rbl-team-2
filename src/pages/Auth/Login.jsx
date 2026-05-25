@@ -9,7 +9,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, loginWithOAuth } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,7 +25,19 @@ const Login = () => {
       navigate('/dashboard'); // Redirect after successful login
     } catch (err) {
       setError(err.message || 'Đã có lỗi xảy ra khi đăng nhập.');
-    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOAuthLogin = async (provider) => {
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await loginWithOAuth(provider);
+      if (error) throw error;
+      // Note: Supabase OAuth usually redirects automatically, so no need to navigate manually here
+    } catch (err) {
+      setError(err.message || `Đã có lỗi xảy ra khi đăng nhập bằng ${provider}.`);
       setLoading(false);
     }
   };
@@ -75,9 +87,32 @@ const Login = () => {
             className="btn btn--primary auth-submit-btn"
             disabled={loading}
           >
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {loading ? 'Đang xử lý...' : 'Đăng nhập'}
           </button>
         </form>
+
+        <div className="auth-divider">
+          <span>Hoặc đăng nhập với</span>
+        </div>
+        
+        <div className="auth-social-group">
+          <button 
+            type="button"
+            className="btn btn--outline auth-social-btn" 
+            onClick={() => handleOAuthLogin('google')}
+            disabled={loading}
+          >
+            Google
+          </button>
+          <button 
+            type="button"
+            className="btn btn--outline auth-social-btn" 
+            onClick={() => handleOAuthLogin('github')}
+            disabled={loading}
+          >
+            GitHub
+          </button>
+        </div>
 
         <div className="auth-footer">
           Chưa có tài khoản?{' '}
