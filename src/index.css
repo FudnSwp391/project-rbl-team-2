@@ -16,26 +16,12 @@ body {
   flex-direction: column;
 }
 
-/* Custom Scrollbar — Earthy */
+/* Hide Scrollbar completely as requested */
 ::-webkit-scrollbar {
-  width: 6px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--color-cream);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-sand);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-earth);
-}
-
-/* Smooth scrollbar for Firefox */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-sand) var(--color-cream);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }

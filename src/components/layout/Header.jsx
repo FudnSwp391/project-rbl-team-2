@@ -7,8 +7,8 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  
+  const { user, profile, logout } = useAuth();
+
   // Debugging log to see if user state is populated
   useEffect(() => {
     console.log("Current user state in Header:", user);
@@ -45,6 +45,10 @@ const Header = () => {
       ]
     }
   ];
+
+  if (profile?.role === 'admin' || profile?.role === 'Admin' || user?.user_metadata?.role === 'admin') {
+    navLinks.push({ to: '/admin', label: 'Quản trị' });
+  }
 
   return (
     <header id="main-header" style={{
@@ -193,11 +197,23 @@ const Header = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 'bold', fontSize: '14px'
                 }}>
-                  {user.user_metadata?.full_name 
-                    ? user.user_metadata.full_name.charAt(0).toUpperCase() 
+                  {user.user_metadata?.full_name
+                    ? user.user_metadata.full_name.charAt(0).toUpperCase()
                     : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </div>
                 {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                {profile?.plan && (
+                  <span style={{
+                    background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
+                    color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                  }}>
+                    {profile.plan}
+                  </span>
+                )}
               </Link>
               <button onClick={handleLogout} className="btn btn--outline" style={{
                 padding: '0.4rem 1rem',
@@ -333,14 +349,14 @@ const Header = () => {
               Xin chào, {user.user_metadata?.full_name || user.email?.split('@')[0]}
             </Link>
             <button onClick={handleLogout} className="btn btn--outline" style={{
-                padding: '0.6rem 2rem',
-                borderRadius: '9999px',
-                border: '1px solid var(--color-earth, #c4956a)',
-                background: 'transparent',
-                color: 'var(--color-earth, #c4956a)',
-                fontSize: '1rem',
-                cursor: 'pointer',
-                marginTop: '1rem'
+              padding: '0.6rem 2rem',
+              borderRadius: '9999px',
+              border: '1px solid var(--color-earth, #c4956a)',
+              background: 'transparent',
+              color: 'var(--color-earth, #c4956a)',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              marginTop: '1rem'
             }}>
               Đăng xuất
             </button>

@@ -1,0 +1,125 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../utils/supabaseClient';
+import { RefreshCw, Search, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
+
+const OrdersView = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    // Lấy danh sách giao dịch, sắp xếp mới nhất lên đầu
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id, user_id, plan_name, price, order_code, status, created_at
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching orders:', error);
+      alert('Lỗi khi tải lịch sử thanh toán: ' + error.message);
+    } else {
+      setOrders(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = orders.filter(order => 
+    (order.order_code && order.order_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (order.user_id && order.user_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (order.plan_name && order.plan_name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'paid':
+        return <span style={{ ...badgeStyle, background: 'rgba(50, 200, 100, 0.2)', color: '#32c864' }}><CheckCircle size={14} /> Đã thanh toán</span>;
+      case 'pending':
+        return <span style={{ ...badgeStyle, background: 'rgba(255, 150, 50, 0.2)', color: '#ff9632' }}><Clock size={14} /> Chờ thanh toán</span>;
+      case 'cancelled':
+        return <span style={{ ...badgeStyle, background: 'rgba(255, 50, 50, 0.2)', color: '#ff3232' }}><XCircle size={14} /> Đã hủy</span>;
+      default:
+        return <span style={{ ...badgeStyle, background: 'rgba(150, 150, 150, 0.2)', color: '#999' }}>{status}</span>;
+    }
+  };
+
+  return (
+    <div className="animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <DollarSign color="var(--primary)" />
+          Lịch sử Thanh toán
+        </h2>
+        <button onClick={fetchOrders} style={iconBtnStyle} title="Làm mới">
+          <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      <div className="glass-card" style={{ padding: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} size={20} />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm theo mã đơn, gói hoặc ID người dùng..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: '3rem' }}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)' }}>Đang tải dữ liệu...</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '1rem 0' }}>Mã Đơn</th>
+                  <th style={{ padding: '1rem 0' }}>Người dùng (ID)</th>
+                  <th style={{ padding: '1rem 0' }}>Gói dịch vụ</th>
+                  <th style={{ padding: '1rem 0' }}>Số tiền</th>
+                  <th style={{ padding: '1rem 0' }}>Trạng thái</th>
+                  <th style={{ padding: '1rem 0' }}>Ngày tạo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.length > 0 ? filteredOrders.map(order => (
+                  <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '1rem 0', fontWeight: 'bold', color: 'var(--primary)' }}>{order.order_code}</td>
+                    <td style={{ padding: '1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }} title={order.user_id}>
+                      {order.user_id ? order.user_id.substring(0, 8) + '...' : 'N/A'}
+                    </td>
+                    <td style={{ padding: '1rem 0' }}>{order.plan_name}</td>
+                    <td style={{ padding: '1rem 0' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.price)}</td>
+                    <td style={{ padding: '1rem 0' }}>{getStatusBadge(order.status)}</td>
+                    <td style={{ padding: '1rem 0', fontSize: '0.9rem' }}>{new Date(order.created_at).toLocaleString('vi-VN')}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="6" style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      Không tìm thấy giao dịch nào.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const inputStyle = { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', color: '#000000', outline: 'none' };
+const iconBtnStyle = { background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: 'var(--text-secondary)' };
+const badgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' };
+
+export default OrdersView;
