@@ -8,7 +8,6 @@ const Dashboard = () => {
   
   // Dữ liệu trống, sẽ fetch từ backend sau
   const dailyChallenges = [];
-  const interviewHistory = [];
 
   return (
     <div className="container animate-fade" style={{ paddingTop: '8rem', paddingBottom: 'var(--spacing-xl)' }}>
@@ -98,76 +97,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Interview History */}
-        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-md)' }}>
-            <History color="hsl(var(--primary-hsl))" />
-            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Lịch sử Phỏng vấn</h2>
-          </div>
-          
-          <div style={{ overflowX: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {interviewHistory.length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>Vị trí</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>Ngày</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>Điểm</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {interviewHistory.map(interview => (
-                    <tr key={interview.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '1rem 0.5rem' }}>{interview.role}</td>
-                      <td style={{ padding: '1rem 0.5rem', color: 'var(--text-secondary)' }}>{interview.date}</td>
-                      <td style={{ padding: '1rem 0.5rem' }}>
-                        <span style={{
-                          background: interview.score >= 80 ? 'rgba(50, 200, 100, 0.2)' : 'rgba(255, 150, 50, 0.2)',
-                          color: interview.score >= 80 ? '#32c864' : '#ff9632',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: 'bold'
-                        }}>
-                          {interview.score}/100
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div style={{ 
-                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', 
-                justifyContent: 'center', padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' 
-              }}>
-                <FolderOpen size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-                <p>Bạn chưa thực hiện bài phỏng vấn nào.</p>
-                <Link to="/interview" className="btn-primary" style={{ marginTop: '1rem', textDecoration: 'none', display: 'inline-block' }}>
-                  Bắt đầu phỏng vấn
-                </Link>
-              </div>
-            )}
-          </div>
-          
-          {interviewHistory.length > 0 && (
-            <button style={{
-              width: '100%',
-              padding: '0.75rem',
-              marginTop: '1rem',
-              background: 'transparent',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--text-primary)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-              onMouseOver={(e) => e.target.style.background = 'var(--glass-bg)'}
-              onMouseOut={(e) => e.target.style.background = 'transparent'}
-            >
-              Xem tất cả
-            </button>
-          )}
-        </div>
+
       </div>
     </div>
   );

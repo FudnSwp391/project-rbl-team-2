@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
-import { Check, X as XIcon, Eye, Info } from 'lucide-react';
+import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
 
 const EmployersView = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -283,6 +283,20 @@ const EmployersView = () => {
                 <label style={labelStyle}>Mô tả công ty</label>
                 <div style={{ ...readOnlyFieldStyle, minHeight: '80px', whiteSpace: 'pre-wrap' }}>
                   {selectedCompany.description || 'Không có mô tả'}
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Tài liệu xác minh (Giấy phép kinh doanh / Hồ sơ công ty)</label>
+                <div style={readOnlyFieldStyle}>
+                  {selectedCompany.document_url ? (
+                    <a href={selectedCompany.document_url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
+                      <FileText size={18} />
+                      Xem tài liệu đính kèm (PDF)
+                    </a>
+                  ) : (
+                    <span style={{ color: '#94a3b8' }}>Không có tài liệu đính kèm</span>
+                  )}
                 </div>
               </div>
               

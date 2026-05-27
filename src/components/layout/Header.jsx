@@ -36,6 +36,7 @@ const Header = () => {
     { to: '/', label: 'Trang chủ' },
     { to: '/interview', label: 'Phỏng vấn' },
     { to: '/cv-analysis', label: 'Phân tích CV' },
+    { to: '/dashboard', label: 'Thử thách' },
     { to: '/blogs', label: 'Blog' },
     {
       label: 'Tuyển dụng',
