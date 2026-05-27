@@ -17,8 +17,35 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
             setUser(sessionUser);
-            // Lấy thêm thông tin profile (chứa plan, role)
-            const { data } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
+            let { data, error } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
+            
+            // Self-healing: If user exists in Auth but has no row in the profiles table, create it immediately!
+            // This heals the 406 profile fetch error and resolves the 409 foreign-key conflict when saving CVs.
+            if ((!data || error) && sessionUser) {
+                console.info('[AuthContext] Profile missing, creating self-healed profile row for:', sessionUser.email);
+                const newProfile = {
+                    id: sessionUser.id,
+                    email: sessionUser.email,
+                    full_name: sessionUser.user_metadata?.full_name || sessionUser.email.split('@')[0],
+                    role: 'user',
+                    plan: 'Free',
+                    status: 'active',
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data: insertedData, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([newProfile])
+                    .select()
+                    .single();
+                
+                if (!insertError) {
+                    data = insertedData;
+                    console.info('[AuthContext] Profile successfully healed!');
+                } else {
+                    console.error('[AuthContext] Failed to heal profile:', insertError.message);
+                }
+            }
             
             if (data?.status === 'banned') {
                 await supabase.auth.signOut();

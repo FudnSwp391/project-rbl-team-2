@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload, FileText, CheckCircle, AlertCircle, X, Trash2,
   Eye, Search, Sparkles, Shield, Target, BookOpen, Wrench,
@@ -11,7 +11,7 @@ import './CVManager.css';
 
 // NOTE: Supabase upload is ready in cvStorageService.js
 // Uncomment import below when Supabase is configured:
-import { uploadCV, listUserCVs, deleteCV, saveCVMetadata } from '../../utils/cvStorageService';
+import { uploadCV, listUserCVs, deleteCV, saveCVMetadata, getUserCVRecords, updateCVAnalysis, deleteCVFromDB } from '../../utils/cvStorageService';
 import { supabase } from '../../utils/supabaseClient';
 const CVManager = () => {
   const [files, setFiles] = useState([]);
@@ -25,6 +25,47 @@ const CVManager = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [docxHtml, setDocxHtml] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Load CV history from database on mount or when user changes
+  useEffect(() => {
+    const fetchCVHistory = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: dbCVs, error } = await getUserCVRecords(user.id);
+        if (error) {
+          console.error('Error fetching CV history:', error.message);
+          return;
+        }
+
+        if (dbCVs && dbCVs.length > 0) {
+          const mappedFiles = dbCVs.map(cv => ({
+            id: cv.id,
+            name: cv.file_name,
+            size: 0,
+            uploadedAt: new Date(cv.created_at),
+            score: cv.ai_score || null,
+            analysis: cv.ai_analysis_result ? (typeof cv.ai_analysis_result === 'string' ? JSON.parse(cv.ai_analysis_result) : cv.ai_analysis_result) : null,
+            url: cv.file_url,
+          }));
+
+          setFiles(mappedFiles);
+          // Auto-select the first CV in history
+          const firstCV = mappedFiles[0];
+          setSelectedFile(firstCV);
+          setAnalysisResult(firstCV.analysis);
+          if (firstCV.url?.includes('.pdf')) {
+            setPreviewUrl(firstCV.url);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading history:', err);
+      }
+    };
+
+    fetchCVHistory();
+  }, []);
 
   /* ---------- Drag & Drop handlers ---------- */
   const handleDragOver = useCallback((e) => {
@@ -91,13 +132,20 @@ const CVManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       const folderId = user?.id || 'guest';
       const { data: uploadData, error: uploadError } = await uploadCV(pendingFile, folderId);
+      
+      let dbRecord = null;
       if (uploadError) {
         console.warn('Supabase upload failed:', uploadError.message);
       } else {
         console.info('File uploaded to Supabase Storage:', uploadData.path);
         // Only save to DB if user is authenticated (RLS requires valid user_id)
         if (user?.id) {
-          await saveCVMetadata({ userId: user.id, fileName: uploadData.fileName, fileUrl: uploadData.url });
+          const { data, error } = await saveCVMetadata({ userId: user.id, fileName: uploadData.fileName, fileUrl: uploadData.url });
+          if (error) {
+            console.error('Failed to save CV metadata:', error.message);
+          } else if (data && data.length > 0) {
+            dbRecord = data[0];
+          }
         }
       }
 
@@ -106,8 +154,18 @@ const CVManager = () => {
         setAnalysisStatus(status);
       });
 
+      // Update the database record with the AI score and JSON analysis result
+      if (user?.id && dbRecord?.id) {
+        const { error: updateError } = await updateCVAnalysis(dbRecord.id, result, result.atsScore);
+        if (updateError) {
+          console.error('Failed to update CV analysis in DB:', updateError.message);
+        } else {
+          console.info('CV analysis successfully saved to database!');
+        }
+      }
+
       const newFile = {
-        id: Date.now().toString(),
+        id: dbRecord?.id || Date.now().toString(),
         name: pendingFile.name,
         size: pendingFile.size,
         type: pendingFile.type,
@@ -115,6 +173,7 @@ const CVManager = () => {
         score: result.atsScore,
         analysis: result,
         localFile: pendingFile,
+        url: uploadData?.url || null,
       };
 
       setFiles((prev) => [newFile, ...prev]);
@@ -138,6 +197,8 @@ const CVManager = () => {
 
     if (file.localFile?.type === 'application/pdf') {
       setPreviewUrl(URL.createObjectURL(file.localFile));
+    } else if (file.url?.includes('.pdf')) {
+      setPreviewUrl(file.url);
     } else if (
       file.localFile?.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       file.localFile?.name?.endsWith('.docx')
@@ -147,14 +208,27 @@ const CVManager = () => {
     }
   };
 
-  const handleDeleteCV = (e, fileId) => {
+  const handleDeleteCV = async (e, fileId) => {
     e.stopPropagation();
+    
+    // Optimistic UI update
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
     if (selectedFile?.id === fileId) {
       setSelectedFile(null);
       setAnalysisResult(null);
       setPreviewUrl(null);
       setDocxHtml(null);
+    }
+
+    try {
+      const { error } = await deleteCVFromDB(fileId);
+      if (error) {
+        console.error('Failed to delete CV from database:', error.message);
+      } else {
+        console.info('CV record deleted successfully from database!');
+      }
+    } catch (err) {
+      console.error('Error deleting CV:', err);
     }
   };
 

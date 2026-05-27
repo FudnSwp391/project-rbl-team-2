@@ -170,3 +170,17 @@ export async function updateCVAnalysis(cvId, analysisResult, score) {
 
   return { data, error }
 }
+
+/**
+ * Delete a CV record from the database
+ * @param {string} cvId - The CV record ID
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export async function deleteCVFromDB(cvId) {
+  const { data, error } = await supabase
+    .from('cvs')
+    .delete()
+    .eq('id', cvId)
+
+  return { data, error }
+}
