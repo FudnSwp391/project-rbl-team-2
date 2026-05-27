@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 import './Auth.css';
 
 const Login = () => {
@@ -8,7 +9,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
   const { login, loginWithOAuth } = useAuth();
   const navigate = useNavigate();
 
@@ -18,11 +18,29 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { error } = await login(email, password);
+      const { data, error } = await login(email, password);
       if (error) {
         throw error;
       }
-      navigate('/dashboard'); // Redirect after successful login
+      
+      // Lấy role và status từ bảng profiles trên Supabase
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role, status')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileData?.status === 'banned') {
+        await supabase.auth.signOut();
+        throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      }
+
+      const role = profileData?.role || data?.user?.user_metadata?.role;
+      if (role === 'admin') {
+        navigate('/admin'); // Redirect admin tới trang Admin Panel
+      } else {
+        navigate('/dashboard'); // Redirect user thường tới Dashboard
+      }
     } catch (err) {
       setError(err.message || 'Đã có lỗi xảy ra khi đăng nhập.');
       setLoading(false);
@@ -82,8 +100,8 @@ const Login = () => {
 
           {error && <div className="auth-error-msg">{error}</div>}
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn--primary auth-submit-btn"
             disabled={loading}
           >

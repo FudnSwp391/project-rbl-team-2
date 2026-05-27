@@ -5,19 +5,39 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const fetchProfile = async (sessionUser) => {
+            if (!sessionUser) {
+                setUser(null);
+                setProfile(null);
+                setLoading(false);
+                return;
+            }
+            setUser(sessionUser);
+            // Lấy thêm thông tin profile (chứa plan, role)
+            const { data } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
+            
+            if (data?.status === 'banned') {
+                await supabase.auth.signOut();
+                setUser(null);
+                setProfile(null);
+            } else {
+                setProfile(data || null);
+            }
+            setLoading(false);
+        };
+
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            setLoading(false);
+            fetchProfile(session?.user);
         });
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-            setLoading(false);
+            fetchProfile(session?.user);
         });
 
         return () => subscription.unsubscribe();
@@ -75,6 +95,7 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        profile,
         loading,
         register,
         login,

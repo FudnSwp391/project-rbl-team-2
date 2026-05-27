@@ -15,9 +15,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString()
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 
 /**
- * Analyze a CV file using Gemini AI
+ * Analyze a CV file using Groq AI (Llama 3.3) or Gemini AI
  * @param {File} file - The CV file to analyze
  * @param {function} onProgress - Callback for progress updates (0-100)
  * @returns {Promise<object>} Analysis results
@@ -45,10 +46,30 @@ export async function analyzeCV(file, onProgress = () => {}) {
   onProgress(45, 'Đang phân tích bằng AI...')
 
   let result
-  if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+  if (GROQ_API_KEY && GROQ_API_KEY !== 'your_groq_api_key_here') {
+    try {
+      result = await callGroqAnalysis(extraction.text, file.name)
+      onProgress(85, 'Đang tạo báo cáo bằng Groq Llama 3.3...')
+    } catch (error) {
+      console.warn('Groq API error, trying Gemini fallback:', error)
+      if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+        try {
+          result = await callGeminiAnalysis(extraction.text, file.name)
+          onProgress(85, 'Đang tạo báo cáo bằng Gemini...')
+        } catch (geminiError) {
+          console.warn('Gemini fallback failed, falling back to local analysis:', geminiError)
+          result = localAnalysis(extraction.text, file.name)
+          onProgress(85, 'Đang tạo báo cáo (phân tích cục bộ)...')
+        }
+      } else {
+        result = localAnalysis(extraction.text, file.name)
+        onProgress(85, 'Đang tạo báo cáo (phân tích cục bộ)...')
+      }
+    }
+  } else if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
     try {
       result = await callGeminiAnalysis(extraction.text, file.name)
-      onProgress(85, 'Đang tạo báo cáo...')
+      onProgress(85, 'Đang tạo báo cáo bằng Gemini...')
     } catch (error) {
       console.warn('Gemini API error, falling back to local analysis:', error)
       result = localAnalysis(extraction.text, file.name)
@@ -258,8 +279,8 @@ async function extractDocxText(file) {
 //  5 Criteria: JD Relevance, Experience, Skills, Achievements, Presentation
 // ─────────────────────────────────────────────
 
-async function callGeminiAnalysis(cvText, fileName) {
-  const prompt = `You are an elite Senior Technical Recruiter, ATS System, and IT Career Mentor with 15+ years of experience hiring candidates in the software industry for top tech companies and FAANG.
+function getAnalysisPrompt(cvText, fileName) {
+  return `You are an elite Senior Technical Recruiter, ATS System, and IT Career Mentor with 15+ years of experience hiring candidates in the software industry for top tech companies and FAANG.
 Your task is to deeply analyze uploaded IT resumes/CVs and provide extremely detailed, strict, professional, and realistic evaluations.
 
 You must think like:
@@ -353,23 +374,108 @@ CV CONTENT FROM FILE "${fileName}":
 ---
 ${cvText.substring(0, 12000)}
 ---`
+}
+
+async function callGroqAnalysis(cvText, fileName) {
+  const prompt = getAnalysisPrompt(cvText, fileName)
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    'https://api.groq.com/openai/v1/chat/completions',
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 4096,
-        },
-      }),
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.1,
+        response_format: { type: 'json_object' }
+      })
     }
   )
 
   if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Groq API returned status ${response.status}: ${errorText}`)
+  }
+
+  const data = await response.json()
+  const responseText = data.choices?.[0]?.message?.content || ''
+
+  // Extract and parse JSON
+  const cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '')
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('Invalid JSON response from Groq')
+
+  const result = JSON.parse(jsonMatch[0])
+
+  // Handle non-IT CV
+  if (result.isNonIT) {
+    return {
+      atsScore: 0,
+      sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
+      detailedReport: "# 1. Executive Summary\n\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống này chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ."
+    }
+  }
+
+  // Clamp scores
+  result.atsScore = Math.max(0, Math.min(100, Math.round(result.atsScore)))
+  if (result.sectionScores) {
+    for (const key of Object.keys(result.sectionScores)) {
+      result.sectionScores[key] = Math.max(0, Math.min(100, Math.round(result.sectionScores[key])))
+    }
+  }
+
+  // Ensure detailedReport exists
+  if (!result.detailedReport) {
+    result.detailedReport = "# Lỗi phân tích\n\nKhông thể tạo báo cáo chi tiết từ Groq. Vui lòng thử lại.";
+  }
+
+  return result
+}
+
+async function callGeminiAnalysis(cvText, fileName) {
+  const prompt = getAnalysisPrompt(cvText, fileName)
+
+  // Retry logic for 429 (rate limit) errors — wait and try again up to 3 times
+  // Using gemini-2.0-flash-lite for higher free-tier rate limits
+  const MODEL = 'gemini-2.0-flash-lite'
+  const MAX_RETRIES = 3
+  let response
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+          },
+        }),
+      }
+    )
+
+    if (response.ok) break // Success — exit retry loop
+
+    if (response.status === 429 && attempt < MAX_RETRIES) {
+      // Rate limited — wait longer before retrying (15s, then 30s)
+      const waitSeconds = 15 * attempt
+      console.warn(`[CV Analysis] Rate limited (429). Retrying in ${waitSeconds}s... (attempt ${attempt}/${MAX_RETRIES})`)
+      await delay(waitSeconds * 1000)
+      continue
+    }
+
+    // Non-429 error or final retry exhausted
     throw new Error(`Gemini API returned ${response.status}`)
   }
 
