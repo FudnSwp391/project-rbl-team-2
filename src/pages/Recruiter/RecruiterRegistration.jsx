@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../utils/supabaseClient';
+import { useAuth } from '../../utils/AuthContext';
 
 const RecruiterRegistration = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -24,13 +29,70 @@ const RecruiterRegistration = () => {
     setFormData({ ...formData, companyFile: e.target.files[0] });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, send data to backend here
-    // e.g. await api.post('/api/employers/register', formData)
+    setErrorMessage('');
+    
+    if (!user) {
+      setErrorMessage('Bạn cần đăng nhập để thực hiện đăng ký nhà tuyển dụng.');
+      return;
+    }
 
-    // Show success message
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+
+    try {
+      let documentUrl = null;
+
+      // 1. Nếu có file đính kèm, upload lên bucket 'company-documents'
+      if (formData.companyFile) {
+        const fileExt = formData.companyFile.name.split('.').pop();
+        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        
+        const { data: fileData, error: uploadError } = await supabase.storage
+          .from('company-documents')
+          .upload(fileName, formData.companyFile);
+
+        if (uploadError) {
+          console.error("Lỗi upload file:", uploadError);
+        } else if (fileData) {
+          const { data: urlData } = supabase.storage
+            .from('company-documents')
+            .getPublicUrl(fileName);
+          documentUrl = urlData.publicUrl;
+        }
+      }
+
+      // 2. Lưu thông tin vào bảng companies
+      const { error: insertError } = await supabase.from('companies').insert({
+        recruiter_id: user.id,
+        company_name: formData.companyName,
+        email: formData.email,
+        phone: formData.phone,
+        tax_id: formData.taxId,
+        website: formData.website,
+        address: formData.address,
+        description: formData.description,
+        document_url: documentUrl,
+        status: 'pending' // Mặc định
+      });
+
+      if (insertError) {
+        if (insertError.code === '23505') { // Lỗi Unique constraint (đã đăng ký rồi)
+          setErrorMessage('Tài khoản của bạn đã gửi yêu cầu đăng ký trước đó rồi!');
+        } else {
+          setErrorMessage('Có lỗi xảy ra khi gửi yêu cầu: ' + insertError.message);
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Đã xảy ra lỗi không xác định.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -65,7 +127,13 @@ const RecruiterRegistration = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="glass-card reveal is-visible reveal--delay-1">
-          <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '2rem' }}>Thông Tin Doanh Nghiệp</h3>
+          <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Thông Tin Doanh Nghiệp</h3>
+          
+          {errorMessage && (
+            <div style={{ padding: '1rem', background: '#ffebee', color: '#c62828', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #ffcdd2' }}>
+              {errorMessage}
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -207,17 +275,17 @@ const RecruiterRegistration = () => {
 
               <button
                 type="submit"
-                disabled={!agreedToTerms}
+                disabled={!agreedToTerms || isSubmitting}
                 className="btn btn--primary btn--pill"
                 style={{
                   width: '100%',
                   fontSize: '1.1rem',
                   padding: '1.2rem',
-                  opacity: !agreedToTerms ? 0.5 : 1,
-                  cursor: !agreedToTerms ? 'not-allowed' : 'pointer'
+                  opacity: (!agreedToTerms || isSubmitting) ? 0.5 : 1,
+                  cursor: (!agreedToTerms || isSubmitting) ? 'not-allowed' : 'pointer'
                 }}
               >
-                Gửi Yêu Cầu
+                {isSubmitting ? 'Đang Gửi Yêu Cầu...' : 'Gửi Yêu Cầu'}
               </button>
             </div>
 

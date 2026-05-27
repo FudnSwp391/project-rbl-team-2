@@ -33,8 +33,8 @@ const JobView = () => {
       <div className="container container--narrow">
         
         <div style={{ marginBottom: '1.5rem' }}>
-          <Link to={`/company/${job.companyId}`} style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            ← Back to {job.company}
+          <Link to="/jobs" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            ← Quay về trang Việc làm
           </Link>
         </div>
 
@@ -48,7 +48,6 @@ const JobView = () => {
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>⏱️ {job.posted}</span>
               </div>
             </div>
-            <button className="btn btn--primary btn--pill" style={{ padding: '1rem 2.5rem', fontSize: '1rem' }}>Apply Now</button>
           </div>
 
           <div style={{ display: 'flex', gap: '2rem', marginBottom: '3rem', padding: '1.5rem', background: 'rgba(255,255,255,0.4)', borderRadius: '12px' }}>
@@ -74,11 +73,6 @@ const JobView = () => {
             <div style={{ whiteSpace: 'pre-line', color: 'var(--color-text)', lineHeight: '1.8' }}>
               {job.requirements}
             </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '2rem', textAlign: 'center' }}>
-            <p style={{ marginBottom: '1.5rem', color: 'var(--color-text-secondary)' }}>Interested in this position?</p>
-            <button className="btn btn--primary btn--pill" style={{ padding: '1rem 3rem', fontSize: '1.1rem' }}>Apply for this job</button>
           </div>
 
         </div>
