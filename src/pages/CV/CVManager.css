@@ -823,3 +823,79 @@
 .cv-suggestion__fix::before {
   content: '💡 ';
 }
+
+/* ============================================
+   MARKDOWN REPORT STYLING (12-Section Elite Recruiter)
+   ============================================ */
+
+.cv-markdown-report {
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.cv-markdown-report h1 {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  color: var(--color-earth);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cv-markdown-report h1:first-child {
+  margin-top: 0;
+}
+
+.cv-markdown-report h2 {
+  font-size: 1.3rem;
+  color: var(--color-charcoal);
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.cv-markdown-report h3 {
+  font-size: 1.1rem;
+  color: var(--color-charcoal);
+  margin-top: 1.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.cv-markdown-report p {
+  margin-bottom: 1rem;
+}
+
+.cv-markdown-report ul, 
+.cv-markdown-report ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.cv-markdown-report li {
+  margin-bottom: 0.4rem;
+}
+
+.cv-markdown-report strong {
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+
+.cv-markdown-report blockquote {
+  border-left: 4px solid var(--color-earth);
+  background: var(--color-cream);
+  padding: 0.8rem 1.2rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.cv-markdown-report code {
+  background: rgba(0,0,0,0.05);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}

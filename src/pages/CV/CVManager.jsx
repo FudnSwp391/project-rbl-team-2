@@ -4,6 +4,8 @@ import {
   Eye, Search, Sparkles, Shield, Target, BookOpen, Wrench,
   ChevronRight, Zap, Award
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { analyzeCV, extractDocxHtml } from '../../utils/cvAnalysisService';
 import './CVManager.css';
 
@@ -412,74 +414,17 @@ const CVManager = () => {
                 )}
               </div>
 
-              {/* Strengths & Weaknesses */}
-              <div className="cv-analysis-grid" style={{ marginTop: 'var(--spacing-md)' }}>
-                <div className="glass-card">
-                  <div className="cv-analysis-card__title cv-analysis-card__title--green">
-                    <CheckCircle size={18} /> Điểm mạnh
-                  </div>
-                  <ul className="cv-analysis-list cv-analysis-list--green">
-                    {analysisResult.strengths.map((s, i) => <li key={i}>{s}</li>)}
-                  </ul>
+              {/* 12-Section Detailed Report */}
+              <div className="glass-card" style={{ marginTop: 'var(--spacing-md)' }}>
+                <div className="cv-analysis-card__title cv-analysis-card__title--purple" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                  <FileText size={20} /> Đánh giá chi tiết (Elite Technical Recruiter)
                 </div>
-                <div className="glass-card">
-                  <div className="cv-analysis-card__title cv-analysis-card__title--red">
-                    <AlertCircle size={18} /> Điểm yếu
-                  </div>
-                  <ul className="cv-analysis-list cv-analysis-list--red">
-                    {analysisResult.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
-                  </ul>
+                <div className="cv-markdown-report">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {analysisResult.detailedReport}
+                  </ReactMarkdown>
                 </div>
               </div>
-
-              {/* Keywords */}
-              {analysisResult.keywords && (
-                <div className="glass-card" style={{ marginTop: 'var(--spacing-md)' }}>
-                  <div className="cv-analysis-card__title cv-analysis-card__title--blue">
-                    <Search size={18} /> Từ khóa ATS
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      <span style={{ color: '#4ade80' }}>●</span> Tìm thấy trong CV
-                    </p>
-                    <div className="cv-keywords">
-                      {analysisResult.keywords.found.map((kw, i) => (
-                        <span key={i} className="cv-keyword cv-keyword--found">{kw}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      <span style={{ color: '#f87171' }}>●</span> Nên bổ sung
-                    </p>
-                    <div className="cv-keywords">
-                      {analysisResult.keywords.missing.map((kw, i) => (
-                        <span key={i} className="cv-keyword cv-keyword--missing">{kw}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Suggestions */}
-              {analysisResult.suggestions && (
-                <div className="glass-card" style={{ marginTop: 'var(--spacing-md)' }}>
-                  <div className="cv-analysis-card__title cv-analysis-card__title--purple">
-                    <Wrench size={18} /> Gợi ý cải thiện
-                  </div>
-                  <div className="cv-suggestions">
-                    {analysisResult.suggestions.map((s, i) => (
-                      <div key={i} className="cv-suggestion">
-                        <div className="cv-suggestion__header">
-                          <span className="cv-suggestion__category">{s.category}</span>
-                        </div>
-                        <div className="cv-suggestion__issue">{s.issue}</div>
-                        <div className="cv-suggestion__fix">{s.fix}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
