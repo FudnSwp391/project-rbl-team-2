@@ -104,8 +104,24 @@ CREATE TABLE interview_answers (
 );
 
 -- --------------------------------------------------------
--- 7. BẢNG TUYỂN DỤNG (RECRUITER)
+-- 7. BẢNG TUYỂN DỤNG & DOANH NGHIỆP (RECRUITER)
 -- --------------------------------------------------------
+CREATE TABLE companies (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    recruiter_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+    company_name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    tax_id TEXT,
+    website TEXT,
+    address TEXT,
+    description TEXT,
+    logo_url TEXT,
+    document_url TEXT,
+    status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 CREATE TABLE jobs (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     recruiter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
@@ -171,6 +187,13 @@ CREATE TABLE user_challenges (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cvs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+
+-- Cấu hình RLS cho bảng companies
+CREATE POLICY "Anyone can view approved companies" ON companies FOR SELECT USING (status = 'approved');
+CREATE POLICY "Recruiters can view own company" ON companies FOR SELECT USING (auth.uid() = recruiter_id);
+CREATE POLICY "Users can insert company" ON companies FOR INSERT WITH CHECK (auth.uid() = recruiter_id);
+CREATE POLICY "Recruiters can update own company" ON companies FOR UPDATE USING (auth.uid() = recruiter_id);
 
 -- User chỉ có thể xem và sửa Profile của chính mình
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);

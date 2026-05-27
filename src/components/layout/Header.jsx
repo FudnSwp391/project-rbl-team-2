@@ -36,7 +36,14 @@ const Header = () => {
     { to: '/', label: 'Trang chủ' },
     { to: '/interview', label: 'Phỏng vấn' },
     { to: '/cv-analysis', label: 'Phân tích CV' },
-    { to: '/dashboard', label: 'Thử thách' },
+    { to: '/blogs', label: 'Blog' },
+    {
+      label: 'Tuyển dụng',
+      dropdown: [
+        { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' },
+        { to: '/jobs', label: 'Việc làm' },
+      ]
+    }
   ];
 
   return (
@@ -99,22 +106,75 @@ const Header = () => {
           gap: '2.2rem',
           alignItems: 'center',
         }} className="desktop-nav">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              style={{
-                textDecoration: 'none',
-                color: location.pathname === link.to ? 'var(--color-charcoal)' : 'var(--color-text-muted)',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                letterSpacing: '0',
-                transition: 'color 0.3s ease',
-                position: 'relative',
-              }}
-            >
-              {link.label}
-            </Link>
+          {navLinks.map((link, idx) => (
+            link.dropdown ? (
+              <div key={idx} className="nav-dropdown" style={{ position: 'relative' }}>
+                <span style={{
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  transition: 'color 0.3s ease',
+                  padding: '0.5rem 0'
+                }} className="nav-link-item">
+                  {link.label} ▾
+                </span>
+                <div className="nav-dropdown-menu" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%) translateY(10px)',
+                  background: 'var(--color-cream)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-md)',
+                  padding: '0.5rem',
+                  minWidth: '200px',
+                  opacity: 0,
+                  visibility: 'hidden',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.2rem'
+                }}>
+                  {link.dropdown.map(subItem => (
+                    <Link
+                      key={subItem.to}
+                      to={subItem.to}
+                      style={{
+                        padding: '0.6rem 1rem',
+                        textDecoration: 'none',
+                        color: 'var(--color-charcoal)',
+                        fontSize: '0.85rem',
+                        borderRadius: '8px',
+                        transition: 'background 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                      className="dropdown-link-item"
+                    >
+                      {subItem.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Link
+                key={link.to}
+                to={link.to}
+                style={{
+                  textDecoration: 'none',
+                  color: location.pathname === link.to ? 'var(--color-charcoal)' : 'var(--color-text-muted)',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  letterSpacing: '0',
+                  transition: 'color 0.3s ease',
+                  position: 'relative',
+                }}
+                className="nav-link-item"
+              >
+                {link.label}
+              </Link>
+            )
           ))}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -221,22 +281,45 @@ const Header = () => {
         transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s',
         zIndex: 999,
       }} className="mobile-menu">
-        {navLinks.map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            onClick={() => setMenuOpen(false)}
-            style={{
-              textDecoration: 'none',
-              color: 'var(--color-charcoal)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '2rem',
-              transition: 'color 0.3s ease'
-            }}
-            className="mobile-nav-link"
-          >
-            {link.label}
-          </Link>
+        {navLinks.map((link, idx) => (
+          link.dropdown ? (
+            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-sans)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{link.label}</div>
+              {link.dropdown.map(subItem => (
+                <Link
+                  key={subItem.to}
+                  to={subItem.to}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    textDecoration: 'none',
+                    color: 'var(--color-charcoal)',
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '1.75rem',
+                    transition: 'color 0.3s ease'
+                  }}
+                  className="mobile-nav-link"
+                >
+                  {subItem.label}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Link
+              key={link.to}
+              to={link.to}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                textDecoration: 'none',
+                color: 'var(--color-charcoal)',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '2rem',
+                transition: 'color 0.3s ease'
+              }}
+              className="mobile-nav-link"
+            >
+              {link.label}
+            </Link>
+          )
         ))}
         {user ? (
           <>
@@ -286,6 +369,14 @@ const Header = () => {
         .btn-start-nav:hover {
           transform: translateY(-2px) scale(1.03);
           box-shadow: 0 10px 20px rgba(44, 40, 36, 0.15) !important;
+        }
+        .nav-dropdown:hover .nav-dropdown-menu {
+          opacity: 1 !important;
+          visibility: visible !important;
+          transform: translateX(-50%) translateY(5px) !important;
+        }
+        .dropdown-link-item:hover {
+          background: var(--color-warm-white);
         }
       `}</style>
     </header>
