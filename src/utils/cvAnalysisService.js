@@ -176,6 +176,29 @@ async function extractTextFromFile(file) {
 }
 
 async function extractPdfText(file) {
+  function joinLineItems(items) {
+    if (items.length === 0) return ''
+    let result = items[0].str
+    for (let i = 1; i < items.length; i++) {
+      const prev = items[i - 1]
+      const curr = items[i]
+      
+      // Estimate character width for the previous item
+      const prevCharWidth = prev.width / (prev.str.length || 1)
+      
+      // Gap between current item's start and previous item's end
+      const gap = curr.transform[4] - (prev.transform[4] + prev.width)
+      
+      // If the gap is larger than 25% of character width or 3 PDF units, add a space
+      if (gap > Math.max(3, prevCharWidth * 0.25)) {
+        result += ' ' + curr.str
+      } else {
+        result += curr.str
+      }
+    }
+    return result
+  }
+
   try {
     const arrayBuffer = await file.arrayBuffer()
 
@@ -220,11 +243,11 @@ async function extractPdfText(file) {
         if (Math.abs(prevY - currY) < 5) {
           currentLine.push(items[j])
         } else {
-          lines.push(currentLine.map((it) => it.str).join(' '))
+          lines.push(joinLineItems(currentLine))
           currentLine = [items[j]]
         }
       }
-      lines.push(currentLine.map((it) => it.str).join(' '))
+      lines.push(joinLineItems(currentLine))
 
       pages.push(lines.join('\n'))
     }
@@ -292,13 +315,6 @@ You must think like:
 
 You are STRICT. You DO NOT give fake compliments. You evaluate based on real-world hiring standards from 2025+.
 
-## STEP 0 — NON-IT CV CHECK:
-First, determine if this CV is for an IT/Software/Tech role. If the CV is CLEARLY for a NON-IT field (e.g., accounting, marketing, nursing, teaching with NO tech skills), you MUST:
-- Set isNonIT to true
-- Set atsScore to 0
-- Set detailedReport to: "# 1. Executive Summary\\n\\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được."
-- Leave all section scores at 0
-
 ## THE 5 CORE EVALUATION CRITERIA (For sectionScores):
 1. jdRelevance (20%): IT keywords, career goals alignment.
 2. experience (30%): Project size, role, tech stack, real companies, GitHub/demo links.
@@ -321,6 +337,11 @@ The JSON structure must exactly match:
   },
   "detailedReport": "string (The COMPLETE 12-section markdown report in Vietnamese. Use markdown headers # and ##, bold **text**, lists -, etc. Follow the EXACT structure below. MUST BE A VALID JSON ESCAPED STRING.)"
 }
+
+(Note on isNonIT: Only set isNonIT to true if the CV is 100% unrelated to software, engineering, programming, or tech, such as nursing or marketing with absolutely no coding/technical skills. For IT students, Software Engineering candidates, or anyone with technical/coding skills, isNonIT must be false.)
+
+CRITICAL WARNING: In the "detailedReport" field, you MUST write actual, deep, rich, custom, and highly-detailed evaluations for this specific candidate in Vietnamese. DO NOT copy-paste the placeholder description bullets from the template below (e.g., do NOT output "- Đánh giá tổng quan ngắn gọn...", "- Khả năng đọc của ATS..."). You must replace all placeholders with your actual, professional feedback, real critiques, and customized recruiter suggestions.
+DO NOT use placeholder scores like 1 or 0 for the ratings. Evaluate the candidate's CV honestly, strictly, and realistically, providing real scores between 0 and 100.
 
 ## DETAILED REPORT STRUCTURE (Must be exactly these 12 sections in Vietnamese):
 
