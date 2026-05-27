@@ -279,7 +279,7 @@ async function extractDocxText(file) {
 //  5 Criteria: JD Relevance, Experience, Skills, Achievements, Presentation
 // ─────────────────────────────────────────────
 
-function getAnalysisPrompt(cvText, fileName) {
+function getAnalysisSystemPrompt() {
   return `You are an elite Senior Technical Recruiter, ATS System, and IT Career Mentor with 15+ years of experience hiring candidates in the software industry for top tech companies and FAANG.
 Your task is to deeply analyze uploaded IT resumes/CVs and provide extremely detailed, strict, professional, and realistic evaluations.
 
@@ -306,19 +306,20 @@ First, determine if this CV is for an IT/Software/Tech role. If the CV is CLEARL
 4. achievements (20%): STAR model, specific metrics (response time, users, coverage).
 5. presentation (10%): 1-2 pages, professional tone, ATS-friendly layout.
 
-Return ONLY a JSON object (no markdown fences around the JSON, no extra text):
+You are a strict JSON generator. Your output must be a single, valid JSON object containing the CV analysis. DO NOT wrap the output in markdown code blocks (like \`\`\`json ... \`\`\`) under any circumstances. Start directly with the opening curly brace { and end with the closing curly brace }.
 
+The JSON structure must exactly match:
 {
-  "isNonIT": <true if CV is not IT-related, false otherwise>,
-  "atsScore": <0-100 overall weighted score based on criteria>,
+  "isNonIT": boolean,
+  "atsScore": number,
   "sectionScores": {
-    "jdRelevance": <0-100>,
-    "experience": <0-100>,
-    "skills": <0-100>,
-    "achievements": <0-100>,
-    "presentation": <0-100>
+    "jdRelevance": number,
+    "experience": number,
+    "skills": number,
+    "achievements": number,
+    "presentation": number
   },
-  "detailedReport": "<The COMPLETE 12-section markdown report in Vietnamese. Use markdown headers (# and ##), bold (**text**), lists (-), etc. Follow the EXACT structure below. MUST BE A VALID JSON ESCAPED STRING.>"
+  "detailedReport": "string (The COMPLETE 12-section markdown report in Vietnamese. Use markdown headers # and ##, bold **text**, lists -, etc. Follow the EXACT structure below. MUST BE A VALID JSON ESCAPED STRING.)"
 }
 
 ## DETAILED REPORT STRUCTURE (Must be exactly these 12 sections in Vietnamese):
@@ -368,16 +369,12 @@ SPECIAL RULES FOR IT CVs
 - If AI/ML: Focus on Model understanding, MLOps, dataset, deployment.
 
 RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN FENCES. NO EXTRA TEXT.
-MUST FORMAT THE detailedReport FIELD AS A PROPER JSON ESCAPED STRING.
-
-CV CONTENT FROM FILE "${fileName}":
----
-${cvText.substring(0, 12000)}
----`
+MUST FORMAT THE detailedReport FIELD AS A PROPER JSON ESCAPED STRING.`
 }
 
 async function callGroqAnalysis(cvText, fileName) {
-  const prompt = getAnalysisPrompt(cvText, fileName)
+  const systemPrompt = getAnalysisSystemPrompt()
+  const userPrompt = `CV CONTENT FROM FILE "${fileName}":\n---\n${cvText.substring(0, 12000)}\n---`
 
   const response = await fetch(
     'https://api.groq.com/openai/v1/chat/completions',
@@ -391,12 +388,15 @@ async function callGroqAnalysis(cvText, fileName) {
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
             role: 'user',
-            content: prompt
+            content: userPrompt
           }
         ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' }
+        temperature: 0.1
       })
     }
   )
@@ -442,7 +442,8 @@ async function callGroqAnalysis(cvText, fileName) {
 }
 
 async function callGeminiAnalysis(cvText, fileName) {
-  const prompt = getAnalysisPrompt(cvText, fileName)
+  const systemPrompt = getAnalysisSystemPrompt()
+  const userPrompt = `CV CONTENT FROM FILE "${fileName}":\n---\n${cvText.substring(0, 12000)}\n---`
 
   // Retry logic for 429 (rate limit) errors — wait and try again up to 3 times
   // Using gemini-2.0-flash-lite for higher free-tier rate limits
@@ -456,7 +457,8 @@ async function callGeminiAnalysis(cvText, fileName) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: [{ text: userPrompt }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 8192,
