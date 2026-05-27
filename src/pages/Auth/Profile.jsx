@@ -74,6 +74,46 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteCV = async (cv) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa CV này?')) return;
+    
+    try {
+      // Dùng hàm RPC lách chặn DELETE của network (sử dụng POST)
+      const { error } = await supabase.rpc('drop_cv_record', { cv_id: cv.id });
+      
+      if (error) {
+        if (error.message === 'TypeError: Failed to fetch') {
+          // Lỗi mạng ảo: Trình diệt virus có thể ngắt kết nối trình duyệt đột ngột 
+          // nhưng lệnh xóa (POST) ĐÃ KỊP BAY TỚI và CHẠY TRÊN SERVER.
+          // Ta dùng lệnh GET để kiểm tra lại xem CV còn tồn tại không.
+          const { data: checkData } = await supabase.from('cvs').select('id').eq('id', cv.id).maybeSingle();
+          if (checkData) {
+            throw error; // Dữ liệu vẫn còn -> Lỗi thật, văng lỗi ra
+          } else {
+            console.warn("Bỏ qua lỗi Failed to fetch ảo do Antivirus tạo ra.");
+            // Dữ liệu đã mất -> Lệnh xóa đã thành công, cứ đi tiếp!
+          }
+        } else {
+          throw error; // Các lỗi API khác thì vẫn báo
+        }
+      }
+      
+      // Thử xóa file Storage ngầm
+      if (cv.file_url) {
+        try {
+          const urlParts = cv.file_url.split('/cv-bucket/');
+          if (urlParts.length > 1) await supabase.storage.from('cv-bucket').remove([urlParts[1]]);
+        } catch(e){}
+      }
+      
+      setCvs(prevCvs => prevCvs.filter(item => item.id !== cv.id));
+      alert('Đã xóa CV thành công!');
+    } catch (err) {
+      console.error("Lỗi xóa CV:", err);
+      alert('Không thể xóa CV: ' + err.message + '\n\n(Vui lòng đảm bảo bạn đã chạy mã SQL tạo hàm drop_cv_record trên Supabase)');
+    }
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setProfileMessage({ type: '', text: '' });
@@ -287,6 +327,13 @@ const Profile = () => {
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
                 >
                   {cv.status === 'Đã phân tích' ? 'Xem chi tiết' : 'Phân tích ngay'}
+                </button>
+                <button
+                  onClick={() => handleDeleteCV(cv)}
+                  className="btn btn--outline"
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', color: '#c0392b', borderColor: '#c0392b', marginLeft: '0.5rem' }}
+                >
+                  Xóa
                 </button>
               </div>
             </div>
