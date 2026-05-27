@@ -19,7 +19,14 @@ export const AuthProvider = ({ children }) => {
             setUser(sessionUser);
             // Lấy thêm thông tin profile (chứa plan, role)
             const { data } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
-            setProfile(data || null);
+            
+            if (data?.status === 'banned') {
+                await supabase.auth.signOut();
+                setUser(null);
+                setProfile(null);
+            } else {
+                setProfile(data || null);
+            }
             setLoading(false);
         };
 

@@ -142,7 +142,20 @@ const Header = () => {
                     : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </div>
                 {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                {profile?.plan && (
+                {profile?.role === 'recruiter' && (
+                  <span style={{
+                    background: '#0ea5e9', // Premium Ocean/Sky Blue color for company
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    COMPANY
+                  </span>
+                )}
+                {profile?.plan && profile.plan !== 'Free' && profile?.role !== 'recruiter' && (
                   <span style={{
                     background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
                     color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
@@ -150,6 +163,7 @@ const Header = () => {
                     borderRadius: '12px',
                     fontSize: '0.65rem',
                     fontWeight: 'bold',
+                    marginLeft: '4px'
                   }}>
                     {profile.plan}
                   </span>

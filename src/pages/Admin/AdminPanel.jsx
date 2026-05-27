@@ -7,6 +7,7 @@ import BlogsView from './BlogsView';
 import ChallengesView from './ChallengesView';
 import SubscriptionPlansView from './SubscriptionPlansView';
 import OrdersView from './OrdersView';
+import EmployersView from './EmployersView';
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('statistics');
@@ -20,6 +21,7 @@ const AdminPanel = () => {
       case 'challenges': return <ChallengesView />;
       case 'subscriptions': return <SubscriptionPlansView />;
       case 'orders': return <OrdersView />;
+      case 'employers': return <EmployersView />;
       default: return <StatisticsView />;
     }
   };
@@ -73,6 +75,12 @@ const AdminPanel = () => {
               onClick={() => setActiveTab('orders')}
               icon={<DollarSign size={20} />}
               label="Lịch sử giao dịch"
+            />
+            <TabButton
+              active={activeTab === 'employers'}
+              onClick={() => setActiveTab('employers')}
+              icon={<Briefcase size={20} />}
+              label="Nhà tuyển dụng"
             />
           </nav>
         </div>

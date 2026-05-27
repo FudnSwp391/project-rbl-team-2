@@ -107,8 +107,24 @@ CREATE TABLE interview_answers (
 );
 
 -- --------------------------------------------------------
--- 7. BẢNG TUYỂN DỤNG (RECRUITER)
+-- 7. BẢNG TUYỂN DỤNG (RECRUITER & COMPANIES)
 -- --------------------------------------------------------
+CREATE TABLE companies (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    recruiter_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+    company_name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    tax_id TEXT,
+    website TEXT,
+    address TEXT,
+    description TEXT,
+    logo_url TEXT,
+    status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
 CREATE TABLE jobs (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     recruiter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,

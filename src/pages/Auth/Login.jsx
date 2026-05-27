@@ -23,12 +23,17 @@ const Login = () => {
         throw error;
       }
       
-      // Lấy role từ bảng profiles trên Supabase
+      // Lấy role và status từ bảng profiles trên Supabase
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, status')
         .eq('id', data.user.id)
         .single();
+
+      if (profileData?.status === 'banned') {
+        await supabase.auth.signOut();
+        throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      }
 
       const role = profileData?.role || data?.user?.user_metadata?.role;
       if (role === 'admin') {
