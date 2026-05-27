@@ -19,6 +19,7 @@ CREATE TABLE profiles (
     full_name TEXT,
     avatar_url TEXT,
     role TEXT CHECK (role IN ('candidate', 'recruiter', 'admin')) DEFAULT 'candidate',
+    plan TEXT DEFAULT 'Free', -- Cột lưu gói dịch vụ hiện tại (Free, Pro, Premium)
     status TEXT CHECK (status IN ('active', 'pending', 'banned')) DEFAULT 'active', -- Recruiter mới đăng ký sẽ là 'pending'
     points INTEGER DEFAULT 0, -- Điểm thưởng từ Daily Challenges
     streak_days INTEGER DEFAULT 0, -- Số ngày đăng nhập liên tiếp
@@ -76,7 +77,9 @@ CREATE TABLE questions (
     industry_id UUID REFERENCES industries(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     difficulty TEXT CHECK (difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'medium',
-    question_type TEXT CHECK (question_type IN ('behavioral', 'technical')) DEFAULT 'technical'
+    question_type TEXT CHECK (question_type IN ('behavioral', 'technical')) DEFAULT 'technical',
+    options TEXT, -- Dùng cho trắc nghiệm (VD: A. ... B. ...)
+    correct_answer TEXT -- Đáp án đúng
 );
 
 -- --------------------------------------------------------
@@ -198,3 +201,53 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ==============================================================================
+-- QUYỀN TRUY CẬP CHO ADMIN (RLS POLICIES FOR ADMIN)
+-- Bổ sung quyền cho phép Admin quản lý dữ liệu trên Admin Panel
+-- ==============================================================================
+
+-- 1. Hàm kiểm tra quyền Admin (an toàn, tránh lỗi vòng lặp đệ quy của RLS)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
+-- 2. Admin có toàn quyền trên bảng Profiles (User Management)
+CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT USING (public.is_admin());
+CREATE POLICY "Admins can insert all profiles" ON profiles FOR INSERT WITH CHECK (public.is_admin());
+CREATE POLICY "Admins can update all profiles" ON profiles FOR UPDATE USING (public.is_admin());
+CREATE POLICY "Admins can delete all profiles" ON profiles FOR DELETE USING (public.is_admin());
+
+-- 3. Bật RLS và cấp quyền cho Admin trên các bảng Quản trị (Question, Industry, Challenge, Blog...)
+ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view questions" ON questions FOR SELECT USING (true);
+CREATE POLICY "Admins can manage questions" ON questions FOR ALL USING (public.is_admin());
+
+ALTER TABLE industries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view industries" ON industries FOR SELECT USING (true);
+CREATE POLICY "Admins can manage industries" ON industries FOR ALL USING (public.is_admin());
+
+ALTER TABLE blogs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view published blogs" ON blogs FOR SELECT USING (status = 'published' OR public.is_admin());
+CREATE POLICY "Admins can manage blogs" ON blogs FOR ALL USING (public.is_admin());
+
+ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view challenges" ON challenges FOR SELECT USING (true);
+CREATE POLICY "Admins can manage challenges" ON challenges FOR ALL USING (public.is_admin());
+
+ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view subscription plans" ON subscription_plans FOR SELECT USING (true);
+CREATE POLICY "Admins can manage subscription plans" ON subscription_plans FOR ALL USING (public.is_admin());
+
+-- Admin có quyền trên các bảng khác
+CREATE POLICY "Admins can manage all cvs" ON cvs FOR ALL USING (public.is_admin());
+CREATE POLICY "Admins can manage all interviews" ON interviews FOR ALL USING (public.is_admin());
+CREATE POLICY "Admins can manage user subscriptions" ON user_subscriptions FOR ALL USING (public.is_admin());

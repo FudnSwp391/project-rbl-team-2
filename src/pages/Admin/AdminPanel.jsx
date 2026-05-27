@@ -25,7 +25,7 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="container" style={{ padding: 'var(--spacing-xl) 0', display: 'flex', gap: 'var(--spacing-lg)', minHeight: '80vh' }}>
+    <div className="container" style={{ paddingTop: '120px', paddingBottom: 'var(--spacing-xl)', display: 'flex', gap: 'var(--spacing-lg)', minHeight: '80vh' }}>
 
       {/* Sidebar */}
       <aside style={{ width: '250px', flexShrink: 0 }}>

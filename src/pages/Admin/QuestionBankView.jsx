@@ -58,8 +58,25 @@ const QuestionBankView = () => {
   };
 
   const handleEdit = (q) => {
+    let parsedOptions = ['', '', '', ''];
+    try {
+      if (q.options) {
+        if (typeof q.options === 'string' && q.options.startsWith('[')) {
+          parsedOptions = JSON.parse(q.options);
+        } else {
+          parsedOptions = [q.options];
+        }
+      }
+    } catch (e) {}
+
+    while (parsedOptions.length < 4) {
+      parsedOptions.push('');
+    }
+
     setCurrentQ({
-      ...q
+      ...q,
+      optionsList: parsedOptions,
+      correct_answer: q.correct_answer || 'A'
     });
     setIsEditing(true);
   };
@@ -69,7 +86,9 @@ const QuestionBankView = () => {
       industry_id: industries.length > 0 ? industries[0].id : '', 
       difficulty: 'medium', 
       content: '', 
-      question_type: 'technical' 
+      question_type: 'technical',
+      optionsList: ['', '', '', ''],
+      correct_answer: 'A'
     });
     setIsEditing(true);
   };
@@ -82,11 +101,16 @@ const QuestionBankView = () => {
       return;
     }
 
+    // Clean up empty options before saving
+    const cleanedOptions = (currentQ.optionsList || []).filter(opt => opt.trim() !== '');
+
     const payload = {
       content: currentQ.content,
       industry_id: currentQ.industry_id,
       difficulty: currentQ.difficulty,
-      question_type: currentQ.question_type
+      question_type: currentQ.question_type,
+      options: cleanedOptions.length > 0 ? JSON.stringify(cleanedOptions) : null,
+      correct_answer: currentQ.correct_answer || 'A'
     };
 
     if (currentQ.id) {
@@ -103,6 +127,8 @@ const QuestionBankView = () => {
     setCurrentQ(null);
     fetchQuestions(); // Tải lại danh sách
   };
+
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   return (
     <div className="animate-fade" style={{ position: 'relative' }}>
@@ -137,12 +163,22 @@ const QuestionBankView = () => {
               <th style={{ padding: '1rem', fontWeight: '500' }}>Câu hỏi</th>
               <th style={{ padding: '1rem', fontWeight: '500', width: '140px' }}>Ngành nghề</th>
               <th style={{ padding: '1rem', fontWeight: '500', width: '100px' }}>Độ khó</th>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '120px' }}>Loại câu hỏi</th>
+              <th style={{ padding: '1rem', fontWeight: '500', width: '120px' }}>Loại</th>
+              <th style={{ padding: '1rem', fontWeight: '500', width: '250px' }}>Đáp án</th>
               <th style={{ padding: '1rem', fontWeight: '500', width: '100px', textAlign: 'center' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {paginatedQuestions.map(q => (
+            {paginatedQuestions.map(q => {
+              let displayOptions = q.options;
+              try {
+                if (q.options && typeof q.options === 'string' && q.options.startsWith('[')) {
+                  const arr = JSON.parse(q.options);
+                  displayOptions = arr.map((opt, i) => `${letters[i]}. ${opt}`).join(' | ');
+                }
+              } catch(e) {}
+
+              return (
               <tr key={q.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
                 <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{q.id.toString().substring(0, 8)}...</td>
                 <td style={{ padding: '1rem' }}>{q.content}</td>
@@ -158,12 +194,21 @@ const QuestionBankView = () => {
                 <td style={{ padding: '1rem', textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
                   {q.question_type}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
-                  <button onClick={() => handleEdit(q)} style={iconBtnStyle} title="Sửa"><Edit2 size={18} color="hsl(var(--primary-hsl))" /></button>
-                  <button onClick={() => handleDelete(q.id)} style={iconBtnStyle} title="Xóa"><Trash2 size={18} color="#ff4d4d" /></button>
+                <td style={{ padding: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {displayOptions ? displayOptions : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>Chưa có đáp án</span>}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: '600', marginTop: '0.25rem' }}>
+                    {q.correct_answer ? `Đúng: ${q.correct_answer}` : ''}
+                  </div>
+                </td>
+                <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                  <button onClick={() => handleEdit(q)} style={{...iconBtnStyle, background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5'}} title="Sửa câu hỏi"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(q.id)} style={{...iconBtnStyle, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444'}} title="Xóa câu hỏi"><Trash2 size={16} /></button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -177,7 +222,7 @@ const QuestionBankView = () => {
         >
           &larr; Prev
         </button>
-        <span style={{ padding: '0.5rem 1rem', background: 'var(--glass-bg)', borderRadius: '8px' }}>
+        <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontWeight: '600', color: '#334155' }}>
           {page} / {totalPages}
         </span>
         <button
@@ -191,63 +236,118 @@ const QuestionBankView = () => {
 
       {isEditing && (
         <div style={modalOverlayStyle}>
-          <div className="animate-fade glass-card" style={modalContentStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0 }}>{currentQ.id ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới'}</h2>
+          <div className="animate-fade" style={modalContentStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <div>
+                <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: '#1e293b' }}>{currentQ.id ? 'Chỉnh sửa Câu hỏi' : 'Thêm Câu hỏi mới'}</h2>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>{currentQ.id ? 'Cập nhật nội dung và thuộc tính câu hỏi.' : 'Điền thông tin bên dưới để thêm câu hỏi vào ngân hàng.'}</p>
+              </div>
               <button onClick={() => setIsEditing(false)} style={closeBtnStyle}><X size={24} /></button>
             </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Ngành nghề</label>
-                <select
-                  required
-                  value={currentQ.industry_id}
-                  onChange={e => setCurrentQ({ ...currentQ, industry_id: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="" disabled>-- Chọn ngành nghề --</option>
-                  {industries.map(ind => (
-                    <option key={ind.id} value={ind.id}>{ind.name}</option>
-                  ))}
-                </select>
+            
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Ngành nghề <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select
+                    required
+                    value={currentQ.industry_id || ''}
+                    onChange={e => setCurrentQ({ ...currentQ, industry_id: e.target.value })}
+                    style={inputStyle}
+                  >
+                    <option value="" disabled>-- Chọn ngành nghề --</option>
+                    {industries.map(ind => (
+                      <option key={ind.id} value={ind.id}>{ind.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Độ khó</label>
+                  <select
+                    value={currentQ.difficulty || 'medium'}
+                    onChange={e => setCurrentQ({ ...currentQ, difficulty: e.target.value })}
+                    style={inputStyle}
+                  >
+                    <option value="easy">Dễ (Easy)</option>
+                    <option value="medium">Trung bình (Medium)</option>
+                    <option value="hard">Khó (Hard)</option>
+                  </select>
+                </div>
               </div>
+
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Độ khó</label>
+                <label style={labelStyle}>Loại câu hỏi</label>
                 <select
-                  value={currentQ.difficulty}
-                  onChange={e => setCurrentQ({ ...currentQ, difficulty: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Loại câu hỏi</label>
-                <select
-                  value={currentQ.question_type}
+                  value={currentQ.question_type || 'technical'}
                   onChange={e => setCurrentQ({ ...currentQ, question_type: e.target.value })}
                   style={inputStyle}
                 >
-                  <option value="technical">Technical</option>
-                  <option value="behavioral">Behavioral</option>
+                  <option value="technical">Technical (Kiến thức chuyên môn)</option>
+                  <option value="behavioral">Behavioral (Câu hỏi tình huống/Hành vi)</option>
                 </select>
               </div>
+
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Nội dung câu hỏi</label>
+                <label style={labelStyle}>Nội dung câu hỏi <span style={{ color: '#ef4444' }}>*</span></label>
                 <textarea
                   required
-                  rows={4}
-                  value={currentQ.content}
+                  rows={3}
+                  value={currentQ.content || ''}
                   onChange={e => setCurrentQ({ ...currentQ, content: e.target.value })}
-                  style={{ ...inputStyle, resize: 'vertical' }}
+                  placeholder="Nhập nội dung câu hỏi tại đây..."
+                  style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.5' }}
                 />
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Các đáp án lựa chọn</label>
+                  {currentQ.optionsList?.map((opt, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: '600', width: '20px', color: '#475569' }}>{letters[idx]}.</span>
+                      <input
+                        type="text"
+                        value={opt}
+                        onChange={e => {
+                          const newOpts = [...currentQ.optionsList];
+                          newOpts[idx] = e.target.value;
+                          setCurrentQ({ ...currentQ, optionsList: newOpts });
+                        }}
+                        style={{ ...inputStyle, padding: '0.55rem 0.85rem' }}
+                        placeholder={`Nhập đáp án ${letters[idx]}`}
+                      />
+                    </div>
+                  ))}
+                  {currentQ.optionsList?.length < 6 && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentQ({ ...currentQ, optionsList: [...currentQ.optionsList, ''] })}
+                      style={{ background: 'transparent', border: '1px dashed #cbd5e1', padding: '0.5rem', width: '100%', borderRadius: '8px', color: '#64748b', cursor: 'pointer', marginTop: '0.25rem', transition: 'all 0.2s' }}
+                      onMouseOver={e => e.target.style.borderColor = '#94a3b8'}
+                      onMouseOut={e => e.target.style.borderColor = '#cbd5e1'}
+                    >
+                      + Thêm đáp án {letters[currentQ.optionsList.length]}
+                    </button>
+                  )}
+                </div>
+                <div>
+                  <label style={labelStyle}>Đáp án đúng <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select
+                    required
+                    value={currentQ.correct_answer || 'A'}
+                    onChange={e => setCurrentQ({ ...currentQ, correct_answer: e.target.value })}
+                    style={inputStyle}
+                  >
+                    {currentQ.optionsList?.map((opt, idx) => (
+                      <option key={idx} value={letters[idx]}>Đáp án {letters[idx]}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>Lưu</button>
-                <button type="button" onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '0.75rem', background: 'transparent', border: '1px solid var(--text-secondary)', color: 'white', borderRadius: '8px', cursor: 'pointer' }}>Hủy</button>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                <button type="button" onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '0.85rem', background: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'background 0.2s' }} onMouseOver={e => e.target.style.background = '#e2e8f0'} onMouseOut={e => e.target.style.background = '#f1f5f9'}>Hủy bỏ</button>
+                <button type="submit" style={{ flex: 1, padding: '0.85rem', background: '#4f46e5', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>{currentQ.id ? 'Lưu thay đổi' : 'Thêm câu hỏi'}</button>
               </div>
             </form>
           </div>
@@ -257,22 +357,31 @@ const QuestionBankView = () => {
   );
 };
 
+const labelStyle = { display: 'block', marginBottom: '0.4rem', color: '#475569', fontSize: '0.85rem', fontWeight: '600' };
+
 const inputStyle = {
   width: '100%',
-  padding: '0.75rem',
-  borderRadius: '8px',
-  border: '1px solid var(--glass-border)',
-  background: 'var(--glass-bg)',
-  color: '#000000',
-  outline: 'none'
+  padding: '0.85rem 1rem',
+  borderRadius: '10px',
+  border: '1px solid #cbd5e1',
+  background: '#ffffff',
+  color: '#334155',
+  fontSize: '0.95rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s, box-shadow 0.2s'
 };
 
 const iconBtnStyle = {
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
-  padding: '0.25rem',
-  margin: '0 0.25rem'
+  padding: '0.5rem',
+  borderRadius: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.2s'
 };
 
 const pageBtnStyle = {
@@ -280,15 +389,22 @@ const pageBtnStyle = {
   background: 'var(--primary)',
   color: 'white',
   border: 'none',
-  borderRadius: '8px'
+  borderRadius: '8px',
+  fontWeight: 'bold',
+  transition: 'transform 0.2s'
 };
 
-const closeBtnStyle = { background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' };
+const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.25rem', transition: 'color 0.2s' };
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+  backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+  padding: '1rem'
 };
-const modalContentStyle = { width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem' };
+const modalContentStyle = { 
+  width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', 
+  padding: '2.5rem', background: '#ffffff', borderRadius: '24px',
+  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+};
 
 export default QuestionBankView;

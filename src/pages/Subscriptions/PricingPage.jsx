@@ -48,7 +48,7 @@ const PricingPage = () => {
   };
 
   return (
-    <div className="container animate-fade" style={{ padding: 'var(--spacing-xl) 0', textAlign: 'center' }}>
+    <div className="container animate-fade" style={{ paddingTop: '120px', paddingBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
       <header style={{ marginBottom: 'var(--spacing-xl)' }}>
         <h1 style={{ fontSize: '3rem', marginBottom: 'var(--spacing-sm)' }}>
           Nâng cấp <span className="gradient-text">Trải nghiệm</span> của bạn
@@ -60,20 +60,20 @@ const PricingPage = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--spacing-lg)', alignItems: 'center' }}>
         {/* Free Plan */}
-        <div className="glass-card" style={{ padding: '2rem', textAlign: 'left' }}>
+        <div className="glass-card" style={{ padding: '2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ marginBottom: '1.5rem' }}>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Gói Free</h3>
             <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>0đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
             <FeatureItem text="5 lần phỏng vấn AI / tháng" />
             <FeatureItem text="Phân tích CV cơ bản" />
             <FeatureItem text="Truy cập bộ câu hỏi (Easy)" />
           </ul>
           <button style={{
-            width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--primary)',
-            background: 'transparent', color: 'var(--primary)', fontWeight: 'bold', cursor: currentPlan === 'Free' ? 'default' : 'pointer',
-            opacity: currentPlan === 'Free' ? 0.7 : 1
+            width: '100%', padding: '0.85rem', borderRadius: '12px', border: '2px solid #e2e8f0',
+            background: '#f8fafc', color: '#64748b', fontWeight: 'bold', cursor: 'default',
+            transition: 'all 0.3s ease', marginTop: 'auto'
           }}
           disabled={currentPlan === 'Free'}
           >
@@ -82,8 +82,8 @@ const PricingPage = () => {
         </div>
 
         {/* Pro Plan */}
-        <div className="glass-card" style={{ padding: '2.5rem 2rem', textAlign: 'left', border: '2px solid var(--primary)', transform: 'scale(1.05)', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: '-15px', right: '20px', background: 'var(--primary)', color: 'white', padding: '0.25rem 1rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+        <div className="glass-card" style={{ padding: '2.5rem 2rem', textAlign: 'left', border: '2px solid var(--primary)', transform: 'scale(1.05)', position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', zIndex: 10, boxShadow: '0 20px 40px -10px rgba(79, 70, 229, 0.15)' }}>
+          <div style={{ position: 'absolute', top: '-15px', right: '20px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', padding: '0.4rem 1.25rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}>
             PHỔ BIẾN
           </div>
           <div style={{ marginBottom: '1.5rem' }}>
@@ -93,44 +93,54 @@ const PricingPage = () => {
             </div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>5.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
             <FeatureItem text="Không giới hạn phỏng vấn AI" />
             <FeatureItem text="Đánh giá CV chuyên sâu" />
             <FeatureItem text="Truy cập toàn bộ câu hỏi" />
             <FeatureItem text="Phân tích giọng nói & biểu cảm" />
           </ul>
-          <button className="btn-primary" style={{ width: '100%', textAlign: 'center', opacity: currentPlan === 'Pro' ? 0.7 : 1 }} onClick={() => currentPlan !== 'Pro' && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro'}>
-            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Pro' ? 'Gói hiện tại' : 'Nâng cấp Pro')}
+          <button style={{
+            width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
+            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
+            cursor: currentPlan === 'Pro' ? 'default' : 'pointer', marginTop: 'auto',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: currentPlan === 'Pro' ? 0.7 : 1,
+            boxShadow: currentPlan === 'Pro' ? 'none' : '0 4px 15px rgba(79, 70, 229, 0.4)'
+          }}
+          onMouseOver={(e) => { if(currentPlan !== 'Pro') e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Pro') e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onClick={() => currentPlan !== 'Pro' && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro'}
+          >
+            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Pro' ? 'Đang sử dụng' : 'Nâng cấp Pro')}
           </button>
         </div>
 
         {/* Premium Plan */}
-        <div className="glass-card" style={{ padding: '2rem', textAlign: 'left' }}>
+        <div className="glass-card" style={{ padding: '2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <Crown color="hsl(var(--accent-hsl))" />
-              <h3 style={{ fontSize: '1.5rem', margin: 0 }}>Premium</h3>
+              <Crown color="#f59e0b" />
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: '#f59e0b' }}>Premium</h3>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>10.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
             <FeatureItem text="Mọi tính năng của Pro" />
             <FeatureItem text="Review từ chuyên gia (1 lần/tháng)" />
             <FeatureItem text="Ưu tiên hỗ trợ 24/7" />
           </ul>
           <button style={{
-            width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--accent)',
-            background: currentPlan === 'Premium' ? 'var(--accent)' : 'transparent', 
-            color: currentPlan === 'Premium' ? '#000' : 'var(--accent)', 
-            fontWeight: 'bold', cursor: currentPlan === 'Premium' ? 'default' : 'pointer',
-            transition: 'all 0.2s', opacity: currentPlan === 'Premium' ? 0.7 : 1
+            width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
+            cursor: currentPlan === 'Premium' ? 'default' : 'pointer', marginTop: 'auto',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: currentPlan === 'Premium' ? 0.7 : 1,
+            boxShadow: currentPlan === 'Premium' ? 'none' : '0 4px 15px rgba(245, 158, 11, 0.4)'
           }}
-            onMouseOver={(e) => { if(currentPlan !== 'Premium') { e.target.style.background = 'var(--accent)'; e.target.style.color = 'black'; } }}
-            onMouseOut={(e) => { if(currentPlan !== 'Premium') { e.target.style.background = 'transparent'; e.target.style.color = 'var(--accent)'; } }}
-            onClick={() => currentPlan !== 'Premium' && handleUpgrade('Premium')}
-            disabled={isProcessing || currentPlan === 'Premium'}
+          onMouseOver={(e) => { if(currentPlan !== 'Premium') e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Premium') e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onClick={() => currentPlan !== 'Premium' && handleUpgrade('Premium')}
+          disabled={isProcessing || currentPlan === 'Premium'}
           >
-            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Gói hiện tại' : 'Nâng cấp Premium')}
+            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng' : 'Nâng cấp Premium')}
           </button>
         </div>
       </div>
@@ -144,20 +154,8 @@ const PricingPage = () => {
           bankAccount={BANK_ACCOUNT}
           accountName={ACCOUNT_NAME}
           onClose={() => setShowPayment(false)}
-          onSuccess={async () => {
-            // Cập nhật hạng thành viên (plan) cho user trong bảng profiles
-            const { error } = await supabase
-              .from('profiles')
-              .update({ plan: selectedPlan.name })
-              .eq('id', user.id);
-
-            if (error) {
-              console.error('Lỗi cập nhật hạng thành viên:', error);
-              alert('Thanh toán thành công nhưng chưa cập nhật được hạng thành viên. Vui lòng liên hệ Admin.');
-            } else {
-              alert(`Thanh toán thành công! Hạng thành viên của bạn đã được nâng cấp lên ${selectedPlan.name}.`);
-            }
-
+          onSuccess={() => {
+            alert(`Thanh toán thành công! Hạng thành viên của bạn đã được nâng cấp lên ${selectedPlan.name}.`);
             setShowPayment(false);
             window.location.href = '/dashboard';
           }}

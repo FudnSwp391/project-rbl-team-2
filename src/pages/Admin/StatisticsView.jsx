@@ -1,25 +1,104 @@
-import React from 'react';
-import { mockStats } from '../../utils/mockData';
+import React, { useState, useEffect } from 'react';
 import { Users, Activity, Target, Crown } from 'lucide-react';
+import { supabase } from '../../utils/supabaseClient';
 
 const StatisticsView = () => {
-  const maxInterviews = Math.max(...mockStats.interviewsPastWeek);
+  // Dữ liệu trống, sẽ được fetch từ backend sau
+  const [stats, setStats] = useState({
+    totalInterviews: 0,
+    avgScore: 0,
+    activeUsers: 0,
+    premiumSubscribers: 0,
+    interviewsPastWeek: [0, 0, 0, 0, 0, 0, 0]
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      // 1. Tổng phỏng vấn
+      const { count: totalInterviews } = await supabase
+        .from('interviews')
+        .select('*', { count: 'exact', head: true });
+
+      // 2. Điểm trung bình (lấy overall_score của các bài phỏng vấn đã chấm)
+      const { data: interviewsWithScore } = await supabase
+        .from('interviews')
+        .select('overall_score')
+        .not('overall_score', 'is', null);
+      
+      let avgScore = 0;
+      if (interviewsWithScore && interviewsWithScore.length > 0) {
+        const sum = interviewsWithScore.reduce((acc, curr) => acc + curr.overall_score, 0);
+        avgScore = Math.round(sum / interviewsWithScore.length);
+      }
+
+      // 3. Người dùng Active (đếm role là user/candidate/recruiter có status active)
+      const { count: activeUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['active', 'Active']);
+
+      // 4. Subscribers (Pro, Premium)
+      const { count: premiumSubscribers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .in('plan', ['Pro', 'Premium']);
+
+      // 5. Phỏng vấn 7 ngày qua
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { data: recentInterviews } = await supabase
+        .from('interviews')
+        .select('created_at')
+        .gte('created_at', sevenDaysAgo.toISOString());
+
+      const interviewsPastWeek = [0, 0, 0, 0, 0, 0, 0];
+      
+      if (recentInterviews) {
+        recentInterviews.forEach(interview => {
+          const date = new Date(interview.created_at);
+          // getDay(): 0 = Sunday, 1 = Monday ... 6 = Saturday
+          // Đổi thành 0 = Monday ... 6 = Sunday
+          let dayIndex = date.getDay() - 1;
+          if (dayIndex === -1) dayIndex = 6; 
+          interviewsPastWeek[dayIndex]++;
+        });
+      }
+
+      setStats({
+        totalInterviews: totalInterviews || 0,
+        avgScore,
+        activeUsers: activeUsers || 0,
+        premiumSubscribers: premiumSubscribers || 0,
+        interviewsPastWeek
+      });
+
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  };
+
+  const maxInterviews = Math.max(...stats.interviewsPastWeek, 10);
 
   return (
     <div className="animate-fade">
       <h2 style={{ marginBottom: 'var(--spacing-md)' }}>Báo cáo Thống kê</h2>
 
       <div className="grid-auto" style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <StatCard title="Tổng Phỏng vấn" value={mockStats.totalInterviews} icon={<Activity color="hsl(var(--primary-hsl))" />} />
-        <StatCard title="Điểm Trung bình" value={`${mockStats.avgScore}/100`} icon={<Target color="#32c864" />} />
-        <StatCard title="Người dùng Active" value={mockStats.activeUsers} icon={<Users color="hsl(var(--accent-hsl))" />} />
-        <StatCard title="Subscribers" value={mockStats.premiumSubscribers} icon={<Crown color="#ff9632" />} />
+        <StatCard title="Tổng Phỏng vấn" value={stats.totalInterviews} icon={<Activity color="hsl(var(--primary-hsl))" />} />
+        <StatCard title="Điểm Trung bình" value={`${stats.avgScore}/100`} icon={<Target color="#32c864" />} />
+        <StatCard title="Người dùng Active" value={stats.activeUsers} icon={<Users color="hsl(var(--accent-hsl))" />} />
+        <StatCard title="Subscribers" value={stats.premiumSubscribers} icon={<Crown color="#ff9632" />} />
       </div>
 
       <div className="glass-card">
         <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>Phỏng vấn trong 7 ngày qua</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', height: '250px', padding: '1rem 0' }}>
-          {mockStats.interviewsPastWeek.map((count, index) => {
+          {stats.interviewsPastWeek.map((count, index) => {
             const heightPercentage = (count / maxInterviews) * 100;
             const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
