@@ -7,6 +7,7 @@ import ForgotPassword from '../pages/Auth/ForgotPassword';
 import Profile from '../pages/Auth/Profile';
 import ProtectedRoute from '../ProtectedRoute';
 import AdminRoute from '../AdminRoute';
+import MentorRoute from '../MentorRoute';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import PricingPage from '../pages/Subscriptions/PricingPage';
 import AdminPanel from '../pages/Admin/AdminPanel';
@@ -19,6 +20,15 @@ import BlogManagement from '../pages/Recruiter/BlogManagement';
 import PostBlog from '../pages/Recruiter/PostBlog';
 import CompanyProfile from '../pages/Recruiter/CompanyProfile';
 import RecruiterRegistration from '../pages/Recruiter/RecruiterRegistration';
+
+// Mentor Components
+import MentorDashboard from '../pages/Mentor/MentorDashboard';
+import MentorBlogManagement from '../pages/Mentor/MentorBlogManagement';
+import MentorPostBlog from '../pages/Mentor/MentorPostBlog';
+import MentorReviews from '../pages/Mentor/MentorReviews';
+import MentorReviewDetail from '../pages/Mentor/MentorReviewDetail';
+import MentorSchedule from '../pages/Mentor/MentorSchedule';
+import MentorSession from '../pages/Mentor/MentorSession';
 
 // Public Views
 import CompanyView from '../pages/Public/CompanyView';
@@ -63,6 +73,16 @@ const AppRoutes = () => {
       <Route path="/recruiter/blogs" element={<ProtectedRoute><BlogManagement /></ProtectedRoute>} />
       <Route path="/recruiter/blogs/new" element={<ProtectedRoute><PostBlog /></ProtectedRoute>} />
       <Route path="/recruiter/blogs/edit/:id" element={<ProtectedRoute><PostBlog /></ProtectedRoute>} />
+
+      {/* Protected Mentor Routes */}
+      <Route path="/mentor" element={<MentorRoute><MentorDashboard /></MentorRoute>} />
+      <Route path="/mentor/blogs" element={<MentorRoute><MentorBlogManagement /></MentorRoute>} />
+      <Route path="/mentor/blogs/new" element={<MentorRoute><MentorPostBlog /></MentorRoute>} />
+      <Route path="/mentor/blogs/edit/:id" element={<MentorRoute><MentorPostBlog /></MentorRoute>} />
+      <Route path="/mentor/reviews" element={<MentorRoute><MentorReviews /></MentorRoute>} />
+      <Route path="/mentor/reviews/:id" element={<MentorRoute><MentorReviewDetail /></MentorRoute>} />
+      <Route path="/mentor/schedule" element={<MentorRoute><MentorSchedule /></MentorRoute>} />
+      <Route path="/mentor/schedule/session/:id" element={<MentorRoute><MentorSession /></MentorRoute>} />
     </Routes>
   );
 };

@@ -25,3 +25,7 @@ dist-ssr
 
 # Sensitive environment variables
 .env
+
+# Learning Log (Local only)
+LAB1_NHAT_KY_HOC_TAP.md
+SWR_AI_AUDIT_LOG.md

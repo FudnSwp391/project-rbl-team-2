@@ -103,6 +103,32 @@ Dưới đây là kế hoạch phân chia công việc chi tiết, tối ưu cho
 
 ---
 
+### 🧑‍🏫 VAI TRÒ MENTOR (ACTOR B): FRONTEND DEVELOPER - MENTOR PORTAL & REVIEW SYSTEM
+*   **Trọng tâm**: Xây dựng toàn bộ phân hệ Mentor bao gồm Dashboard quản lý, hệ thống đánh giá video phỏng vấn, quản lý lịch hẹn mentoring 1-on-1 và quản lý blog chia sẻ kiến thức.
+*   **Mô tả chi tiết**: `MentorRoute`, `MentorDashboard`, `MentorBlogManagement`, `MentorPostBlog`, `MentorReviews`, `MentorReviewDetail`, `MentorSchedule`, `MentorSession` - Xây dựng hệ thống phân quyền role-based cho Mentor, tạo giao diện Dashboard hiển thị thống kê (số yêu cầu đánh giá chờ, buổi hẹn sắp tới, blog đã xuất bản). Phát triển module Đánh giá Phỏng vấn cho phép Mentor xem video phỏng vấn của ứng viên, chấm điểm kỹ năng kỹ thuật/giao tiếp/tư duy và gửi nhận xét chi tiết. Xây dựng module Quản lý Lịch hẹn cho phép Mentor xem/chấp nhận/từ chối yêu cầu booking, tham gia phiên mentoring trực tuyến 1-on-1 với video call, ghi chú phiên. Tích hợp module Blog Management cho phép Mentor tạo, chỉnh sửa, xuất bản bài viết chia sẻ kinh nghiệm phỏng vấn cho ứng viên.
+*   **Nhiệm vụ cụ thể**:
+    1.  **Mentor Dashboard** (`MentorDashboard.jsx`):
+        *   Thiết kế trang tổng quan với 3 thẻ thống kê (Yêu cầu đánh giá chờ, Buổi hẹn sắp tới, Blog đã xuất bản).
+        *   4 thẻ tính năng chính điều hướng đến: Quản lý Blog, Đánh giá Phỏng vấn, Quản lý Lịch hẹn, Cài đặt Hồ sơ.
+    2.  **Hệ thống Đánh giá Phỏng vấn** (`MentorReviews.jsx`, `MentorReviewDetail.jsx`):
+        *   Danh sách yêu cầu đánh giá với bộ lọc trạng thái (Chờ đánh giá / Đã đánh giá).
+        *   Trang chi tiết: Trình phát video phỏng vấn, danh sách câu hỏi đã hỏi, biểu mẫu phản hồi có thanh trượt điểm (Kỹ thuật, Giao tiếp, Tư duy giải quyết vấn đề) và các trường nhận xét văn bản (Điểm mạnh, Điểm cần cải thiện, Nhận xét tổng quan).
+    3.  **Quản lý Lịch hẹn Mentoring** (`MentorSchedule.jsx`, `MentorSession.jsx`):
+        *   Danh sách yêu cầu đặt lịch với bộ lọc (Chờ xác nhận / Đã chấp nhận / Đã hoàn thành / Đã từ chối).
+        *   Hành động Chấp nhận / Từ chối booking trực tiếp trên danh sách.
+        *   Phòng phiên Mentoring trực tuyến 1-on-1 với giao diện video call (camera, micro, chia sẻ màn hình), bảng thông tin phiên, khu vực ghi chú, đồng hồ đếm thời gian.
+    4.  **Quản lý Blog Mentor** (`MentorBlogManagement.jsx`, `MentorPostBlog.jsx`):
+        *   Danh sách blog của Mentor với trạng thái (Bản nháp / Đã xuất bản), hành động Chỉnh sửa / Xuất bản / Xóa.
+        *   Biểu mẫu tạo/chỉnh sửa bài viết: Tiêu đề, Loại nội dung (Bài viết/Video), Danh mục, Nội dung, URL Video.
+    5.  **Phân quyền & Route Guard** (`MentorRoute.jsx`):
+        *   Route Guard kiểm tra `profile.role === 'mentor'` từ bảng `profiles` trên Supabase.
+        *   Hiển thị badge "MENTOR" (màu moss green `#6B7F5C`) bên cạnh tên người dùng trên Header.
+        *   Link "Mentor Portal" xuất hiện trên thanh điều hướng khi đăng nhập bằng tài khoản Mentor.
+*   **Các file liên quan**: `src/MentorRoute.jsx`, `src/pages/Mentor/MentorDashboard.jsx`, `MentorBlogManagement.jsx`, `MentorPostBlog.jsx`, `MentorReviews.jsx`, `MentorReviewDetail.jsx`, `MentorSchedule.jsx`, `MentorSession.jsx`, `src/routes/AppRoutes.jsx`, `src/components/layout/Header.jsx`
+*   **Nhánh Git**: `develop`
+
+---
+
 ## ⚙️ 2. QUY TRÌNH HỢP NHẤT MÃ NGUỒN TRÊN GIT (COLLABORATION FLOW)
 
 Vì cả 5 người làm việc đồng thời trên các phần khác nhau của cùng một dự án React, hãy tuân thủ quy trình sau để **tránh xung đột code (conflict)**:
