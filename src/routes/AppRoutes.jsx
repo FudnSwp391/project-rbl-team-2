@@ -10,6 +10,12 @@ import ProtectedRoute from '../ProtectedRoute';
 import AdminRoute from '../AdminRoute';
 import MentorRoute from '../MentorRoute';
 import Dashboard from '../pages/Dashboard/Dashboard';
+import DailyQuestions from '../pages/Dashboard/DailyQuestions';
+import QuestionBank from '../pages/Dashboard/QuestionBank';
+import Flashcards from '../pages/Dashboard/QuestionBankModes/Flashcards';
+import LearnMode from '../pages/Dashboard/QuestionBankModes/LearnMode';
+import TestMode from '../pages/Dashboard/QuestionBankModes/TestMode';
+import MatchingMode from '../pages/Dashboard/QuestionBankModes/MatchingMode';
 import PricingPage from '../pages/Subscriptions/PricingPage';
 import AdminPanel from '../pages/Admin/AdminPanel';
 
@@ -62,6 +68,12 @@ const AppRoutes = () => {
       {/* Protected User Routes */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/challenge/questions" element={<ProtectedRoute><DailyQuestions /></ProtectedRoute>} />
+      <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
+      <Route path="/question-bank/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+      <Route path="/question-bank/learn" element={<ProtectedRoute><LearnMode /></ProtectedRoute>} />
+      <Route path="/question-bank/test" element={<ProtectedRoute><TestMode /></ProtectedRoute>} />
+      <Route path="/question-bank/matching" element={<ProtectedRoute><MatchingMode /></ProtectedRoute>} />
       <Route path="/interview" element={<ProtectedRoute><MockInterviewPlaceholder /></ProtectedRoute>} />
       <Route path="/cv-analysis" element={<ProtectedRoute><CVManager /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />

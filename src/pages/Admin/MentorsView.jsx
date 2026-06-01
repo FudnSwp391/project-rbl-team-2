@@ -1,179 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
 
 const MentorsView = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [registrations, setRegistrations] = useState([]);
+  const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'managed'
 
-  useEffect(() => {
-    fetchRegistrations();
-  }, []);
-
-  const fetchRegistrations = async () => {
+  const fetchMentors = async () => {
     setLoading(true);
-    try {
-      // 1. Thử truy vấn bảng 'mentors' chính xác của bạn
-      const { data, error } = await supabase
+    const { data, error } = await supabase
+      .from('mentors')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching mentors:', error);
+      const { data: fallbackData, error: fallbackError } = await supabase
         .from('mentors')
         .select('*')
         .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        // Ánh xạ mentor_id sang user_id và parse số năm kinh nghiệm từ cột expertise nếu cần
-        const formatted = data.map(r => ({
-          ...r,
-          user_id: r.mentor_id, // dùng mentor_id làm user_id để cập nhật profile
-          years_of_experience: r.years_of_experience || (r.expertise?.match(/(\d+)\s*năm/)?.[1] ? parseInt(r.expertise.match(/(\d+)\s*năm/)[1]) : 3),
-          source_table: 'mentors'
-        }));
-        setRegistrations(formatted);
-      } else {
-        console.warn("Table 'mentors' not found or error, trying 'mentor_registrations'...", error);
-        
-        // 2. Thử truy vấn bảng 'mentor_registrations' (bảng cũ dự phòng)
-        const { data: regData, error: regError } = await supabase
-          .from('mentor_registrations')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (!regError && regData) {
-          setRegistrations(regData.map(r => ({ ...r, source_table: 'mentor_registrations' })));
-        } else {
-          console.warn('Dedicated mentor_registrations table not found, trying fallback...', regError);
-          
-          // 3. Fallback dự phòng cuối cùng: Truy vấn bảng 'companies'
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('companies')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (!fallbackError && fallbackData) {
-            const parsedMentors = fallbackData
-              .filter(c => c.company_name?.startsWith('[MENTOR]'))
-              .map(c => {
-                const desc = c.description || '';
-                const expertiseMatch = desc.match(/Chuyên môn:\s*(.*)/);
-                const expMatch = desc.match(/Kinh nghiệm:\s*(.*)/);
-                const linkedinMatch = desc.match(/LinkedIn:\s*(.*)/);
-                
-                const bioSplit = desc.split('\n\n');
-                const bio = bioSplit.length > 1 ? bioSplit[bioSplit.length - 1] : desc;
-
-                return {
-                  id: c.id,
-                  user_id: c.recruiter_id,
-                  full_name: c.company_name.replace('[MENTOR] ', ''),
-                  email: c.email,
-                  phone: c.phone,
-                  expertise: expertiseMatch ? expertiseMatch[1] : 'Fullstack Development',
-                  years_of_experience: expMatch ? parseInt(expMatch[1]) || 3 : 3,
-                  linkedin_url: linkedinMatch ? linkedinMatch[1] : '',
-                  bio: bio,
-                  document_url: c.document_url,
-                  status: c.status,
-                  created_at: c.created_at,
-                  is_fallback: true,
-                  source_table: 'companies'
-                };
-              });
-            setRegistrations(parsedMentors);
-          }
-        }
+      if (!fallbackError) {
+        setMentors(fallbackData || []);
       }
-    } catch (err) {
-      console.error('Error fetching mentor registrations:', err);
-    } finally {
-      setLoading(false);
+    } else {
+      setMentors(data || []);
     }
+    setLoading(false);
   };
 
+  useEffect(() => {
+    fetchMentors();
+  }, []);
+
   const handleApprove = async (mentor) => {
-    if (window.confirm(`Bạn có chắc chắn muốn DUYỆT Mentor ${mentor.full_name}?`)) {
-      setLoading(true);
-      try {
-        if (mentor.is_fallback || mentor.source_table === 'companies') {
-          // Fallback update in 'companies' table
-          await supabase
-            .from('companies')
-            .update({ status: 'approved' })
-            .eq('id', mentor.id);
-        } else {
-          // Update in the source table ('mentors' or 'mentor_registrations')
-          const targetTable = mentor.source_table || 'mentors';
-          await supabase
-            .from(targetTable)
-            .update({ status: 'approved' })
-            .eq('id', mentor.id);
-        }
+    if (window.confirm(`Bạn có chắc chắn muốn DUYỆT đăng ký mentor của ${mentor.full_name}?`)) {
+      const { error: updateMentorError } = await supabase
+        .from('mentors')
+        .update({ status: 'approved' })
+        .eq('id', mentor.id);
 
-        // Update role to 'mentor' in profiles table
-        if (mentor.user_id) {
-          const { error: updateProfileError } = await supabase
-            .from('profiles')
-            .update({ role: 'mentor', status: 'active' })
-            .eq('id', mentor.user_id);
-            
-          if (updateProfileError) {
-             console.error('Không thể cập nhật role cho user:', updateProfileError);
-             alert('Đã duyệt Mentor, nhưng có lỗi khi cập nhật role trong profiles: ' + updateProfileError.message);
-          } else {
-             alert(`Đã duyệt thành công Mentor ${mentor.full_name}!`);
-          }
-        }
-
-        fetchRegistrations();
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (updateMentorError) {
+        return alert('Lỗi khi duyệt (update mentors): ' + updateMentorError.message);
       }
+
+      if (mentor.mentor_id) {
+        const { error: updateProfileError } = await supabase
+          .from('profiles')
+          .update({ role: 'mentor', status: 'active' })
+          .eq('id', mentor.mentor_id);
+          
+        if (updateProfileError) {
+           console.error('Không thể cập nhật role cho user:', updateProfileError);
+           alert('Đã duyệt hồ sơ, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
+        } else {
+           alert(`Đã duyệt thành công Mentor ${mentor.full_name}!`);
+        }
+      }
+
+      fetchMentors();
     }
   };
 
   const handleReject = async (mentor) => {
-    if (window.confirm(`Bạn có chắc chắn muốn TỪ CHỐI Mentor ${mentor.full_name}?`)) {
-      setLoading(true);
-      try {
-        if (mentor.is_fallback || mentor.source_table === 'companies') {
-          await supabase
-            .from('companies')
-            .update({ status: 'rejected' })
-            .eq('id', mentor.id);
-        } else {
-          const targetTable = mentor.source_table || 'mentors';
-          await supabase
-            .from(targetTable)
-            .update({ status: 'rejected' })
-            .eq('id', mentor.id);
-        }
+    if (window.confirm(`Bạn có chắc chắn muốn TỪ CHỐI yêu cầu đăng ký của ${mentor.full_name}?`)) {
+      const { error: updateMentorError } = await supabase
+        .from('mentors')
+        .update({ status: 'rejected' })
+        .eq('id', mentor.id);
 
-        // If previously approved, revoke mentor role
-        if (mentor.user_id) {
-          await supabase
-            .from('profiles')
-            .update({ role: 'candidate' })
-            .eq('id', mentor.user_id);
-        }
-
-        fetchRegistrations();
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (updateMentorError) {
+        return alert('Lỗi khi từ chối: ' + updateMentorError.message);
       }
+
+      // Nếu trước đó đã approved, có thể cần revoke quyền
+      if (mentor.status === 'approved' && mentor.mentor_id) {
+        let planToRestore = 'Free';
+        let expiresAt = null;
+        const { data: latestOrder } = await supabase
+          .from('orders')
+          .select('plan_name, created_at')
+          .eq('user_id', mentor.mentor_id)
+          .eq('status', 'paid')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (latestOrder) {
+          const durationDays = latestOrder.plan_name === 'Pro' ? 14 : (latestOrder.plan_name === 'Premium' ? 30 : 0);
+          const orderDate = new Date(latestOrder.created_at);
+          const expirationDate = new Date(orderDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+          
+          if (expirationDate > new Date()) {
+            planToRestore = latestOrder.plan_name;
+            expiresAt = expirationDate.toISOString();
+          }
+        }
+
+        await supabase
+          .from('profiles')
+          .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
+          .eq('id', mentor.mentor_id);
+      }
+
+      fetchMentors();
     }
   };
 
-  const pendingCount = registrations.filter(r => r.status === 'pending').length;
+  const pendingCount = mentors.filter(m => m.status === 'pending').length;
 
-  const filteredRegistrations = registrations.filter(mentor => {
+  const filteredMentors = mentors.filter(mentor => {
     const matchesSearch = (mentor.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (mentor.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (mentor.expertise || '').toLowerCase().includes(searchTerm.toLowerCase());
+                          (mentor.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab = activeTab === 'pending' ? mentor.status === 'pending' : mentor.status !== 'pending';
     return matchesSearch && matchesTab;
   });
@@ -250,13 +190,17 @@ const MentorsView = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredRegistrations.length > 0 ? filteredRegistrations.map(mentor => (
+            {filteredMentors.length > 0 ? filteredMentors.map(mentor => (
               <tr key={mentor.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                 <td style={{ padding: '1rem', fontWeight: '600', color: '#1e293b' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#6B7F5C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
-                      {mentor.full_name.charAt(0).toUpperCase()}
-                    </div>
+                    {mentor.avatar_url ? (
+                      <img src={mentor.avatar_url} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#6B7F5C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
+                        {(mentor.full_name || 'M').charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     {mentor.full_name}
                   </div>
                 </td>

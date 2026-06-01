@@ -49,7 +49,7 @@ const UsersView = () => {
     setCurrentUser({
       full_name: '',
       email: '',
-      role: 'user',
+      role: 'candidate',
       plan: 'Free',
       status: 'Active'
     });
@@ -69,6 +69,21 @@ const UsersView = () => {
 
     if (currentUser.id) {
       // Update
+      const originalUser = users.find(u => u.id === currentUser.id);
+      if (originalUser && originalUser.plan !== currentUser.plan) {
+        if (currentUser.plan === 'Pro') {
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 14);
+          payload.plan_expires_at = expiresAt.toISOString();
+        } else if (currentUser.plan === 'Premium') {
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30);
+          payload.plan_expires_at = expiresAt.toISOString();
+        } else {
+          payload.plan_expires_at = null;
+        }
+      }
+
       const { error } = await supabase.from('profiles').update(payload).eq('id', currentUser.id);
       if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Lưu ý: Cần kiểm tra quyền RLS trên Supabase)');
     } else {
@@ -217,13 +232,13 @@ const UsersView = () => {
                 <div>
                   <label style={labelStyle}>Vai trò</label>
                   <select
-                    value={currentUser.role || 'user'}
+                    value={currentUser.role || 'candidate'}
                     onChange={e => setCurrentUser({ ...currentUser, role: e.target.value })}
                     style={inputStyle}
                   >
-                    <option value="user">User (Người dùng thường)</option>
                     <option value="candidate">Candidate (Ứng viên)</option>
                     <option value="recruiter">Recruiter (Nhà tuyển dụng)</option>
+                    <option value="mentor">Mentor (Cố vấn)</option>
                     <option value="admin">Admin (Quản trị viên)</option>
                   </select>
                 </div>

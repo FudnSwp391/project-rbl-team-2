@@ -34,7 +34,7 @@ const Header = () => {
 
   const isMentor = profile?.role === 'mentor' || profile?.role === 'Mentor' || user?.user_metadata?.role === 'mentor';
 
-  const navLinks = [
+  let navLinks = [
     { to: '/', label: 'Trang chủ' },
     { to: '/interview', label: 'Phỏng vấn' },
     { to: '/cv-analysis', label: 'Phân tích CV' },
@@ -53,6 +53,7 @@ const Header = () => {
   ];
 
   if (profile?.role === 'admin' || profile?.role === 'Admin' || user?.user_metadata?.role === 'admin') {
+    navLinks = navLinks.filter(link => link.label !== 'Thử thách' && link.label !== 'Tuyển dụng');
     navLinks.push({ to: '/admin', label: 'Quản trị' });
   }
 
@@ -214,8 +215,23 @@ const Header = () => {
                     ? user.user_metadata.full_name.charAt(0).toUpperCase()
                     : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </div>
-                {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                {profile?.role === 'recruiter' && (
+                <span>
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+                {profile?.role?.toLowerCase() === 'admin' ? (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #d97706, #fbbf24)',
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px',
+                    boxShadow: '0 0 8px rgba(217, 119, 6, 0.6), 0 0 16px rgba(251, 191, 36, 0.4)'
+                  }}>
+                    ADMIN
+                  </span>
+                ) : profile?.role === 'recruiter' ? (
                   <span style={{
                     background: '#0ea5e9',
                     color: 'white',
@@ -227,7 +243,7 @@ const Header = () => {
                   }}>
                     COMPANY
                   </span>
-                )}
+                ) : null}
                 {(profile?.role === 'mentor' || profile?.role === 'Mentor') && (
                   <span style={{
                     background: 'var(--color-moss, #6B7F5C)',
@@ -241,7 +257,7 @@ const Header = () => {
                     MENTOR
                   </span>
                 )}
-                {profile?.plan && profile.plan !== 'Free' && profile?.role !== 'recruiter' && (
+                {profile?.role?.toLowerCase() === 'candidate' && profile?.plan && profile.plan !== 'Free' && (
                   <span style={{
                     background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
                     color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
@@ -385,8 +401,26 @@ const Header = () => {
               fontFamily: 'var(--font-serif)',
               fontSize: '1.5rem',
               fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}>
-              Xin chào, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+              Xin chào, <span>
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+                {profile?.role?.toLowerCase() === 'admin' && (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #d97706, #fbbf24)',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    boxShadow: '0 0 8px rgba(217, 119, 6, 0.6), 0 0 16px rgba(251, 191, 36, 0.4)'
+                  }}>
+                    ADMIN
+                  </span>
+                )}
             </Link>
             <button onClick={handleLogout} className="btn btn--outline" style={{
               padding: '0.6rem 2rem',

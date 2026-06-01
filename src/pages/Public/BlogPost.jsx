@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 
 const mockBlog = {
   id: 1,
@@ -31,7 +33,44 @@ Remember, we are looking for teammates, not just coders. Good luck!`,
 
 const BlogPost = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const blog = mockBlog; // Real app: fetch by id
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Tôi đã thiết lập 5 giây thay vì 5 phút để bạn có thể test ngay lập tức mà không phải chờ đợi.
+    const timer = setTimeout(() => {
+      const storageKey = `ita_user_data_${user.id}`;
+      let savedData = JSON.parse(localStorage.getItem(storageKey));
+      
+      if (savedData) {
+        const today = new Date().toLocaleDateString('vi-VN');
+        
+        if (savedData.challengesDate !== today) {
+          savedData.challengesDate = today;
+          savedData.completedChallenges = [];
+        }
+        
+        if (!savedData.completedChallenges.includes('blog')) {
+          savedData.completedChallenges.push('blog');
+          savedData.points += 5;
+          localStorage.setItem(storageKey, JSON.stringify(savedData));
+          
+          // Sync to Supabase
+          supabase.from('profiles').update({
+            points: savedData.points
+          }).eq('id', user.id).then(({error}) => {
+            if (!error) {
+              alert('🎉 Chúc mừng! Bạn đã hoàn thành thử thách "Đọc blog" và nhận được 5 điểm!');
+            }
+          });
+        }
+      }
+    }, 5000); // 5 seconds for testing
+
+    return () => clearTimeout(timer);
+  }, [user]);
 
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>

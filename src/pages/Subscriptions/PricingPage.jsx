@@ -6,11 +6,27 @@ import PaymentModal from '../../components/PaymentModal';
 
 const PricingPage = () => {
   const { user, profile } = useAuth();
-  const currentPlan = profile?.plan || 'Free';
+  const [currentPlan, setCurrentPlan] = useState(profile?.plan || 'Free');
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [orderCode, setOrderCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  React.useEffect(() => {
+    if (user && profile) {
+      let dbPlan = profile.plan || 'Free';
+      
+      // Check expiration from DB
+      if (profile.plan_expires_at && dbPlan !== 'Free') {
+        const expires = new Date(profile.plan_expires_at);
+        const now = new Date();
+        if (expires <= now) {
+          dbPlan = 'Free';
+        }
+      }
+      setCurrentPlan(dbPlan);
+    }
+  }, [user, profile]);
 
   // CẤU HÌNH THÔNG TIN NGÂN HÀNG CỦA BẠN TẠI ĐÂY
   const BANK_ID = 'TPBank'; // Tên viết tắt hoặc BIN của ngân hàng (VD: MB, VCB, TCB)
@@ -66,9 +82,8 @@ const PricingPage = () => {
             <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>0đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-            <FeatureItem text="5 lần phỏng vấn AI / tháng" />
-            <FeatureItem text="Phân tích CV cơ bản" />
-            <FeatureItem text="Truy cập bộ câu hỏi (Easy)" />
+            <FeatureItem text="1 lượt luyện tập với AI" />
+            <FeatureItem text="5 lượt luyện tập question" />
           </ul>
           <button style={{
             width: '100%', padding: '0.85rem', borderRadius: '12px', border: '2px solid #e2e8f0',
@@ -91,26 +106,25 @@ const PricingPage = () => {
               <Zap color="hsl(var(--primary-hsl))" />
               <h3 style={{ fontSize: '1.8rem', margin: 0, color: 'var(--primary)' }}>Pro</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>5.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>5.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/14 ngày</span></div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-            <FeatureItem text="Không giới hạn phỏng vấn AI" />
-            <FeatureItem text="Đánh giá CV chuyên sâu" />
-            <FeatureItem text="Truy cập toàn bộ câu hỏi" />
-            <FeatureItem text="Phân tích giọng nói & biểu cảm" />
+            <FeatureItem text="5 lượt luyện tập với AI" />
+            <FeatureItem text="10 lượt luyện tập question" />
+            <FeatureItem text="Đặt lịch mentor 1 lần" />
           </ul>
           <button style={{
             width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
-            cursor: currentPlan === 'Pro' ? 'default' : 'pointer', marginTop: 'auto',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: currentPlan === 'Pro' ? 0.7 : 1,
-            boxShadow: currentPlan === 'Pro' ? 'none' : '0 4px 15px rgba(79, 70, 229, 0.4)'
+            cursor: (currentPlan === 'Pro' || currentPlan === 'Premium') ? 'default' : 'pointer', marginTop: 'auto',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: (currentPlan === 'Pro' || currentPlan === 'Premium') ? 0.7 : 1,
+            boxShadow: (currentPlan === 'Pro' || currentPlan === 'Premium') ? 'none' : '0 4px 15px rgba(79, 70, 229, 0.4)'
           }}
-          onMouseOver={(e) => { if(currentPlan !== 'Pro') e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
-          onMouseOut={(e) => { if(currentPlan !== 'Pro') e.target.style.transform = 'translateY(0) scale(1)'; }}
-          onClick={() => currentPlan !== 'Pro' && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro'}
+          onMouseOver={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium') e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium') e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onClick={() => currentPlan !== 'Pro' && currentPlan !== 'Premium' && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro' || currentPlan === 'Premium'}
           >
-            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Pro' ? 'Đang sử dụng' : 'Nâng cấp Pro')}
+            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng gói cao hơn' : (currentPlan === 'Pro' ? 'Đang sử dụng' : 'Nâng cấp Pro'))}
           </button>
         </div>
 
@@ -121,12 +135,12 @@ const PricingPage = () => {
               <Crown color="#f59e0b" />
               <h3 style={{ fontSize: '1.5rem', margin: 0, color: '#f59e0b' }}>Premium</h3>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>10.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>10.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/30 ngày</span></div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-            <FeatureItem text="Mọi tính năng của Pro" />
-            <FeatureItem text="Review từ chuyên gia (1 lần/tháng)" />
-            <FeatureItem text="Ưu tiên hỗ trợ 24/7" />
+            <FeatureItem text="30 lượt luyện tập với AI" />
+            <FeatureItem text="Không giới hạn luyện tập question" />
+            <FeatureItem text="Đặt lịch mentor 5 lần" />
           </ul>
           <button style={{
             width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
@@ -154,7 +168,20 @@ const PricingPage = () => {
           bankAccount={BANK_ACCOUNT}
           accountName={ACCOUNT_NAME}
           onClose={() => setShowPayment(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            const durationDays = selectedPlan.name === 'Pro' ? 14 : 30;
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + durationDays);
+            
+            try {
+              await supabase.from('profiles').update({
+                plan: selectedPlan.name,
+                plan_expires_at: expiresAt.toISOString()
+              }).eq('id', user.id);
+            } catch (err) {
+              console.error('Lỗi khi nâng cấp DB:', err);
+            }
+
             alert(`Thanh toán thành công! Hạng thành viên của bạn đã được nâng cấp lên ${selectedPlan.name}.`);
             setShowPayment(false);
             window.location.href = '/dashboard';

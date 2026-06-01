@@ -79,9 +79,32 @@ const EmployersView = () => {
 
       // Nếu trước đó đã approved, có thể cần revoke quyền
       if (company.status === 'approved' && company.recruiter_id) {
+        // Khôi phục lại gói dịch vụ mà user đang sở hữu, nếu không có thì về Free
+        let planToRestore = 'Free';
+        let expiresAt = null;
+        const { data: latestOrder } = await supabase
+          .from('orders')
+          .select('plan_name, created_at')
+          .eq('user_id', company.recruiter_id)
+          .eq('status', 'paid')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (latestOrder) {
+          const durationDays = latestOrder.plan_name === 'Pro' ? 14 : (latestOrder.plan_name === 'Premium' ? 30 : 0);
+          const orderDate = new Date(latestOrder.created_at);
+          const expirationDate = new Date(orderDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+          
+          if (expirationDate > new Date()) {
+            planToRestore = latestOrder.plan_name;
+            expiresAt = expirationDate.toISOString();
+          }
+        }
+
         await supabase
           .from('profiles')
-          .update({ role: 'candidate' }) // Trả về role mặc định
+          .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
           .eq('id', company.recruiter_id);
       }
 

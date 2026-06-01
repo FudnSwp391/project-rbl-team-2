@@ -1,0 +1,225 @@
+.test-config-modal {
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  background: var(--surface);
+}
+
+.test-config-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.test-config-body {
+  margin-bottom: 2rem;
+}
+
+.config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.config-group label {
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+
+.config-input {
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--color-warm-white);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.test-config-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.test-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  height: 100vh;
+  padding-top: 6rem;
+  padding-bottom: 2rem;
+}
+
+.test-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.test-wrapper {
+  width: 100%;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin-bottom: 1.5rem;
+}
+
+.test-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: 550px;
+  aspect-ratio: 16 / 9;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 3rem 4rem;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+
+.test-inner::-webkit-scrollbar {
+  width: 6px;
+}
+.test-inner::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
+}
+
+.test-question {
+  font-size: 1.5rem;
+  line-height: 1.6;
+  color: var(--color-charcoal);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.test-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto auto auto;
+}
+
+.test-option {
+  font-size: 1.15rem;
+  color: var(--color-text);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: background 0.2s, opacity 0.2s, border 0.2s;
+  border: 1px solid transparent;
+}
+
+.test-option:hover {
+  background: rgba(0,0,0,0.03);
+  border-color: var(--border-color);
+}
+
+.test-option.selected {
+  background: rgba(214, 203, 187, 0.15); /* var(--color-earth) with opacity */
+  border-color: rgba(181, 155, 128, 0.4);
+  font-weight: 500;
+  color: var(--color-earth);
+}
+
+.option-letter {
+  font-weight: bold;
+  color: var(--color-earth);
+  min-width: 25px;
+}
+
+.test-option.selected .option-letter {
+  color: inherit;
+}
+
+.test-no-options {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto auto auto;
+}
+
+.test-textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1.1rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.test-textarea:focus {
+  outline: none;
+  border-color: var(--color-earth);
+  box-shadow: 0 0 0 3px rgba(214, 203, 187, 0.2);
+}
+
+.test-controls-static {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.test-overview-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 400px;
+}
+
+.test-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.test-dot:hover {
+  transform: scale(1.2);
+}
+
+.test-dot.answered {
+  background: var(--color-moss);
+}
+
+.test-dot.active {
+  box-shadow: 0 0 0 3px rgba(181, 155, 128, 0.3);
+  background: var(--color-earth);
+}
+
+.test-review {
+  max-width: 800px;
+  margin: 0 auto;
+}

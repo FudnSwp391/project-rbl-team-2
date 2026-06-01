@@ -267,20 +267,6 @@ ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view challenges" ON challenges FOR SELECT USING (true);
 CREATE POLICY "Admins can manage challenges" ON challenges FOR ALL USING (public.is_admin());
 
-ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view subscription plans" ON subscription_plans FOR SELECT USING (true);
-CREATE POLICY "Admins can manage subscription plans" ON subscription_plans FOR ALL USING (public.is_admin());
-
--- Admin có quyền trên các bảng khác
-CREATE POLICY "Admins can manage all cvs" ON cvs FOR ALL USING (public.is_admin());
-CREATE POLICY "Admins can manage all interviews" ON interviews FOR ALL USING (public.is_admin());
-CREATE POLICY "Admins can manage user subscriptions" ON user_subscriptions FOR ALL USING (public.is_admin());
-
- - -   B y p a s s e s   A d B l o c k e r   b y   u s i n g   P O S T   i n s t e a d   o f   D E L E T E   f o r   d e l e t i n g   C V s 
- C R E A T E   O R   R E P L A C E   F U N C T I O N   d e l e t e _ u s e r _ c v ( c v _ i d   U U I D ) 
- R E T U R N S   v o i d 
- L A N G U A G E   p l p g s q l 
- S E C U R I T Y   I N V O K E R 
  A S   \ $ \ $ 
  B E G I N 
      D E L E T E   F R O M   c v s   W H E R E   i d   =   c v _ i d ; 

@@ -1,0 +1,108 @@
+.matching-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.matching-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 3rem;
+}
+
+.matching-progress-text {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  color: var(--color-earth);
+  font-weight: 600;
+}
+
+.matching-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  width: 100%;
+}
+
+.matching-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.column-title {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--color-charcoal);
+  font-size: 1.5rem;
+}
+
+.matching-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.matching-card {
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  user-select: none;
+}
+
+.matching-card.answer-card {
+  background: var(--color-warm-white);
+  color: var(--color-earth-dark);
+}
+
+.matching-card:hover:not(.selected):not(.matched):not(.wrong) {
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
+}
+
+.matching-card.selected {
+  border-color: var(--color-accent);
+  background: var(--color-cream);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.matching-card.wrong {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.matching-card.matched {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9);
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@media (max-width: 768px) {
+  .matching-board {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
