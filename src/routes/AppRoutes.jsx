@@ -29,6 +29,7 @@ import MentorReviews from '../pages/Mentor/MentorReviews';
 import MentorReviewDetail from '../pages/Mentor/MentorReviewDetail';
 import MentorSchedule from '../pages/Mentor/MentorSchedule';
 import MentorSession from '../pages/Mentor/MentorSession';
+import MentorRegistration from '../pages/Mentor/MentorRegistration';
 
 // Public Views
 import CompanyView from '../pages/Public/CompanyView';
@@ -73,6 +74,9 @@ const AppRoutes = () => {
       <Route path="/recruiter/blogs" element={<ProtectedRoute><BlogManagement /></ProtectedRoute>} />
       <Route path="/recruiter/blogs/new" element={<ProtectedRoute><PostBlog /></ProtectedRoute>} />
       <Route path="/recruiter/blogs/edit/:id" element={<ProtectedRoute><PostBlog /></ProtectedRoute>} />
+
+      {/* Mentor Registration (public, requires login) */}
+      <Route path="/mentor-register" element={<MentorRegistration />} />
 
       {/* Protected Mentor Routes */}
       <Route path="/mentor" element={<MentorRoute><MentorDashboard /></MentorRoute>} />

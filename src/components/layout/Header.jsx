@@ -45,6 +45,7 @@ const Header = () => {
         label: 'Tuyển dụng',
         dropdown: [
           { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' },
+          { to: '/mentor-register', label: 'Đăng ký Mentor' },
           { to: '/jobs', label: 'Việc làm' },
         ]
       }

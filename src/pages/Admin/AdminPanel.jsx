@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, BarChart3, Database, FileText, Award, CreditCard, Briefcase, DollarSign } from 'lucide-react';
+import { Users, BarChart3, Database, FileText, Award, CreditCard, Briefcase, DollarSign, GraduationCap } from 'lucide-react';
 import UsersView from './UsersView';
 import StatisticsView from './StatisticsView';
 import QuestionBankView from './QuestionBankView';
@@ -8,6 +8,7 @@ import ChallengesView from './ChallengesView';
 import SubscriptionPlansView from './SubscriptionPlansView';
 import OrdersView from './OrdersView';
 import EmployersView from './EmployersView';
+import MentorsView from './MentorsView';
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('statistics');
@@ -22,6 +23,7 @@ const AdminPanel = () => {
       case 'subscriptions': return <SubscriptionPlansView />;
       case 'orders': return <OrdersView />;
       case 'employers': return <EmployersView />;
+      case 'mentors': return <MentorsView />;
       default: return <StatisticsView />;
     }
   };
@@ -81,6 +83,12 @@ const AdminPanel = () => {
               onClick={() => setActiveTab('employers')}
               icon={<Briefcase size={20} />}
               label="Nhà tuyển dụng"
+            />
+            <TabButton
+              active={activeTab === 'mentors'}
+              onClick={() => setActiveTab('mentors')}
+              icon={<GraduationCap size={20} />}
+              label="Mentor"
             />
           </nav>
         </div>
