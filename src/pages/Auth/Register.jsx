@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 import './Auth.css';
+
+const getPasswordStrength = (pass) => {
+  if (!pass) return { label: '', color: 'transparent', width: '0%' };
+  if (pass.length < 8) return { label: 'Quá ngắn (ít nhất 8 ký tự)', color: '#D32F2F', width: '25%' };
+  
+  let strength = 0;
+  if (/[a-zA-Z]/.test(pass)) strength += 1;
+  if (/[0-9]/.test(pass)) strength += 1;
+  if (/[^a-zA-Z0-9]/.test(pass)) strength += 1;
+  
+  if (strength === 1) return { label: 'Yếu', color: '#ff9800', width: '50%' };
+  if (strength === 2) return { label: 'Trung bình', color: '#2196F3', width: '75%' };
+  if (strength >= 3) return { label: 'Mạnh', color: '#4CAF50', width: '100%' };
+  
+  return { label: '', color: 'transparent', width: '0%' };
+};
 
 const Register = () => {
   const [fullName, setFullName] = useState('');
@@ -15,11 +32,17 @@ const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  const pwdStrength = getPasswordStrength(password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     
+    if (password.length < 8) {
+      return setError('Mật khẩu phải có ít nhất 8 ký tự.');
+    }
+
     if (password !== confirmPassword) {
       return setError('Mật khẩu xác nhận không khớp.');
     }
@@ -27,6 +50,22 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // === BƯỚC 1: KIỂM TRA EMAIL ĐÃ TỒN TẠI CHƯA (trước khi gọi signUp) ===
+      // Gọi hàm RPC trên Supabase để kiểm tra bảng profiles (bypass RLS)
+      const { data: emailExists, error: checkError } = await supabase
+        .rpc('check_email_exists', { email_input: email });
+
+      if (checkError) {
+        console.warn('Không thể kiểm tra email:', checkError.message);
+        // Nếu hàm RPC chưa tồn tại, vẫn cho phép tiếp tục đăng ký bình thường
+      }
+
+      if (emailExists === true) {
+        setLoading(false);
+        return setError('Tài khoản Gmail này đã có người dùng khác sử dụng rồi. Vui lòng dùng email khác hoặc đăng nhập.');
+      }
+
+      // === BƯỚC 2: ĐĂNG KÝ TÀI KHOẢN MỚI ===
       const { error, data } = await register(email, password, {
         data: {
           full_name: fullName,
@@ -45,7 +84,16 @@ const Register = () => {
       }, 5000);
       
     } catch (err) {
-      setError(err.message || 'Đã có lỗi xảy ra khi đăng ký.');
+      const errorMsg = err.message || '';
+      if (
+        errorMsg.toLowerCase().includes('already registered') || 
+        errorMsg.toLowerCase().includes('already exists') ||
+        errorMsg.toLowerCase().includes('user already registered')
+      ) {
+        setError('Tài khoản Gmail này đã có người dùng khác sử dụng rồi. Vui lòng dùng email khác hoặc đăng nhập.');
+      } else {
+        setError(errorMsg || 'Đã có lỗi xảy ra khi đăng ký.');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,12 +140,22 @@ const Register = () => {
               type="password"
               id="password"
               className="auth-input"
-              placeholder="Tạo mật khẩu"
+              placeholder="Tạo mật khẩu (ít nhất 8 ký tự)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength="6"
+              minLength="8"
             />
+            {password && (
+              <div style={{ marginTop: '8px' }}>
+                <div style={{ height: '4px', width: '100%', backgroundColor: '#e9ecef', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: pwdStrength.width, backgroundColor: pwdStrength.color, transition: 'all 0.3s ease-in-out' }}></div>
+                </div>
+                <small style={{ color: pwdStrength.color, marginTop: '4px', display: 'block', fontSize: '0.85rem', fontWeight: '500' }}>
+                  Độ mạnh: {pwdStrength.label}
+                </small>
+              </div>
+            )}
           </div>
 
           <div className="auth-form-group">
@@ -110,7 +168,7 @@ const Register = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength="6"
+              minLength="8"
             />
           </div>
 
