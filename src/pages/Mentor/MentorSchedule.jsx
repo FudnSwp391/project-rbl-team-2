@@ -1,22 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle, XCircle, Video, User, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, Video, MessageSquare } from 'lucide-react';
+import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 
 const MentorSchedule = () => {
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
-  const [bookings, setBookings] = useState(mockBookings);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) fetchBookings();
+  }, [user]);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('mentor_bookings')
+        .select('*, profiles(full_name, email)')
+        .eq('mentor_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching bookings:', error.message);
+        setBookings([]);
+      } else {
+        const mapped = (data || []).map(item => ({
+          id: item.id,
+          candidateName: item.profiles?.full_name || item.candidate_name || 'Ứng viên',
+          date: item.booking_date || (item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : ''),
+          time: item.booking_time || '--:--',
+          topic: item.topic || 'Mentoring session',
+          status: item.status || 'pending',
+          candidate_id: item.candidate_id,
+        }));
+        setBookings(mapped);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setBookings([]);
+    }
+    setLoading(false);
+  };
 
   const filteredBookings = filter === 'all'
     ? bookings
     : bookings.filter(b => b.status === filter);
 
-  const handleAccept = (id) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'accepted' } : b));
+  const handleAccept = async (id) => {
+    const { error } = await supabase
+      .from('mentor_bookings')
+      .update({ status: 'accepted' })
+      .eq('id', id);
+
+    if (error) {
+      alert('Lỗi khi chấp nhận lịch hẹn: ' + error.message);
+    } else {
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'accepted' } : b));
+    }
   };
 
-  const handleReject = (id) => {
+  const handleReject = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn từ chối lịch hẹn này?')) return;
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'rejected' } : b));
+    const { error } = await supabase
+      .from('mentor_bookings')
+      .update({ status: 'rejected' })
+      .eq('id', id);
+
+    if (error) {
+      alert('Lỗi khi từ chối lịch hẹn: ' + error.message);
+    } else {
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'rejected' } : b));
+    }
   };
 
   const getStatusStyle = (status) => {
@@ -77,110 +134,114 @@ const MentorSchedule = () => {
           ))}
         </div>
 
-        {/* Bookings List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {filteredBookings.map((booking, idx) => {
-            const statusInfo = getStatusStyle(booking.status);
-            return (
-              <div
-                key={booking.id}
-                className={`glass-card reveal is-visible ${idx > 0 ? `reveal--delay-${Math.min(idx, 3)}` : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}
-              >
-                {/* Avatar */}
-                <div style={{
-                  width: '50px', height: '50px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--color-accent), var(--color-earth))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontWeight: 700, fontSize: '1.1rem',
-                  flexShrink: 0,
-                }}>
-                  {booking.candidateName.charAt(0)}
-                </div>
+        {/* Loading */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
+            Đang tải lịch hẹn...
+          </div>
+        ) : (
+          /* Bookings List */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {filteredBookings.map((booking, idx) => {
+              const statusInfo = getStatusStyle(booking.status);
+              return (
+                <div
+                  key={booking.id}
+                  className={`glass-card reveal is-visible ${idx > 0 ? `reveal--delay-${Math.min(idx, 3)}` : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: '50px', height: '50px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--color-accent), var(--color-earth))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontWeight: 700, fontSize: '1.1rem',
+                    flexShrink: 0,
+                  }}>
+                    {booking.candidateName.charAt(0)}
+                  </div>
 
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <h3 style={{ fontSize: '1.05rem', margin: '0 0 0.25rem 0', color: 'var(--color-charcoal)' }}>
-                    {booking.candidateName}
-                  </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Calendar size={14} /> {booking.date}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Clock size={14} /> {booking.time}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <MessageSquare size={14} /> {booking.topic}
-                    </span>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <h3 style={{ fontSize: '1.05rem', margin: '0 0 0.25rem 0', color: 'var(--color-charcoal)' }}>
+                      {booking.candidateName}
+                    </h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Calendar size={14} /> {booking.date}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Clock size={14} /> {booking.time}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <MessageSquare size={14} /> {booking.topic}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: '0.35rem',
+                    padding: '0.4rem 0.85rem', borderRadius: '50px',
+                    background: statusInfo.bg, color: statusInfo.color,
+                    fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap',
+                  }}>
+                    {statusInfo.icon} {statusInfo.label}
+                  </span>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    {booking.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleAccept(booking.id)}
+                          className="btn btn--primary"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '50px' }}
+                        >
+                          Chấp nhận
+                        </button>
+                        <button
+                          onClick={() => handleReject(booking.id)}
+                          className="btn btn--outline"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '50px' }}
+                        >
+                          Từ chối
+                        </button>
+                      </>
+                    )}
+                    {booking.status === 'accepted' && (
+                      <Link
+                        to={`/mentor/schedule/session/${booking.id}`}
+                        className="btn btn--primary"
+                        style={{
+                          padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '50px',
+                          display: 'flex', alignItems: 'center', gap: '0.35rem',
+                        }}
+                      >
+                        <Video size={14} /> Tham gia phiên
+                      </Link>
+                    )}
                   </div>
                 </div>
+              );
+            })}
 
-                {/* Status */}
-                <span style={{
-                  display: 'flex', alignItems: 'center', gap: '0.35rem',
-                  padding: '0.4rem 0.85rem', borderRadius: '50px',
-                  background: statusInfo.bg, color: statusInfo.color,
-                  fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap',
-                }}>
-                  {statusInfo.icon} {statusInfo.label}
-                </span>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                  {booking.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleAccept(booking.id)}
-                        className="btn btn--primary"
-                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '50px' }}
-                      >
-                        Chấp nhận
-                      </button>
-                      <button
-                        onClick={() => handleReject(booking.id)}
-                        className="btn btn--outline"
-                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '50px' }}
-                      >
-                        Từ chối
-                      </button>
-                    </>
-                  )}
-                  {booking.status === 'accepted' && (
-                    <Link
-                      to={`/mentor/schedule/session/${booking.id}`}
-                      className="btn btn--primary"
-                      style={{
-                        padding: '0.45rem 1rem', fontSize: '0.8rem', borderRadius: '50px',
-                        display: 'flex', alignItems: 'center', gap: '0.35rem',
-                      }}
-                    >
-                      <Video size={14} /> Tham gia phiên
-                    </Link>
-                  )}
-                </div>
+            {filteredBookings.length === 0 && (
+              <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--color-text-secondary)' }}>
+                <Calendar size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                <p style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>
+                  Không có lịch hẹn nào{filter !== 'all' ? ' trong mục này' : ''}.
+                </p>
+                <p style={{ fontSize: '0.85rem', maxWidth: '400px', margin: '0 auto' }}>
+                  Lịch hẹn sẽ xuất hiện tại đây khi ứng viên đặt lịch mentoring 1-on-1 với bạn.
+                </p>
               </div>
-            );
-          })}
-
-          {filteredBookings.length === 0 && (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
-              <Calendar size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-              <p>Không có lịch hẹn nào{filter !== 'all' ? ' trong mục này' : ''}.</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-const mockBookings = [
-  { id: 1, candidateName: 'Nguyễn Văn Quang', date: '01/06/2026', time: '14:00 - 15:00', topic: 'Chuẩn bị phỏng vấn Backend', status: 'pending' },
-  { id: 2, candidateName: 'Trần Thị Hồng', date: '02/06/2026', time: '09:00 - 10:00', topic: 'Review CV & Portfolio', status: 'pending' },
-  { id: 3, candidateName: 'Lê Minh Đức', date: '31/05/2026', time: '15:00 - 16:00', topic: 'System Design Interview Tips', status: 'accepted' },
-  { id: 4, candidateName: 'Phạm Ngọc Anh', date: '30/05/2026', time: '10:00 - 11:00', topic: 'Behavioral Interview Prep', status: 'completed' },
-  { id: 5, candidateName: 'Hoàng Đức Thắng', date: '29/05/2026', time: '16:00 - 17:00', topic: 'Career Path Discussion', status: 'rejected' },
-];
 
 export default MentorSchedule;

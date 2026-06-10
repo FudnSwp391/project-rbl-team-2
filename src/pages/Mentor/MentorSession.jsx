@@ -1,22 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Video, VideoOff, Mic, MicOff, Monitor, Phone, MessageSquare, Clock, User } from 'lucide-react';
+import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 
 const MentorSession = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [sessionTime, setSessionTime] = useState(0);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState(null);
 
-  // Mock session data
-  const session = {
-    candidateName: 'Lê Minh Đức',
-    topic: 'System Design Interview Tips',
-    date: '31/05/2026',
-    time: '15:00 - 16:00',
+  useEffect(() => {
+    if (id) fetchSession();
+  }, [id]);
+
+  const fetchSession = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('mentor_bookings')
+        .select('*, profiles(full_name, email)')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching session:', error.message);
+        alert('Không tìm thấy phiên mentoring này.');
+        navigate('/mentor/schedule');
+      } else {
+        setSession({
+          candidateName: data.profiles?.full_name || data.candidate_name || 'Ứng viên',
+          topic: data.topic || 'Mentoring session',
+          date: data.booking_date || (data.created_at ? new Date(data.created_at).toLocaleDateString('vi-VN') : ''),
+          time: data.booking_time || '--:--',
+        });
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      navigate('/mentor/schedule');
+    }
+    setLoading(false);
   };
 
   // Timer
@@ -36,12 +66,29 @@ const MentorSession = () => {
     return `${m}:${s}`;
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     if (window.confirm('Bạn có chắc chắn muốn kết thúc phiên mentoring?')) {
       setIsSessionActive(false);
+
+      // Update booking status to completed
+      await supabase
+        .from('mentor_bookings')
+        .update({ status: 'completed' })
+        .eq('id', id);
+
       setTimeout(() => navigate('/mentor/schedule'), 1500);
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{ background: 'var(--color-charcoal)', minHeight: '100vh', color: 'var(--color-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Đang tải phiên mentoring...</p>
+      </div>
+    );
+  }
+
+  if (!session) return null;
 
   return (
     <div style={{ background: 'var(--color-charcoal)', minHeight: '100vh', color: 'var(--color-cream)' }}>
@@ -284,7 +331,8 @@ const MentorSession = () => {
             grid-template-columns: 1fr !important;
           }
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 };

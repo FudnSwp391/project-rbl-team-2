@@ -1,19 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Eye, Calendar, Settings, BookOpen, Video, Clock, CheckCircle } from 'lucide-react';
+import { FileText, Eye, Calendar, BookOpen } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 
 const MentorDashboard = () => {
   const { user, profile } = useAuth();
 
-  // Stats (will be fetched from DB later)
   const [stats, setStats] = useState({
-    pendingReviews: 3,
-    upcomingSessions: 2,
-    publishedBlogs: 5,
-    completedReviews: 12,
+    pendingReviews: 0,
+    upcomingSessions: 0,
+    publishedBlogs: 0,
   });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) fetchStats();
+  }, [user]);
+
+  const fetchStats = async () => {
+    setLoadingStats(true);
+    try {
+      // 1. Count published blogs by this mentor
+      const { count: blogCount } = await supabase
+        .from('blogs')
+        .select('*', { count: 'exact', head: true })
+        .eq('author_id', user.id)
+        .eq('status', 'published');
+
+      // 2. Count pending interview reviews (interviews not yet reviewed by this mentor)
+      let pendingCount = 0;
+      try {
+        const { count: totalInterviews } = await supabase
+          .from('interview_history')
+          .select('*', { count: 'exact', head: true });
+
+        const { count: reviewedCount } = await supabase
+          .from('mentor_reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('mentor_id', user.id);
+
+        pendingCount = Math.max(0, (totalInterviews || 0) - (reviewedCount || 0));
+      } catch {
+        // mentor_reviews table might not exist yet
+        pendingCount = 0;
+      }
+
+      // 3. Count upcoming accepted sessions
+      let sessionCount = 0;
+      try {
+        const { count } = await supabase
+          .from('mentor_bookings')
+          .select('*', { count: 'exact', head: true })
+          .eq('mentor_id', user.id)
+          .eq('status', 'accepted');
+        sessionCount = count || 0;
+      } catch {
+        // mentor_bookings table might not exist yet
+        sessionCount = 0;
+      }
+
+      setStats({
+        pendingReviews: pendingCount,
+        upcomingSessions: sessionCount,
+        publishedBlogs: blogCount || 0,
+      });
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+    setLoadingStats(false);
+  };
 
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: 'calc(100vh - 80px)' }}>
@@ -36,7 +92,9 @@ const MentorDashboard = () => {
               <Eye size={28} color="var(--color-accent)" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-charcoal)' }}>{stats.pendingReviews}</h3>
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-charcoal)' }}>
+                {loadingStats ? '...' : stats.pendingReviews}
+              </h3>
               <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.9rem' }}>Yêu cầu đánh giá chờ</p>
             </div>
           </div>
@@ -46,7 +104,9 @@ const MentorDashboard = () => {
               <Calendar size={28} color="var(--color-moss)" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-charcoal)' }}>{stats.upcomingSessions}</h3>
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-charcoal)' }}>
+                {loadingStats ? '...' : stats.upcomingSessions}
+              </h3>
               <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.9rem' }}>Buổi hẹn sắp tới</p>
             </div>
           </div>
@@ -56,7 +116,9 @@ const MentorDashboard = () => {
               <BookOpen size={28} color="var(--color-earth)" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-charcoal)' }}>{stats.publishedBlogs}</h3>
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-charcoal)' }}>
+                {loadingStats ? '...' : stats.publishedBlogs}
+              </h3>
               <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '0.9rem' }}>Bài blog đã xuất bản</p>
             </div>
           </div>

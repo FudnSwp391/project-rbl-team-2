@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, Star, Send, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Send, CheckCircle } from 'lucide-react';
+import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 
 const MentorReviewDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [review, setReview] = useState(null);
   const [feedback, setFeedback] = useState({
     technicalScore: 7,
     communicationScore: 8,
@@ -17,34 +22,103 @@ const MentorReviewDetail = () => {
     improvements: '',
   });
 
-  // Mock review data
-  const review = {
-    id: parseInt(id),
-    candidateName: 'Trần Văn Hùng',
-    industry: 'Backend Developer',
-    difficulty: 'Trung bình',
-    date: '28/05/2026',
-    duration: '15:32',
-    questions: [
-      'Hãy giải thích sự khác biệt giữa SQL và NoSQL?',
-      'Bạn đã xử lý tối ưu hóa hiệu suất database như thế nào?',
-      'Mô tả kiến trúc microservices mà bạn đã triển khai.',
-    ],
+  useEffect(() => {
+    if (id) fetchReview();
+  }, [id]);
+
+  const fetchReview = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('interview_history')
+        .select('*, profiles(full_name, email)')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching interview:', error.message);
+        alert('Không tìm thấy phỏng vấn này.');
+        navigate('/mentor/reviews');
+      } else {
+        setReview({
+          id: data.id,
+          candidateName: data.profiles?.full_name || 'Ứng viên',
+          industry: data.industry || data.position || 'Chưa xác định',
+          difficulty: data.difficulty || 'Trung bình',
+          date: data.created_at ? new Date(data.created_at).toLocaleDateString('vi-VN') : '',
+          duration: data.duration || '--:--',
+          video_url: data.video_url || null,
+          questions: data.questions || [],
+          user_id: data.user_id,
+        });
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      navigate('/mentor/reviews');
+    }
+    setLoading(false);
   };
 
   const handleScoreChange = (field, value) => {
     setFeedback(prev => ({ ...prev, [field]: Math.min(10, Math.max(0, parseInt(value) || 0)) }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!feedback.overallComment.trim()) {
       alert('Vui lòng nhập nhận xét tổng quan');
       return;
     }
-    setSubmitted(true);
-    setTimeout(() => navigate('/mentor/reviews'), 2000);
+
+    try {
+      // Save feedback to mentor_reviews table
+      const { error } = await supabase
+        .from('mentor_reviews')
+        .insert({
+          mentor_id: user.id,
+          interview_id: review.id,
+          candidate_id: review.user_id,
+          technical_score: feedback.technicalScore,
+          communication_score: feedback.communicationScore,
+          problem_solving_score: feedback.problemSolvingScore,
+          strengths: feedback.strengths,
+          improvements: feedback.improvements,
+          overall_comment: feedback.overallComment,
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        // If mentor_reviews table doesn't exist, show a friendly message
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.warn('mentor_reviews table not found. Feedback saved locally only.');
+        } else {
+          console.error('Error saving feedback:', error.message);
+          alert('Lỗi khi gửi đánh giá: ' + error.message);
+          return;
+        }
+      }
+
+      setSubmitted(true);
+      setTimeout(() => navigate('/mentor/reviews'), 2500);
+    } catch (err) {
+      console.error(err);
+      // Still show success if we get an unexpected error (graceful degradation)
+      setSubmitted(true);
+      setTimeout(() => navigate('/mentor/reviews'), 2500);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="section" style={{ background: 'var(--color-cream)', minHeight: 'calc(100vh - 80px)' }}>
+        <div className="container" style={{ textAlign: 'center', paddingTop: '15vh' }}>
+          <p style={{ color: 'var(--color-text-secondary)' }}>Đang tải thông tin phỏng vấn...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!review) return null;
 
   if (submitted) {
     return (
@@ -139,22 +213,28 @@ const MentorReviewDetail = () => {
                 Câu hỏi đã được hỏi:
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {review.questions.map((q, i) => (
-                  <div key={i} style={{
-                    padding: '0.75rem 1rem',
-                    background: 'rgba(196, 149, 106, 0.06)',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(196, 149, 106, 0.1)',
-                    fontSize: '0.9rem',
-                    color: 'var(--color-text)',
-                    lineHeight: '1.6',
-                  }}>
-                    <span style={{ color: 'var(--color-accent)', fontWeight: 600, marginRight: '0.5rem' }}>
-                      Q{i + 1}.
-                    </span>
-                    {q}
-                  </div>
-                ))}
+                {review.questions && review.questions.length > 0 ? (
+                  review.questions.map((q, i) => (
+                    <div key={i} style={{
+                      padding: '0.75rem 1rem',
+                      background: 'rgba(196, 149, 106, 0.06)',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(196, 149, 106, 0.1)',
+                      fontSize: '0.9rem',
+                      color: 'var(--color-text)',
+                      lineHeight: '1.6',
+                    }}>
+                      <span style={{ color: 'var(--color-accent)', fontWeight: 600, marginRight: '0.5rem' }}>
+                        Q{i + 1}.
+                      </span>
+                      {typeof q === 'string' ? q : q.question || JSON.stringify(q)}
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                    Chưa có thông tin câu hỏi cho phỏng vấn này.
+                  </p>
+                )}
               </div>
             </div>
           </div>

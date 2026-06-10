@@ -1,13 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-
-const mockBlogs = [
-  { id: 1, title: 'How to ace a technical interview at TechCorp', company: 'TechCorp Solutions', type: 'Article', date: '3 days ago', summary: 'Discover the insider tips and tricks to succeed in our technical interview process, direct from our engineering managers.' },
-  { id: 2, title: 'Inside our engineering culture', company: 'TechCorp Solutions', type: 'Video', date: '1 week ago', summary: 'A sneak peek into how our product teams collaborate, ship fast, and learn continuously.' },
-  { id: 3, title: '5 Resume mistakes to avoid', company: 'Global Innovations', type: 'Article', date: '2 weeks ago', summary: 'We analyze thousands of resumes every month. Here are the top 5 mistakes that will get your CV rejected immediately.' }
-];
+import { supabase } from '../../utils/supabaseClient';
+import { Play, FileText, User } from 'lucide-react';
 
 const BlogList = () => {
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('blogs')
+      .select(`
+        *,
+        profiles:author_id (full_name, role)
+      `)
+      .eq('status', 'published')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setBlogs(data);
+    } else {
+      console.error('Error fetching blogs:', error);
+    }
+    setLoading(false);
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Hôm nay';
+    if (diffDays === 1) return 'Hôm qua';
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const hasVideo = (blog) => {
+    if (blog.video_url) return true;
+    if (blog.content && blog.content.includes('[VIDEO:')) return true;
+    return false;
+  };
+
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>
       <div className="container">
@@ -15,48 +54,91 @@ const BlogList = () => {
         <div className="reveal is-visible" style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}>
           <span className="label" style={{ marginBottom: '1rem' }}>Resources & Insights</span>
           <h1 style={{ marginBottom: '1rem' }}>Interview & Career Blog</h1>
-          <p style={{ maxWidth: '600px', margin: '0 auto' }}>Learn from top companies. Discover interview tips, career advice, and get an inside look at company cultures.</p>
+          <p style={{ maxWidth: '600px', margin: '0 auto' }}>Học hỏi kinh nghiệm từ các chuyên gia. Khám phá mẹo phỏng vấn, lời khuyên nghề nghiệp và các kiến thức chuyên sâu.</p>
         </div>
 
-        <div className="grid-auto">
-          {mockBlogs.map((blog, index) => (
-            <Link to={`/blog/${blog.id}`} key={blog.id} className={`glass-card reveal is-visible reveal--delay-${(index % 4) + 1}`} style={{ display: 'flex', flexDirection: 'column', textDecoration: 'none', transition: 'transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo)' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--color-text-secondary)' }}>
+            Đang tải danh sách bài viết...
+          </div>
+        ) : blogs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--color-text-secondary)' }}>
+            <FileText size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+            <p>Chưa có bài viết nào được xuất bản.</p>
+          </div>
+        ) : (
+          <div className="grid-auto">
+            {blogs.map((blog, index) => {
+              const isVideo = hasVideo(blog);
+              const authorName = blog.profiles?.full_name || 'Người dùng ẩn danh';
+              const role = blog.profiles?.role === 'mentor' ? 'Mentor' : (blog.profiles?.role === 'admin' ? 'Admin' : 'Thành viên');
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.05em', 
-                  fontWeight: '600',
-                  color: blog.type === 'Video' ? 'var(--color-accent)' : 'var(--color-moss)',
-                  background: 'rgba(255,255,255,0.7)',
-                  padding: '0.3rem 0.8rem',
-                  borderRadius: '50px'
-                }}>
-                  {blog.type === 'Video' ? '🎥 Video' : '📄 Article'}
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{blog.date}</span>
-              </div>
+              // Tạo summary từ content
+              let summary = blog.content.replace(/\[VIDEO:.*?\]/g, '').replace(/[#*`]/g, '').substring(0, 150);
+              if (blog.content.length > 150) summary += '...';
 
-              <h3 style={{ fontSize: '1.4rem', marginBottom: '1rem', lineHeight: '1.3', color: 'var(--color-charcoal)' }}>
-                {blog.title}
-              </h3>
-              
-              <p style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem', flex: 1 }}>
-                {blog.summary}
-              </p>
+              return (
+                <Link 
+                  to={`/blog/${blog.id}`} 
+                  key={blog.id} 
+                  className={`glass-card reveal is-visible reveal--delay-${(index % 4) + 1}`} 
+                  style={{ display: 'flex', flexDirection: 'column', textDecoration: 'none', transition: 'transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo)' }} 
+                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} 
+                  onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+                >
+                  
+                  {/* Ảnh bìa */}
+                  {blog.cover_image_url && (
+                    <div style={{
+                      margin: '-1.5rem -1.5rem 1rem -1.5rem',
+                      borderRadius: '16px 16px 0 0',
+                      overflow: 'hidden',
+                      height: '160px'
+                    }}>
+                      <img src={blog.cover_image_url} alt={blog.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.style.display = 'none'} />
+                    </div>
+                  )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
-                  🏢
-                </div>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-charcoal)' }}>{blog.company}</span>
-              </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <span style={{ 
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      fontSize: '0.75rem', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.05em', 
+                      fontWeight: '600',
+                      color: isVideo ? '#CC0000' : 'var(--color-moss)',
+                      background: isVideo ? 'rgba(255,0,0,0.08)' : 'rgba(107,127,92,0.1)',
+                      padding: '0.3rem 0.8rem',
+                      borderRadius: '50px'
+                    }}>
+                      {isVideo ? <><Play size={12}/> Video</> : <><FileText size={12}/> Bài viết</>}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{formatDate(blog.created_at)}</span>
+                  </div>
 
-            </Link>
-          ))}
-        </div>
+                  <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', lineHeight: '1.4', color: 'var(--color-charcoal)' }}>
+                    {blog.title}
+                  </h3>
+                  
+                  <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem', flex: 1, lineHeight: '1.6' }}>
+                    {summary}
+                  </p>
 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-alt)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={16} />
+                    </div>
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-charcoal)' }}>{authorName}</span>
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{role}</span>
+                    </div>
+                  </div>
+
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

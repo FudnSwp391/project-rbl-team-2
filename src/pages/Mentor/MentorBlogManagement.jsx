@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Edit2, Eye, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Eye, Trash2, FileText, Play, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
+
+// Helper: extract YouTube embed URL
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+};
+
+// Helper: extract video URL from content if stored inline
+const extractVideoFromContent = (content) => {
+  if (!content) return null;
+  const match = content.match(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/);
+  return match ? match[1] : null;
+};
 
 const MentorBlogManagement = () => {
   const { user } = useAuth();
@@ -10,8 +24,8 @@ const MentorBlogManagement = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBlogs();
-  }, []);
+    if (user?.id) fetchBlogs();
+  }, [user]);
 
   const fetchBlogs = async () => {
     setLoading(true);
@@ -23,24 +37,51 @@ const MentorBlogManagement = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Supabase blogs fetch error, using mock data:', error.message);
-        setBlogs(mockBlogs);
+        console.error('Error fetching blogs:', error.message);
+        setBlogs([]);
       } else {
-        setBlogs(data && data.length > 0 ? data : mockBlogs);
+        setBlogs(data || []);
       }
-    } catch {
-      setBlogs(mockBlogs);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setBlogs([]);
     }
     setLoading(false);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) return;
-    setBlogs(prev => prev.filter(b => b.id !== id));
+    const { error } = await supabase.from('blogs').delete().eq('id', id);
+    if (error) {
+      alert('Lỗi khi xóa bài viết: ' + error.message);
+    } else {
+      setBlogs(prev => prev.filter(b => b.id !== id));
+    }
   };
 
   const handlePublish = async (id) => {
-    setBlogs(prev => prev.map(b => b.id === id ? { ...b, status: 'Published' } : b));
+    const { error } = await supabase
+      .from('blogs')
+      .update({ status: 'published' })
+      .eq('id', id);
+    if (error) {
+      alert('Lỗi khi xuất bản: ' + error.message);
+    } else {
+      setBlogs(prev => prev.map(b => b.id === id ? { ...b, status: 'published' } : b));
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'Vừa tạo';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Hôm nay';
+    if (diffDays === 1) return 'Hôm qua';
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return date.toLocaleDateString('vi-VN');
   };
 
   return (
@@ -72,97 +113,193 @@ const MentorBlogManagement = () => {
           </div>
         ) : (
           <div className="grid-auto">
-            {blogs.map((blog, idx) => (
-              <div key={blog.id} className={`glass-card reveal is-visible ${idx > 0 ? `reveal--delay-${Math.min(idx, 3)}` : ''}`} style={{ display: 'flex', flexDirection: 'column' }}>
-                {/* Type & Status Tags */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    fontWeight: 600,
-                    color: blog.type === 'Video' ? 'var(--color-accent)' : 'var(--color-moss)',
-                    background: blog.type === 'Video' ? 'rgba(196, 149, 106, 0.1)' : 'rgba(107, 127, 92, 0.1)',
-                    padding: '0.25rem 0.7rem',
-                    borderRadius: '50px'
-                  }}>
-                    {blog.type === 'Video' ? '🎥 Video' : '📄 Bài viết'}
-                  </span>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.7rem',
-                    borderRadius: '50px',
-                    fontWeight: 500,
-                    background: blog.status === 'Published' ? 'rgba(107, 127, 92, 0.15)' : 'rgba(155, 147, 133, 0.15)',
-                    color: blog.status === 'Published' ? 'var(--color-moss)' : 'var(--color-stone)'
-                  }}>
-                    {blog.status === 'Published' ? '✓ Đã xuất bản' : '◷ Bản nháp'}
-                  </span>
-                </div>
+            {blogs.map((blog, idx) => {
+              // Check for video URL (from dedicated column or embedded in content)
+              const rawVideoUrl = blog.video_url || extractVideoFromContent(blog.content);
+              const embedUrl = getYouTubeEmbedUrl(rawVideoUrl);
+              const hasVideo = !!rawVideoUrl;
 
-                {/* Title */}
-                <h3 style={{ fontSize: '1.15rem', marginBottom: '0.5rem', flex: 1, color: 'var(--color-charcoal)' }}>
-                  {blog.title}
-                </h3>
-
-                {/* Meta */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                  <span>{blog.date || 'Vừa tạo'}</span>
-                  <span>{blog.views || 0} lượt xem</span>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                  <Link
-                    to={`/mentor/blogs/edit/${blog.id}`}
-                    className="btn btn--outline"
-                    style={{ flex: 1, padding: '0.5rem', textAlign: 'center', justifyContent: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <Edit2 size={14} /> Chỉnh sửa
-                  </Link>
-                  {blog.status === 'Draft' && (
-                    <button
-                      onClick={() => handlePublish(blog.id)}
-                      className="btn btn--primary"
-                      style={{ flex: 1, padding: '0.5rem', justifyContent: 'center', fontSize: '0.85rem' }}
-                    >
-                      Xuất bản
-                    </button>
+              return (
+                <div key={blog.id} className={`glass-card reveal is-visible ${idx > 0 ? `reveal--delay-${Math.min(idx, 3)}` : ''}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* Video Embed */}
+                  {embedUrl && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{
+                        margin: '-1.5rem -1.5rem 0 -1.5rem',
+                        borderRadius: '16px 16px 0 0',
+                        overflow: 'hidden',
+                        aspectRatio: '16/9',
+                      }}>
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={embedUrl}
+                          title={blog.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{ display: 'block' }}
+                        />
+                      </div>
+                      <a 
+                        href={rawVideoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'block',
+                          textAlign: 'center',
+                          padding: '0.5rem',
+                          background: 'rgba(255,0,0,0.05)',
+                          color: '#CC0000',
+                          fontSize: '0.8rem',
+                          textDecoration: 'none',
+                          borderBottom: '1px solid rgba(255,0,0,0.1)'
+                        }}
+                      >
+                        <ExternalLink size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                        Mở trên YouTube (nếu lỗi)
+                      </a>
+                    </div>
                   )}
-                  {blog.status === 'Published' && (
+
+                  {/* Cover Image (if no video) */}
+                  {!embedUrl && blog.cover_image_url && (
+                    <div style={{
+                      margin: '-1.5rem -1.5rem 1rem -1.5rem',
+                      borderRadius: '16px 16px 0 0',
+                      overflow: 'hidden',
+                      maxHeight: '180px',
+                    }}>
+                      <img
+                        src={blog.cover_image_url}
+                        alt={blog.title}
+                        style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Type & Status Tags */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 600,
+                      color: hasVideo ? '#FF0000' : 'var(--color-moss)',
+                      background: hasVideo ? 'rgba(255, 0, 0, 0.08)' : 'rgba(107, 127, 92, 0.1)',
+                      padding: '0.25rem 0.7rem',
+                      borderRadius: '50px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                    }}>
+                      {hasVideo ? <><Play size={12} /> Video</> : '📄 Bài viết'}
+                    </span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.7rem',
+                      borderRadius: '50px',
+                      fontWeight: 500,
+                      background: blog.status === 'published' ? 'rgba(107, 127, 92, 0.15)' : 'rgba(155, 147, 133, 0.15)',
+                      color: blog.status === 'published' ? 'var(--color-moss)' : 'var(--color-stone)'
+                    }}>
+                      {blog.status === 'published' ? '✓ Đã xuất bản' : '◷ Bản nháp'}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <h3 style={{ fontSize: '1.15rem', marginBottom: '0.5rem', flex: 1, color: 'var(--color-charcoal)' }}>
+                    {blog.title}
+                  </h3>
+
+                  {/* Video Link (clickable) */}
+                  {hasVideo && !embedUrl && (
+                    <a
+                      href={rawVideoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.5rem 0.75rem',
+                        background: 'rgba(255, 0, 0, 0.06)',
+                        border: '1px solid rgba(255, 0, 0, 0.15)',
+                        borderRadius: '10px',
+                        color: '#CC0000',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        textDecoration: 'none',
+                        marginBottom: '0.75rem',
+                        transition: 'all 0.3s',
+                      }}
+                    >
+                      <ExternalLink size={14} /> Xem video
+                    </a>
+                  )}
+
+                  {/* Meta */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                    <span>{formatDate(blog.created_at)}</span>
+                    <span>{blog.views || 0} lượt xem</span>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                     <Link
-                      to={`/blog/${blog.id}`}
+                      to={`/mentor/blogs/edit/${blog.id}`}
                       className="btn btn--outline"
                       style={{ flex: 1, padding: '0.5rem', textAlign: 'center', justifyContent: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                     >
-                      <Eye size={14} /> Xem
+                      <Edit2 size={14} /> Chỉnh sửa
                     </Link>
-                  )}
-                  <button
-                    onClick={() => handleDelete(blog.id)}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      border: '1px solid rgba(192, 57, 43, 0.2)',
-                      background: 'rgba(192, 57, 43, 0.05)',
-                      borderRadius: '50px',
-                      cursor: 'pointer',
-                      color: '#c0392b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      transition: 'all 0.3s'
-                    }}
-                    title="Xóa bài viết"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    {blog.status === 'draft' && (
+                      <button
+                        onClick={() => handlePublish(blog.id)}
+                        className="btn btn--primary"
+                        style={{ flex: 1, padding: '0.5rem', justifyContent: 'center', fontSize: '0.85rem' }}
+                      >
+                        Xuất bản
+                      </button>
+                    )}
+                    {blog.status === 'published' && (
+                      <Link
+                        to={`/blog/${blog.id}`}
+                        className="btn btn--outline"
+                        style={{ flex: 1, padding: '0.5rem', textAlign: 'center', justifyContent: 'center', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <Eye size={14} /> Xem
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => handleDelete(blog.id)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        border: '1px solid rgba(192, 57, 43, 0.2)',
+                        background: 'rgba(192, 57, 43, 0.05)',
+                        borderRadius: '50px',
+                        cursor: 'pointer',
+                        color: '#c0392b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'all 0.3s'
+                      }}
+                      title="Xóa bài viết"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {blogs.length === 0 && (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem 2rem', color: 'var(--color-text-secondary)' }}>
+                <FileText size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
                 <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Bạn chưa có bài viết nào.</p>
-                <Link to="/mentor/blogs/new" className="btn btn--primary btn--pill">
+                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+                  Hãy tạo bài viết đầu tiên để chia sẻ kinh nghiệm phỏng vấn và kiến thức chuyên môn với ứng viên.
+                </p>
+                <Link to="/mentor/blogs/new" className="btn btn--primary btn--pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Plus size={18} /> Tạo bài viết đầu tiên
                 </Link>
               </div>
@@ -173,12 +310,5 @@ const MentorBlogManagement = () => {
     </div>
   );
 };
-
-// Mock data for demo
-const mockBlogs = [
-  { id: 1, title: 'Hướng dẫn trả lời câu hỏi phỏng vấn hành vi (Behavioral Interview)', type: 'Article', views: 1520, status: 'Published', date: '3 ngày trước' },
-  { id: 2, title: '5 lỗi phổ biến khi phỏng vấn kỹ thuật — Video hướng dẫn', type: 'Video', views: 987, status: 'Published', date: '1 tuần trước' },
-  { id: 3, title: 'Cách chuẩn bị cho phỏng vấn System Design', type: 'Article', views: 0, status: 'Draft', date: '2 ngày trước' },
-];
 
 export default MentorBlogManagement;

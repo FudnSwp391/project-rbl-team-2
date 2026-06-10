@@ -1,10 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Clock, CheckCircle, AlertCircle, Play } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Play, Video } from 'lucide-react';
+import { useAuth } from '../../utils/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 
 const MentorReviews = () => {
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all');
-  const [reviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) fetchReviews();
+  }, [user]);
+
+  const fetchReviews = async () => {
+    setLoading(true);
+    try {
+      // Fetch interview_history entries that are available for mentor review
+      const { data, error } = await supabase
+        .from('interview_history')
+        .select('*, profiles(full_name, email)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching interview_history:', error.message);
+        setReviews([]);
+      } else {
+        // Check which ones this mentor has already reviewed
+        const { data: myReviews } = await supabase
+          .from('mentor_reviews')
+          .select('interview_id')
+          .eq('mentor_id', user.id);
+
+        const reviewedIds = new Set((myReviews || []).map(r => r.interview_id));
+
+        const mapped = (data || []).map(item => ({
+          id: item.id,
+          candidateName: item.profiles?.full_name || item.user_id?.substring(0, 8) || 'Ứng viên',
+          industry: item.industry || item.position || 'Chưa xác định',
+          difficulty: item.difficulty || 'Trung bình',
+          date: item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : '',
+          duration: item.duration || '--:--',
+          status: reviewedIds.has(item.id) ? 'reviewed' : 'pending',
+          video_url: item.video_url || null,
+        }));
+
+        setReviews(mapped);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setReviews([]);
+    }
+    setLoading(false);
+  };
 
   const filteredReviews = filter === 'all'
     ? reviews
@@ -60,88 +109,94 @@ const MentorReviews = () => {
           ))}
         </div>
 
-        {/* Review List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {filteredReviews.map((review, idx) => (
-            <Link
-              key={review.id}
-              to={`/mentor/reviews/${review.id}`}
-              className={`glass-card reveal is-visible ${idx > 0 ? `reveal--delay-${Math.min(idx, 3)}` : ''}`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '1.5rem',
-                textDecoration: 'none', cursor: 'pointer',
-                flexWrap: 'wrap',
-              }}
-            >
-              {/* Video Thumbnail */}
-              <div style={{
-                width: '120px', height: '80px',
-                background: 'linear-gradient(135deg, var(--color-earth-dark), var(--color-charcoal))',
-                borderRadius: '12px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <Play size={28} color="rgba(255,255,255,0.7)" />
-              </div>
+        {/* Loading */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
+            Đang tải danh sách đánh giá...
+          </div>
+        ) : (
+          /* Review List */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {filteredReviews.map((review, idx) => (
+              <Link
+                key={review.id}
+                to={`/mentor/reviews/${review.id}`}
+                className={`glass-card reveal is-visible ${idx > 0 ? `reveal--delay-${Math.min(idx, 3)}` : ''}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '1.5rem',
+                  textDecoration: 'none', cursor: 'pointer',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* Video Thumbnail */}
+                <div style={{
+                  width: '120px', height: '80px',
+                  background: 'linear-gradient(135deg, var(--color-earth-dark), var(--color-charcoal))',
+                  borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Play size={28} color="rgba(255,255,255,0.7)" />
+                </div>
 
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.3rem 0', color: 'var(--color-charcoal)' }}>
-                  {review.candidateName}
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                  {review.industry} · {review.difficulty} · {review.date}
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.3rem 0', color: 'var(--color-charcoal)' }}>
+                    {review.candidateName}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                    {review.industry} · {review.difficulty} · {review.date}
+                  </p>
+                </div>
+
+                {/* Status Badge */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {review.status === 'pending' ? (
+                    <span style={{
+                      display: 'flex', alignItems: 'center', gap: '0.35rem',
+                      padding: '0.4rem 0.85rem', borderRadius: '50px',
+                      background: 'rgba(196, 149, 106, 0.12)',
+                      color: 'var(--color-accent)',
+                      fontSize: '0.8rem', fontWeight: 600,
+                    }}>
+                      <Clock size={14} /> Chờ đánh giá
+                    </span>
+                  ) : (
+                    <span style={{
+                      display: 'flex', alignItems: 'center', gap: '0.35rem',
+                      padding: '0.4rem 0.85rem', borderRadius: '50px',
+                      background: 'rgba(107, 127, 92, 0.12)',
+                      color: 'var(--color-moss)',
+                      fontSize: '0.8rem', fontWeight: 600,
+                    }}>
+                      <CheckCircle size={14} /> Đã đánh giá
+                    </span>
+                  )}
+                </div>
+
+                {/* Arrow */}
+                <span style={{ color: 'var(--color-text-muted)', fontSize: '1.2rem' }}>→</span>
+              </Link>
+            ))}
+
+            {filteredReviews.length === 0 && (
+              <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--color-text-secondary)' }}>
+                <Video size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                <p style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>
+                  {filter === 'pending' ? 'Không có yêu cầu đánh giá nào đang chờ.' : 
+                   filter === 'reviewed' ? 'Bạn chưa đánh giá phỏng vấn nào.' :
+                   'Chưa có video phỏng vấn nào trong hệ thống.'}
+                </p>
+                <p style={{ fontSize: '0.85rem', maxWidth: '400px', margin: '0 auto' }}>
+                  Video phỏng vấn sẽ xuất hiện tại đây khi ứng viên hoàn thành phiên phỏng vấn AI trên hệ thống.
                 </p>
               </div>
-
-              {/* Status Badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {review.status === 'pending' ? (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: '0.35rem',
-                    padding: '0.4rem 0.85rem', borderRadius: '50px',
-                    background: 'rgba(196, 149, 106, 0.12)',
-                    color: 'var(--color-accent)',
-                    fontSize: '0.8rem', fontWeight: 600,
-                  }}>
-                    <Clock size={14} /> Chờ đánh giá
-                  </span>
-                ) : (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: '0.35rem',
-                    padding: '0.4rem 0.85rem', borderRadius: '50px',
-                    background: 'rgba(107, 127, 92, 0.12)',
-                    color: 'var(--color-moss)',
-                    fontSize: '0.8rem', fontWeight: 600,
-                  }}>
-                    <CheckCircle size={14} /> Đã đánh giá
-                  </span>
-                )}
-              </div>
-
-              {/* Arrow */}
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '1.2rem' }}>→</span>
-            </Link>
-          ))}
-
-          {filteredReviews.length === 0 && (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
-              <AlertCircle size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-              <p>Không có yêu cầu đánh giá nào{filter !== 'all' ? ' trong mục này' : ''}.</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-const mockReviews = [
-  { id: 1, candidateName: 'Trần Văn Hùng', industry: 'Backend Developer', difficulty: 'Trung bình', date: '28/05/2026', status: 'pending', duration: '15:32' },
-  { id: 2, candidateName: 'Nguyễn Thị Mai', industry: 'Frontend Developer', difficulty: 'Khó', date: '27/05/2026', status: 'pending', duration: '22:10' },
-  { id: 3, candidateName: 'Phạm Đức Anh', industry: 'Fullstack Developer', difficulty: 'Dễ', date: '25/05/2026', status: 'reviewed', duration: '12:45' },
-  { id: 4, candidateName: 'Lê Hoàng Minh', industry: 'Data Engineer', difficulty: 'Trung bình', date: '24/05/2026', status: 'reviewed', duration: '18:20' },
-  { id: 5, candidateName: 'Võ Ngọc Hân', industry: 'DevOps Engineer', difficulty: 'Khó', date: '23/05/2026', status: 'pending', duration: '20:05' },
-];
 
 export default MentorReviews;
