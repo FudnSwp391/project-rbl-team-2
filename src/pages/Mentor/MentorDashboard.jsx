@@ -191,7 +191,7 @@ const MentorDashboard = () => {
           </Link>
 
           {/* Profile Settings */}
-          <Link to="/profile" className="glass-card reveal is-visible reveal--delay-3" style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}>
+          <Link to="/mentor/profile" className="glass-card reveal is-visible reveal--delay-3" style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '1.25rem' }}>⚙️</div>
             <h3 style={{ marginBottom: '0.5rem', color: 'var(--color-charcoal)' }}>Cài đặt Hồ sơ</h3>
             <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>

@@ -33,6 +33,7 @@ const Header = () => {
   }, [location]);
 
   const isMentor = profile?.role === 'mentor' || profile?.role === 'Mentor' || user?.user_metadata?.role === 'mentor';
+  const isRecruiter = profile?.role === 'recruiter' || profile?.role === 'Recruiter' || user?.user_metadata?.role === 'recruiter';
 
   let navLinks = [
     { to: '/', label: 'Trang chủ' },
@@ -59,6 +60,11 @@ const Header = () => {
 
   if (isMentor) {
     navLinks.push({ to: '/mentor', label: 'Mentor Portal' });
+  }
+
+  if (isRecruiter) {
+    navLinks = navLinks.filter(link => link.label !== 'Tuyển dụng');
+    navLinks.push({ to: '/recruiter', label: 'Recruiter Portal' });
   }
 
   return (
@@ -196,7 +202,7 @@ const Header = () => {
           ))}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Link to="/profile" style={{
+              <Link to={isMentor ? "/mentor/profile" : (isRecruiter ? "/recruiter/company" : "/profile")} style={{
                 textDecoration: 'none',
                 color: 'var(--color-charcoal)',
                 fontSize: '0.85rem',
@@ -395,7 +401,7 @@ const Header = () => {
         ))}
         {user ? (
           <>
-            <Link to="/profile" onClick={() => setMenuOpen(false)} style={{
+            <Link to={isMentor ? "/mentor/profile" : (isRecruiter ? "/recruiter/company" : "/profile")} onClick={() => setMenuOpen(false)} style={{
               textDecoration: 'none',
               color: 'var(--color-earth, #c4956a)',
               fontFamily: 'var(--font-serif)',
