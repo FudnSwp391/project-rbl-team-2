@@ -1,33 +1,35 @@
-# Nhật Ký Thay Đổi Dự Án (CHANGELOG) - Nhánh `feature/frontend-auth-landing`
-**Thành viên:** Nguyễn Quốc Tuấn
+# Nhật Ký Thay Đổi File - Nhánh `feature/frontend-auth-landing`
+**Thành viên thực hiện:** Nguyễn Quốc Tuấn
 
-Dưới đây là nhật ký thay đổi dự án (Changelog) chi tiết cho nhánh `feature/frontend-auth-landing`, ghi nhận các tính năng thêm mới (Added), cải tiến (Changed) và sửa lỗi (Fixed).
+Tài liệu này ghi nhận chi tiết danh sách các tệp tin (files) được Thêm mới (Added), Chỉnh sửa (Modified) hoặc Xóa bỏ (Deleted) trong phạm vi nhánh phát triển `feature/frontend-auth-landing`.
 
 ---
 
-### 📝 NHẬT KÝ THAY ĐỔI DỰ ÁN (CHANGELOG)
+### 1. 🆕 DANH SÁCH FILE THÊM MỚI (ADDED)
 
-**Added — Thêm mới**
-| Ngày | TV | Mô tả thay đổi | File liên quan | Ghi chú |
-| :--- | :--- | :--- | :--- | :--- |
-| 20/05/2026 | C - Nguyễn Quốc Tuấn | Viết 15 UI/UX Test Cases cho Landing Page (bao gồm test Responsive, Dark Mode, Animations). | `src/pages/Landing/LandingPage.jsx` | Test giao diện chính |
-| 21/05/2026 | C - Nguyễn Quốc Tuấn | Viết 20 Test Cases (Positive/Negative) cho module Authentication (Login, Register, Validation). | `src/pages/Auth/Login.jsx`, `Register.jsx` | Kiểm thử Supabase Auth |
-| 26/05/2026 | C - Nguyễn Quốc Tuấn | Bổ sung 8 Integration Test Cases luồng Đăng nhập bằng bên thứ ba (GitHub OAuth). | `src/utils/AuthContext.jsx` | Kiểm thử tích hợp |
-| 01/06/2026 | C - Nguyễn Quốc Tuấn | Thêm trang Đặt lại mật khẩu (`ResetPassword.jsx`), route `/reset-password` và RPC check trùng email. | `src/pages/Auth/ResetPassword.jsx`, `check_email_exists.sql` | Cải tiến bảo mật và UX |
-| 10/06/2026 | C - Nguyễn Quốc Tuấn | Thêm trang Hồ sơ Mentor (`MentorProfile.jsx`) để quản lý chuyên môn, số năm kinh nghiệm, chứng chỉ/CV và đổi mật khẩu. | `src/pages/Mentor/MentorProfile.jsx` | Tách biệt hồ sơ Mentor |
-| 10/06/2026 | C - Nguyễn Quốc Tuấn | Tái cấu trúc và hoàn thiện trang Hồ sơ Doanh nghiệp (`CompanyProfile.jsx`) hỗ trợ chỉnh sửa thông tin, đổi logo, upload giấy phép kinh doanh, và quản lý bảo mật. | `src/pages/Recruiter/CompanyProfile.jsx` | Tách biệt hồ sơ Nhà tuyển dụng |
+| Đường dẫn File | Mô tả chi tiết chức năng |
+| :--- | :--- |
+| `src/pages/Auth/ResetPassword.jsx` | Trang đặt lại mật khẩu mới, chứa form nhập mật khẩu mới và xác nhận mật khẩu cho người dùng khi click vào link khôi phục từ email. |
+| `check_email_exists.sql` | Script SQL khởi tạo hàm RPC `check_email_exists` trên Supabase, giúp kiểm tra email đã tồn tại trong bảng `profiles` hay chưa trước khi thực hiện đăng ký tài khoản mới. |
+| `seed_interview_questions_crawled.sql` | Dữ liệu seed SQL chứa các câu hỏi phỏng vấn đã được thu thập cho ngân hàng câu hỏi. |
+| `seed_interview_questions_crawled_v2.sql` | Phiên bản nâng cấp v2 của dữ liệu seed câu hỏi phỏng vấn phục vụ cho tính năng luyện tập phỏng vấn. |
+| `seed_interview_questions_massive.sql` | Bộ dữ liệu seed câu hỏi phỏng vấn số lượng lớn cho ngân hàng câu hỏi tổng hợp. |
+| `auth_landing_logs.md` | Tài liệu ghi nhận nhật ký thay đổi và các tập tin bị ảnh hưởng của nhánh `feature/frontend-auth-landing`. |
 
-**Changed — Cải tiến / Cập nhật**
-| Ngày | TV | Mô tả thay đổi | File liên quan | Ghi chú |
-| :--- | :--- | :--- | :--- | :--- |
-| 21/05/2026 | C - Nguyễn Quốc Tuấn | Cập nhật bộ Test Data, áp dụng kỹ thuật Phân hoạch tương đương (Equivalence Partitioning) cho trường Password. | `src/pages/Auth/Register.jsx` | Nâng cao độ phủ test |
-| 01/06/2026 | C - Nguyễn Quốc Tuấn | Tích hợp thanh đo độ mạnh mật khẩu và bắt buộc mật khẩu tối thiểu 8 ký tự khi đăng ký. | `src/pages/Auth/Register.jsx` | Tăng cường độ an toàn |
-| 02/06/2026 | C - Nguyễn Quốc Tuấn | Chuyển đổi cơ chế xóa CV từ API DELETE mặc định sang gọi RPC `drop_cv_record` để tránh bị Antivirus chặn nhầm. | `src/pages/Auth/Profile.jsx` | Sửa lỗi tương thích mạng |
-| 10/06/2026 | C - Nguyễn Quốc Tuấn | Cập nhật Header và MentorDashboard để tự động định tuyến Mentor đến trang `/mentor/profile` thay vì `/profile` của ứng viên. | `src/components/layout/Header.jsx` | Đồng bộ UX |
-| 10/06/2026 | C - Nguyễn Quốc Tuấn | Cập nhật Header để tự động điều hướng Nhà tuyển dụng đến `/recruiter/company` thay vì `/profile` và bổ sung nút điều hướng Recruiter Portal. | `src/components/layout/Header.jsx` | Tối ưu hóa điều hướng Recruiter |
+---
 
-**Fixed — Sửa lỗi (Cập nhật Test Case)**
-| Ngày | TV | Mô tả thay đổi | File liên quan | Ghi chú |
-| :--- | :--- | :--- | :--- | :--- |
-| 27/05/2026 | C - Nguyễn Quốc Tuấn | Sửa/Bổ sung kịch bản kiểm thử bảo mật RLS để cover lỗi Xóa CV bị Firewall chặn (Bypass qua RPC). | `src/utils/cvStorageService.js` | Bổ sung test bảo mật |
-| 02/06/2026 | C - Nguyễn Quốc Tuấn | Khắc phục hoàn toàn lỗi xoá CV bị báo lỗi mạng ảo `Failed to Fetch` bằng cách thêm kiểm tra GET kiểm chứng trạng thái bản ghi. | `src/pages/Auth/Profile.jsx` | Fix lỗi trải nghiệm người dùng |
+### 2. ✏️ DANH SÁCH FILE CHỈNH SỬA (MODIFIED)
+
+| Đường dẫn File | Nội dung chỉnh sửa chi tiết |
+| :--- | :--- |
+| `src/pages/Auth/Login.jsx` | Sửa lại hiển thị và căn lề cho icon GitHub OAuth trong form đăng nhập, cải thiện trải nghiệm đăng nhập bằng tài khoản MXH. |
+| `src/pages/Auth/Register.jsx` | Tích hợp thanh đo độ mạnh mật khẩu trực quan trên giao diện đăng ký (yếu/trung bình/mạnh), bắt buộc mật khẩu phải tối thiểu 8 ký tự, đồng thời tích hợp gọi hàm RPC check email trùng lặp trước khi gửi đăng ký lên Supabase. |
+| `src/pages/Auth/Profile.jsx` | Sửa lỗi xóa CV bị trình quét virus/tường lửa cục bộ chặn nhầm (báo lỗi Failed to Fetch) bằng cách chuyển từ HTTP DELETE truyền thống sang gọi RPC `drop_cv_record` qua phương thức POST, bổ sung GET check trạng thái để xác thực. |
+| `src/routes/AppRoutes.jsx` | Đăng ký route mới `/reset-password` trỏ đến component `ResetPassword` và đồng bộ phân quyền bảo vệ tuyến đường truy cập. |
+| `supabase_schema.sql` | Cập nhật cấu trúc bảng, bổ sung và tối ưu hóa các hàm cơ sở dữ liệu trên Supabase phục vụ cho tính năng xác thực và lưu trữ CV. |
+
+---
+
+### 3. 🗑️ DANH SÁCH FILE XÓA BỎ (DELETED)
+
+*Không có tệp tin nào bị xóa bỏ trong nhánh này.*
