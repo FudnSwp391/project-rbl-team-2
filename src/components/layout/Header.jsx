@@ -36,6 +36,7 @@ const Header = () => {
     { to: '/', label: 'Trang chủ' },
     { to: '/interview', label: 'Phỏng vấn' },
     { to: '/cv-analysis', label: 'Phân tích CV' },
+    { to: '/mentors', label: 'Mentors' },
     { to: '/blogs', label: 'Blog' },
     {
       label: 'Tuyển dụng',
@@ -52,6 +53,10 @@ const Header = () => {
 
   if (profile?.role === 'recruiter' || user?.user_metadata?.role === 'recruiter') {
     navLinks.push({ to: '/recruiter', label: 'Trang Tuyển Dụng' });
+  }
+
+  if (profile?.role === 'mentor' || user?.user_metadata?.role === 'mentor') {
+    navLinks.push({ to: '/mentor', label: 'Mentor Portal' });
   }
 
   return (
