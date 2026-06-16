@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import LandingPage from '../pages/Landing/LandingPage';
 import CVManager from '../pages/CV/CVManager';
 import Login from '../pages/Auth/Login';
@@ -12,10 +12,7 @@ import MentorRoute from '../MentorRoute';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import DailyQuestions from '../pages/Dashboard/DailyQuestions';
 import QuestionBank from '../pages/Dashboard/QuestionBank';
-import Flashcards from '../pages/Dashboard/QuestionBankModes/Flashcards';
-import LearnMode from '../pages/Dashboard/QuestionBankModes/LearnMode';
-import TestMode from '../pages/Dashboard/QuestionBankModes/TestMode';
-import MatchingMode from '../pages/Dashboard/QuestionBankModes/MatchingMode';
+import QuestionPractice from '../pages/Dashboard/QuestionPractice';
 import PricingPage from '../pages/Subscriptions/PricingPage';
 import AdminPanel from '../pages/Admin/AdminPanel';
 
@@ -55,8 +52,10 @@ import MyBookings from '../pages/User/MyBookings';
 const MockInterviewPlaceholder = () => <div className="container animate-fade"><h1>AI Mock Interview Room</h1></div>;
 
 const AppRoutes = () => {
+  const location = useLocation();
   return (
-    <Routes>
+    <div key={location.pathname} className="page-transition-wrapper">
+      <Routes location={location}>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -76,10 +75,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/challenge/questions" element={<ProtectedRoute><DailyQuestions /></ProtectedRoute>} />
       <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
-      <Route path="/question-bank/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
-      <Route path="/question-bank/learn" element={<ProtectedRoute><LearnMode /></ProtectedRoute>} />
-      <Route path="/question-bank/test" element={<ProtectedRoute><TestMode /></ProtectedRoute>} />
-      <Route path="/question-bank/matching" element={<ProtectedRoute><MatchingMode /></ProtectedRoute>} />
+      <Route path="/question-bank/practice/:id" element={<ProtectedRoute><QuestionPractice /></ProtectedRoute>} />
       <Route path="/interview" element={<ProtectedRoute><MockInterviewPlaceholder /></ProtectedRoute>} />
       <Route path="/cv-analysis" element={<ProtectedRoute><CVManager /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
@@ -114,6 +110,7 @@ const AppRoutes = () => {
       <Route path="/mentor/schedule" element={<MentorRoute><MentorSchedule /></MentorRoute>} />
       <Route path="/mentor/schedule/session/:id" element={<MentorRoute><MentorSession /></MentorRoute>} />
     </Routes>
+    </div>
   );
 };
 

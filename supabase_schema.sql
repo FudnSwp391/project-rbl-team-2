@@ -23,6 +23,7 @@ CREATE TABLE profiles (
     status TEXT CHECK (status IN ('active', 'pending', 'banned')) DEFAULT 'active', -- Recruiter mới đăng ký sẽ là 'pending'
     points INTEGER DEFAULT 0, -- Điểm thưởng từ Daily Challenges
     streak_days INTEGER DEFAULT 0, -- Số ngày đăng nhập liên tiếp
+    question_bank_usage_count INTEGER DEFAULT 0, -- Số lượt đã sử dụng ngân hàng câu hỏi
     last_login_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())

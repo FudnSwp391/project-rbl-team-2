@@ -35,11 +35,11 @@ const Login = () => {
         throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
       }
 
-      const role = profileData?.role || data?.user?.user_metadata?.role;
+      const role = profileData?.role?.toLowerCase() || data?.user?.user_metadata?.role?.toLowerCase();
       if (role === 'admin') {
         navigate('/admin'); // Redirect admin tới trang Admin Panel
       } else {
-        navigate('/dashboard'); // Redirect user thường tới Dashboard
+        navigate('/'); // Redirect tất cả các tài khoản còn lại tới trang chủ đầu tiên
       }
     } catch (err) {
       setError(err.message || 'Đã có lỗi xảy ra khi đăng nhập.');

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Zap, Shield, Crown } from 'lucide-react';
+import { CheckCircle, Zap, Shield, Crown, Star, FolderOpen } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import PaymentModal from '../../components/PaymentModal';
@@ -7,6 +7,8 @@ import PaymentModal from '../../components/PaymentModal';
 const PricingPage = () => {
   const { user, profile } = useAuth();
   const [currentPlan, setCurrentPlan] = useState(profile?.plan || 'Free');
+  const [usageCount, setUsageCount] = useState(profile?.question_bank_usage_count || 0);
+  const [planDaysLeft, setPlanDaysLeft] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [orderCode, setOrderCode] = useState('');
@@ -15,16 +17,35 @@ const PricingPage = () => {
   React.useEffect(() => {
     if (user && profile) {
       let dbPlan = profile.plan || 'Free';
+      let daysLeft = null;
       
       // Check expiration from DB
       if (profile.plan_expires_at && dbPlan !== 'Free') {
         const expires = new Date(profile.plan_expires_at);
         const now = new Date();
+        const diffTime = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
         if (expires <= now) {
           dbPlan = 'Free';
+        } else {
+          daysLeft = diffTime;
         }
       }
       setCurrentPlan(dbPlan);
+      setPlanDaysLeft(daysLeft);
+
+      const fetchLatestUsage = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('question_bank_usage_count')
+            .eq('id', user.id)
+            .single();
+          if (!error && data) {
+            setUsageCount(data.question_bank_usage_count || 0);
+          }
+        } catch (err) {}
+      };
+      fetchLatestUsage();
     }
   }, [user, profile]);
 
@@ -72,6 +93,16 @@ const PricingPage = () => {
         <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
           Chọn gói phù hợp để mở khóa toàn bộ tính năng phỏng vấn AI và bộ câu hỏi chuyên sâu.
         </p>
+        {user && (
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ padding: '0.4rem 1rem', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '99px', fontSize: '0.9rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
+              {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) 
+                ? 'Tài khoản đặc quyền (Không giới hạn)'
+                : `Gói hiện tại: ${currentPlan} ${planDaysLeft !== null ? `(Còn ${planDaysLeft} ngày)` : ''}`
+              }
+            </div>
+          </div>
+        )}
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--spacing-lg)', alignItems: 'center' }}>
@@ -90,9 +121,9 @@ const PricingPage = () => {
             background: '#f8fafc', color: '#64748b', fontWeight: 'bold', cursor: 'default',
             transition: 'all 0.3s ease', marginTop: 'auto'
           }}
-          disabled={currentPlan === 'Free'}
+          disabled={currentPlan === 'Free' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
           >
-            {currentPlan === 'Free' ? 'Gói hiện tại' : 'Đang sử dụng gói cao hơn'}
+            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (currentPlan === 'Free' ? 'Gói hiện tại' : 'Đang sử dụng gói cao hơn')}
           </button>
         </div>
 
@@ -116,15 +147,15 @@ const PricingPage = () => {
           <button style={{
             width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
-            cursor: (currentPlan === 'Pro' || currentPlan === 'Premium') ? 'default' : 'pointer', marginTop: 'auto',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: (currentPlan === 'Pro' || currentPlan === 'Premium') ? 0.7 : 1,
-            boxShadow: (currentPlan === 'Pro' || currentPlan === 'Premium') ? 'none' : '0 4px 15px rgba(79, 70, 229, 0.4)'
+            cursor: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'default' : 'pointer', marginTop: 'auto',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 0.7 : 1,
+            boxShadow: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'none' : '0 4px 15px rgba(79, 70, 229, 0.4)'
           }}
-          onMouseOver={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium') e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
-          onMouseOut={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium') e.target.style.transform = 'translateY(0) scale(1)'; }}
-          onClick={() => currentPlan !== 'Pro' && currentPlan !== 'Premium' && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro' || currentPlan === 'Premium'}
+          onMouseOver={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onClick={() => currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
           >
-            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng gói cao hơn' : (currentPlan === 'Pro' ? 'Đang sử dụng' : 'Nâng cấp Pro'))}
+            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng gói cao hơn' : (currentPlan === 'Pro' ? 'Đang sử dụng' : 'Nâng cấp Pro')))}
           </button>
         </div>
 
@@ -145,16 +176,16 @@ const PricingPage = () => {
           <button style={{
             width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
             background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
-            cursor: currentPlan === 'Premium' ? 'default' : 'pointer', marginTop: 'auto',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: currentPlan === 'Premium' ? 0.7 : 1,
-            boxShadow: currentPlan === 'Premium' ? 'none' : '0 4px 15px rgba(245, 158, 11, 0.4)'
+            cursor: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'default' : 'pointer', marginTop: 'auto',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 0.7 : 1,
+            boxShadow: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'none' : '0 4px 15px rgba(245, 158, 11, 0.4)'
           }}
-          onMouseOver={(e) => { if(currentPlan !== 'Premium') e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
-          onMouseOut={(e) => { if(currentPlan !== 'Premium') e.target.style.transform = 'translateY(0) scale(1)'; }}
-          onClick={() => currentPlan !== 'Premium' && handleUpgrade('Premium')}
-          disabled={isProcessing || currentPlan === 'Premium'}
+          onMouseOver={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onClick={() => currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) && handleUpgrade('Premium')}
+          disabled={isProcessing || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
           >
-            {isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng' : 'Nâng cấp Premium')}
+            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng' : 'Nâng cấp Premium'))}
           </button>
         </div>
       </div>

@@ -2,26 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../utils/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
-import { Crown, Search, Filter, Layers, BookOpen, FileText, Grid, Rocket, Link2, BookMarked, ChevronDown } from 'lucide-react';
-
-const STUDY_MODES = [
-  { id: 'flashcards', name: 'Thẻ ghi nhớ', icon: <Layers size={24} color="var(--color-earth)" /> },
-  { id: 'learn', name: 'Học', icon: <BookOpen size={24} color="var(--color-moss)" /> },
-  { id: 'test', name: 'Kiểm tra', icon: <FileText size={24} color="var(--color-accent)" /> },
-  { id: 'matching', name: 'Ghép thẻ', icon: <Link2 size={24} color="var(--color-highlight)" /> },
-  { id: 'match_box', name: 'Khối hộp (Coming Soon)', icon: <Grid size={24} color="var(--color-stone)" />, disabled: true },
-  { id: 'blast', name: 'Blast (Coming Soon)', icon: <Rocket size={24} color="var(--color-stone)" />, disabled: true }
-];
+import { Crown, Search, Filter, BookMarked, ChevronDown, CheckCircle, ArrowUp } from 'lucide-react';
 
 const QuestionBank = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [localPlan, setLocalPlan] = useState('Free');
+  const [usageCount, setUsageCount] = useState(0);
+  
   const [industries, setIndustries] = useState([{ id: 'all', name: 'Tất cả lĩnh vực' }]);
   const [selectedIndustry, setSelectedIndustry] = useState('all');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [questions, setQuestions] = useState([]);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const questionsPerPage = 20;
   const [loading, setLoading] = useState(true);
+  const [isIndustryDropdownOpen, setIsIndustryDropdownOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // Scroll to top listener
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Fetch plan & usage
   useEffect(() => {
     if (user && profile) {
       let currentPlan = profile.plan || 'Free';
@@ -33,9 +51,29 @@ const QuestionBank = () => {
         }
       }
       setLocalPlan(currentPlan);
+      
+      const fetchLatestUsage = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('question_bank_usage_count')
+            .eq('id', user.id)
+            .single();
+          if (!error && data) {
+            setUsageCount(data.question_bank_usage_count || 0);
+          } else {
+            setUsageCount(profile.question_bank_usage_count || 0);
+          }
+        } catch (err) {
+          console.error('Error fetching usage count:', err);
+        }
+      };
+
+      fetchLatestUsage();
     }
   }, [user, profile]);
 
+  // Fetch industries
   useEffect(() => {
     const fetchIndustries = async () => {
       try {
@@ -45,220 +83,330 @@ const QuestionBank = () => {
         }
       } catch (err) {
         console.error('Error fetching industries:', err);
-      } finally {
-        setLoading(false);
       }
     };
     fetchIndustries();
   }, []);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedIndustry, searchQuery]);
+
+  // Fetch questions
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        let query = supabase.from('questions').select('*', { count: 'exact' });
+        
+        if (selectedIndustry !== 'all') {
+          query = query.eq('industry_id', selectedIndustry);
+        }
+
+        if (searchQuery.trim() !== '') {
+          query = query.ilike('content', `%${searchQuery}%`);
+        }
+        
+        const from = (currentPage - 1) * questionsPerPage;
+        const to = from + questionsPerPage - 1;
+
+        const { data, count, error } = await query.range(from, to);
+        if (!error && data) {
+          setQuestions(data);
+          setTotalQuestions(count || 0);
+        }
+      } catch (err) {
+        console.error('Error fetching questions:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [selectedIndustry, searchQuery, currentPage]);
+
+  // Handle outside click for dropdowns
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.custom-dropdown')) {
-        setIsDropdownOpen(false);
-      }
+      if (!e.target.closest('.industry-dropdown')) setIsIndustryDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const hasPremium = localPlan && localPlan.toLowerCase() !== 'free';
-
-  const handleModeClick = (modeId) => {
-    if (modeId === 'match_box' || modeId === 'blast') return;
-    navigate(`/question-bank/${modeId}?industry=${selectedIndustry}`);
+  const getUsageLimit = (plan) => {
+    const p = plan ? plan.toLowerCase() : 'free';
+    if (p === 'premium') return Infinity;
+    if (p === 'pro') return 10; // 10 practices per day
+    return 5; // 5 practices per day
   };
+
+  const usageLimit = getUsageLimit(localPlan);
+  const isBlocked = usageCount >= usageLimit;
+
+  const handlePracticeClick = async (questionId) => {
+    if (isBlocked) return;
+
+    if (localPlan && localPlan.toLowerCase() !== 'premium') {
+      try {
+        const newUsageCount = usageCount + 1;
+        const { error } = await supabase
+          .from('profiles')
+          .update({ question_bank_usage_count: newUsageCount })
+          .eq('id', user.id);
+          
+        if (!error) {
+          setUsageCount(newUsageCount);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    navigate(`/question-bank/practice/${questionId}`);
+  };
+
 
   return (
     <div className="container" style={{ paddingTop: '8rem', paddingBottom: 'var(--spacing-xl)', position: 'relative' }}>
       
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
-            <BookMarked color="var(--color-earth)" size={36} /> Ngân hàng Câu hỏi
-          </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Khám phá và ôn luyện hàng ngàn câu hỏi phỏng vấn chất lượng.</p>
-        </div>
+      <header style={{ marginBottom: '2rem' }}>
+        <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
+          <BookMarked color="var(--color-earth)" size={36} /> Ngân hàng Câu hỏi
+        </h1>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Luyện tập từng câu hỏi phỏng vấn theo định hướng chuyên sâu để chinh phục buổi phỏng vấn thực tế.</p>
+      </header>
+
+      <div style={{ 
+        position: 'relative',
+        filter: isBlocked ? 'blur(8px)' : 'none',
+        pointerEvents: isBlocked ? 'none' : 'auto',
+        userSelect: isBlocked ? 'none' : 'auto',
+        transition: 'filter 0.3s ease'
+      }}>
         
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div className="custom-dropdown" style={{ position: 'relative', width: '260px' }}>
+        {/* Filters and Search Bar */}
+        <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '2rem', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 100, flexWrap: 'wrap' }}>
+          
+          <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+            <Search size={20} color="var(--color-text-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm câu hỏi..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem 0.75rem 3rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--surface)',
+                fontSize: '0.95rem',
+                color: 'var(--color-text)',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          <div className="custom-dropdown industry-dropdown" style={{ position: 'relative', width: '250px' }}>
             <div 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={() => setIsIndustryDropdownOpen(!isIndustryDropdownOpen)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0.75rem 1rem',
-                borderRadius: '50px',
-                border: isDropdownOpen ? '1px solid var(--color-earth)' : '1px solid var(--border-color)',
-                background: 'var(--surface)',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-sm)',
-                transition: 'all var(--transition-fast)',
-                fontWeight: 500
+                padding: '0.75rem 1.25rem', borderRadius: '50px',
+                border: isIndustryDropdownOpen ? '1px solid var(--color-earth)' : '1px solid var(--border-color)',
+                background: 'var(--surface)', cursor: 'pointer',
+                fontWeight: 500, fontSize: '0.95rem',
+                boxShadow: 'var(--shadow-sm)'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Filter size={16} color="var(--color-earth)" />
-                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
-                  {industries.find(i => i.id === selectedIndustry)?.name || 'Đang tải...'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Filter size={18} color="var(--color-earth)" />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px', color: 'var(--color-charcoal)' }}>
+                  {industries.find(i => i.id === selectedIndustry)?.name || 'Tất cả lĩnh vực'}
                 </span>
               </div>
-              <ChevronDown size={18} style={{ color: 'var(--color-text-muted)', transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              <ChevronDown size={18} style={{ transform: isIndustryDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--color-text-muted)' }} />
             </div>
-
-            {isDropdownOpen && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
-                background: 'var(--surface)',
-                borderRadius: '16px',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-lg)',
-                zIndex: 100,
-                maxHeight: '300px',
-                overflowY: 'auto',
-                animation: 'fadeIn 0.15s ease-out'
+            
+            {isIndustryDropdownOpen && (
+              <div style={{ 
+                position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, 
+                background: '#ffffff',
+                borderRadius: '16px', border: '1px solid var(--border-color)', 
+                boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 9999, 
+                maxHeight: '320px', overflowY: 'auto',
+                padding: '0.5rem'
               }}>
                 {industries.map(ind => (
-                  <div
-                    key={ind.id}
-                    onClick={() => { setSelectedIndustry(ind.id); setIsDropdownOpen(false); }}
-                    style={{
-                      padding: '0.75rem 1.25rem',
-                      display: 'flex', alignItems: 'center', gap: '0.75rem',
-                      cursor: 'pointer',
+                  <div key={ind.id} onClick={() => { setSelectedIndustry(ind.id); setIsIndustryDropdownOpen(false); }}
+                    style={{ 
+                      padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: '10px',
                       background: selectedIndustry === ind.id ? 'var(--color-cream-dark)' : 'transparent',
-                      color: selectedIndustry === ind.id ? 'var(--color-earth)' : 'var(--color-text)',
+                      color: selectedIndustry === ind.id ? 'var(--color-earth-dark)' : 'var(--color-charcoal)',
                       fontWeight: selectedIndustry === ind.id ? 600 : 400,
-                      transition: 'background 0.2s'
+                      marginBottom: '4px'
                     }}
-                    onMouseOver={(e) => {
-                      if (selectedIndustry !== ind.id) e.currentTarget.style.background = 'var(--color-cream)';
-                    }}
-                    onMouseOut={(e) => {
-                      if (selectedIndustry !== ind.id) e.currentTarget.style.background = 'transparent';
-                    }}
+                    onMouseOver={(e) => { if (selectedIndustry !== ind.id) e.currentTarget.style.background = 'var(--color-cream)' }}
+                    onMouseOut={(e) => { if (selectedIndustry !== ind.id) e.currentTarget.style.background = 'transparent'; }}
                   >
-                    <span style={{ fontSize: '0.95rem' }}>{ind.name}</span>
+                    {ind.name}
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </header>
 
-      <div style={{ 
-        position: 'relative',
-        filter: !hasPremium ? 'blur(8px)' : 'none',
-        pointerEvents: !hasPremium ? 'none' : 'auto',
-        userSelect: !hasPremium ? 'none' : 'auto',
-        transition: 'filter 0.3s ease'
-      }}>
-        
-        <div style={{ marginBottom: '3rem' }}>
-          <h2 className="text-editorial" style={{ fontSize: '1.8rem', marginBottom: '1.5rem', fontWeight: 600, color: 'var(--color-charcoal)' }}>Chế độ ôn luyện</h2>
-          <div className="grid-auto">
-            {STUDY_MODES.map(mode => (
-              <div 
-                key={mode.id} 
-                className="glass-card" 
-                onClick={() => handleModeClick(mode.id)}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '1.25rem', 
-                  padding: '1.5rem',
-                  cursor: mode.disabled ? 'not-allowed' : 'pointer',
-                  opacity: mode.disabled ? 0.6 : 1,
-                  background: 'var(--surface)'
-                }}
-              >
-                <div style={{ 
-                  background: 'var(--color-cream)', 
-                  padding: '1rem', 
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {mode.icon}
-                </div>
-                <div>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-charcoal)', display: 'block' }}>{mode.name}</span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                    {mode.disabled ? 'Đang phát triển' : 'Bắt đầu ngay'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div>
-          <h2 className="text-editorial" style={{ fontSize: '1.8rem', marginBottom: '1.5rem', fontWeight: 600, color: 'var(--color-charcoal)' }}>Tổng quan tiến độ</h2>
-          <div className="glass-card flex-center" style={{ 
-            padding: '4rem 2rem', 
-            flexDirection: 'column',
-            textAlign: 'center'
-          }}>
-            <Search size={48} style={{ opacity: 0.2, marginBottom: '1rem', color: 'var(--color-earth)' }} />
-            <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--color-charcoal)', fontWeight: 500 }}>Chưa có dữ liệu học tập.</p>
-            <p style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)' }}>Hãy bắt đầu ôn luyện với một trong các chế độ ở trên!</p>
-          </div>
+        {/* Question List */}
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+            Hiển thị <strong>{questions.length > 0 ? (currentPage - 1) * questionsPerPage + 1 : 0} - {Math.min(currentPage * questionsPerPage, totalQuestions)}</strong> trên tổng số <strong>{totalQuestions}</strong> câu hỏi
+          </span>
         </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>Đang tải danh sách câu hỏi...</div>
+        ) : questions.length === 0 ? (
+          <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+            <p style={{ fontSize: '1.1rem', color: 'var(--color-text-secondary)' }}>Không tìm thấy câu hỏi nào phù hợp với bộ lọc.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {questions.map((q) => {
+              return (
+                <div key={q.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '300px' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', background: 'var(--surface-dark)', padding: '0.25rem 0.75rem', borderRadius: '50px' }}>
+                          {industries.find(i => i.id === q.industry_id)?.name || 'Ngành chung'}
+                        </span>
+                      </div>
+                      
+                      <h3 style={{ fontSize: '1.25rem', color: 'var(--color-charcoal)', fontWeight: 600, lineHeight: 1.5 }}>
+                        {q.content}
+                      </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                      <button 
+                        className="btn btn--outline" 
+                        style={{ borderRadius: '50px', padding: '0.6rem 1.5rem' }}
+                        onClick={() => handlePracticeClick(q.id)}
+                      >
+                        Luyện tập
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && totalQuestions > questionsPerPage && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '2.5rem' }}>
+            <button 
+              className="btn btn--outline" 
+              disabled={currentPage === 1}
+              onClick={() => { setCurrentPage(prev => Math.max(prev - 1, 1)); scrollToTop(); }}
+              style={{ padding: '0.5rem 1.25rem', borderRadius: '50px', fontWeight: 500, opacity: currentPage === 1 ? 0.5 : 1 }}
+            >
+              Trang trước
+            </button>
+            
+            <span style={{ padding: '0 1rem', fontWeight: 500, color: 'var(--color-charcoal)' }}>
+              Trang {currentPage} / {Math.ceil(totalQuestions / questionsPerPage)}
+            </span>
+
+            <button 
+              className="btn btn--outline" 
+              disabled={currentPage >= Math.ceil(totalQuestions / questionsPerPage)}
+              onClick={() => { setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalQuestions / questionsPerPage))); scrollToTop(); }}
+              style={{ padding: '0.5rem 1.25rem', borderRadius: '50px', fontWeight: 500, opacity: currentPage >= Math.ceil(totalQuestions / questionsPerPage) ? 0.5 : 1 }}
+            >
+              Trang sau
+            </button>
+          </div>
+        )}
 
       </div>
 
-      {!hasPremium && (
+      {/* Paywall Overlay */}
+      {isBlocked && (
         <div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0, bottom: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 50,
-          background: 'rgba(250, 248, 245, 0.4)'
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          zIndex: 50, background: 'rgba(250, 248, 245, 0.4)'
         }}>
           <div className="glass-premium" style={{
-            padding: '3.5rem 2.5rem',
-            borderRadius: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-            maxWidth: '480px',
-            animation: 'fadeIn 0.5s ease-out'
+            padding: '3.5rem 2.5rem', borderRadius: '24px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+            maxWidth: '480px', animation: 'fadeIn 0.5s ease-out'
           }}>
             <div style={{ 
-              background: 'var(--color-earth)',
-              padding: '1.25rem',
-              borderRadius: '20px',
-              marginBottom: '1.5rem',
-              boxShadow: 'var(--shadow-md)'
+              background: 'var(--color-earth)', padding: '1.25rem', borderRadius: '20px',
+              marginBottom: '1.5rem', boxShadow: 'var(--shadow-md)'
             }}>
               <Crown size={44} color="var(--color-cream)" />
             </div>
             
-            <h2 className="text-editorial" style={{ fontSize: '2.2rem', marginBottom: '1rem', color: 'var(--color-charcoal)' }}>Nâng cấp gói</h2>
+            <h2 className="text-editorial" style={{ fontSize: '2.2rem', marginBottom: '1rem', color: 'var(--color-charcoal)' }}>Hết lượt luyện tập</h2>
             <p style={{ fontSize: '1.05rem', color: 'var(--color-text-secondary)', marginBottom: '2.5rem' }}>
-              Hãy nâng cấp lên gói <strong style={{ color: 'var(--color-earth)' }}>Pro</strong> hoặc <strong style={{ color: 'var(--color-earth-dark)' }}>Premium</strong> để mở khóa ngân hàng câu hỏi.
+              Bạn đã dùng hết {usageLimit} lượt luyện tập hôm nay. Hãy nâng cấp lên gói <strong style={{ color: 'var(--color-earth)' }}>Pro</strong> hoặc <strong style={{ color: 'var(--color-earth-dark)' }}>Premium</strong> để tiếp tục ôn luyện không giới hạn.
             </p>
             
-            <button 
-              className="btn btn--primary btn--pill"
-              onClick={() => navigate('/pricing')}
-            >
-              Xem các Gói Nâng cấp
-            </button>
+            <button className="btn btn--primary btn--pill" onClick={() => navigate('/pricing')}>Xem các Gói Nâng cấp</button>
           </div>
         </div>
       )}
+
+      {/* Scroll to Top Button */}
+      <button 
+        onClick={scrollToTop}
+        title="Quay về đầu trang"
+        style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          width: '50px',
+          height: '50px',
+          borderRadius: '50%',
+          background: 'var(--color-earth)',
+          color: 'var(--color-cream)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: 'none',
+          cursor: 'pointer',
+          boxShadow: 'var(--shadow-lg)',
+          opacity: showScrollTop ? 1 : 0,
+          visibility: showScrollTop ? 'visible' : 'hidden',
+          transform: showScrollTop ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          zIndex: 999
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.background = 'var(--color-earth-dark)';
+          e.currentTarget.style.transform = showScrollTop ? 'translateY(-5px)' : 'translateY(20px)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = 'var(--color-earth)';
+          e.currentTarget.style.transform = showScrollTop ? 'translateY(0)' : 'translateY(20px)';
+        }}
+      >
+        <ArrowUp size={24} />
+      </button>
 
     </div>
   );
 };
 
 export default QuestionBank;
-

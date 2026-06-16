@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Bỏ qua CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } })
@@ -53,14 +53,14 @@ Deno.serve(async (req) => {
     // 1. Cập nhật trạng thái đơn hàng thành 'paid'
     await supabaseAdmin.from('orders').update({ status: 'paid' }).eq('id', order.id);
     
-    // 2. Cập nhật gói dịch vụ (plan) cho user
-    await supabaseAdmin.from('profiles').update({ plan: order.plan_name }).eq('id', order.user_id);
+    // 2. Cập nhật gói dịch vụ (plan) cho user và reset lượt sử dụng ngân hàng câu hỏi
+    await supabaseAdmin.from('profiles').update({ plan: order.plan_name, question_bank_usage_count: 0 }).eq('id', order.user_id);
     
     return new Response(
       JSON.stringify({ success: true, message: 'Payment processed successfully', order_code: orderCode }),
       { headers: { "Content-Type": "application/json" } },
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Webhook error:', error.message)
     return new Response(JSON.stringify({ success: false, error: error.message }), {
       status: 400,

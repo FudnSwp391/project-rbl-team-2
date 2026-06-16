@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Zap, Trophy, History, Star, Search, FolderOpen, Lock, ArrowRight, CheckCircle2, Play } from 'lucide-react';
+import { Target, Zap, Trophy, History, Star, Search, FolderOpen, Lock, ArrowRight, CheckCircle2, Play, Calendar, User } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [localPoints, setLocalPoints] = useState(profile?.points || 0);
   const [localStreak, setLocalStreak] = useState(profile?.streak_days || 0);
   const [localPlan, setLocalPlan] = useState(profile?.plan || 'Free');
+  const [usageCount, setUsageCount] = useState(profile?.question_bank_usage_count || 0);
   const [planDaysLeft, setPlanDaysLeft] = useState(null);
   const [dailyChallenges, setDailyChallenges] = useState([
     { id: 'login', title: 'Duy trì đăng nhập', points: 5, completed: false, action: 'Đã hoàn thành', type: 'auto' },
@@ -89,6 +90,20 @@ const Dashboard = () => {
     setLocalPlan(currentPlan);
     setPlanDaysLeft(daysLeft);
 
+    const fetchLatestUsage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('question_bank_usage_count')
+          .eq('id', user.id)
+          .single();
+        if (!error && data) {
+          setUsageCount(data.question_bank_usage_count || 0);
+        }
+      } catch (err) {}
+    };
+    fetchLatestUsage();
+
     // Reset challenges if it's a new day
     if (savedData.challengesDate !== today) {
       savedData.challengesDate = today;
@@ -145,71 +160,74 @@ const Dashboard = () => {
   }, [user, profile]);
 
   const hasPremium = localPlan && localPlan.toLowerCase() !== 'free';
+  const planLimit = localPlan === 'Premium' ? Infinity : (localPlan === 'Pro' ? 10 : 5);
+  const remainingCount = localPlan === 'Premium' ? '∞' : Math.max(0, planLimit - usageCount);
+  const displayLimit = localPlan === 'Premium' ? '∞' : planLimit;
+  const isSpecialRole = ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase());
 
   return (
     <div className="container animate-fade" style={{ paddingTop: '8rem', paddingBottom: 'var(--spacing-xl)' }}>
       <header style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: 'var(--spacing-xs)' }}>
-          Xin chào, <span className="gradient-text">{profile?.full_name || user?.email?.split('@')[0] || 'Bạn'}</span>
-        </h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Sẵn sàng để tiếp tục luyện tập hôm nay chưa?</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: 'var(--spacing-xs)' }}>
+              Xin chào, <span className="gradient-text">{profile?.full_name || user?.email?.split('@')[0] || 'Bạn'}</span>
+            </h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Sẵn sàng để tiếp tục luyện tập hôm nay chưa?</p>
+          </div>
+          
+          {!isSpecialRole && (
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+              <div style={{ padding: '0.4rem 0.8rem', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '99px', fontSize: '0.85rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
+                Gói {localPlan} {planDaysLeft !== null ? `(Còn ${planDaysLeft} ngày)` : ''}
+              </div>
+              <div style={{ padding: '0.4rem 0.8rem', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '99px', fontSize: '0.85rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
+                Số lượt luyện tập còn lại: {remainingCount}/{displayLimit}
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
-      <div className="grid-auto" style={{ marginBottom: 'var(--spacing-lg)' }}>
-        {/* Streak Card */}
-        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-          <div style={{ padding: '1rem', background: 'rgba(255, 150, 50, 0.1)', borderRadius: '12px' }}>
-            <Zap size={32} color="#ff9632" />
+      {!isSpecialRole && (
+        <div className="grid-auto" style={{ marginBottom: 'var(--spacing-lg)' }}>
+          {/* Streak Card */}
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+            <div style={{ padding: '1rem', background: 'rgba(255, 150, 50, 0.1)', borderRadius: '12px' }}>
+              <Zap size={32} color="#ff9632" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.5rem', margin: 0 }}>{localStreak} Ngày</h3>
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Streak liên tiếp</p>
+            </div>
           </div>
-          <div>
-            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>{localStreak} Ngày</h3>
-            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Streak liên tiếp</p>
-          </div>
-        </div>
 
-        {/* Score Card */}
-        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-          <div style={{ padding: '1rem', background: 'rgba(50, 200, 100, 0.1)', borderRadius: '12px' }}>
-            <Trophy size={32} color="#32c864" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>{localPoints} Điểm</h3>
-            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Tổng điểm xếp hạng</p>
-          </div>
-          <div>
-            <button 
-              className="btn btn-secondary" 
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-              onClick={() => alert("Tính năng dùng điểm đổi gói đang trong quá trình phát triển!")}
-            >
-              Đổi gói
-            </button>
-          </div>
-        </div>
-
-        {/* Plan Card */}
-        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-          <div style={{ padding: '1rem', background: 'rgba(100, 108, 255, 0.1)', borderRadius: '12px' }}>
-            <Star size={32} color="hsl(var(--primary-hsl))" />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>Gói {localPlan}</h3>
-            {hasPremium && planDaysLeft !== null ? (
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                Còn lại: <span style={{ color: 'hsl(var(--primary-hsl))', fontWeight: 'bold' }}>{planDaysLeft} ngày</span>
-              </p>
-            ) : (
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                <Link to="/pricing" style={{ color: 'hsl(var(--accent-hsl))', textDecoration: 'none' }}>Nâng cấp ngay &rarr;</Link>
-              </p>
-            )}
+          {/* Score Card */}
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+            <div style={{ padding: '1rem', background: 'rgba(50, 200, 100, 0.1)', borderRadius: '12px' }}>
+              <Trophy size={32} color="#32c864" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: '1.5rem', margin: 0 }}>{localPoints} Điểm</h3>
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Tổng điểm xếp hạng</p>
+            </div>
+            <div>
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                onClick={() => alert("Tính năng dùng điểm đổi gói đang trong quá trình phát triển!")}
+              >
+                Đổi gói
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--spacing-lg)' }}>
         
         {/* Daily Challenges */}
+        {!isSpecialRole && (
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-md)' }}>
             <Target color="hsl(var(--accent-hsl))" />
@@ -265,6 +283,7 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
+        )}
 
         {/* Question Bank (Ngân hàng câu hỏi) */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>

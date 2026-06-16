@@ -32,39 +32,56 @@ const Header = () => {
     setMenuOpen(false);
   }, [location]);
 
+  const isMentor = profile?.role?.toLowerCase() === 'mentor' || user?.user_metadata?.role?.toLowerCase() === 'mentor';
+  const isRecruiter = profile?.role?.toLowerCase() === 'recruiter' || profile?.role?.toLowerCase() === 'company';
+  const isAdmin = profile?.role?.toLowerCase() === 'admin' || user?.user_metadata?.role?.toLowerCase() === 'admin';
+
   let navLinks = [
-    { to: '/', label: 'Trang chủ' }
+    { to: '/interview', label: 'Phỏng vấn' },
+    { to: '/cv-analysis', label: 'Phân tích CV' },
   ];
 
-  if (profile?.role !== 'mentor' && user?.user_metadata?.role !== 'mentor') {
-    navLinks.push({ to: '/interview', label: 'Phỏng vấn' });
-    navLinks.push({ to: '/cv-analysis', label: 'Phân tích CV' });
-  }
+  const isCandidate = !isMentor && !isAdmin && !isRecruiter;
 
-  navLinks = [
-    ...navLinks,
-    { to: '/mentors', label: 'Mentors' },
-    { to: '/blogs', label: 'Blog' },
-    {
-      label: 'Tuyển dụng & Đăng ký',
+  if (isCandidate) {
+    navLinks.push({ to: '/dashboard', label: 'Thử thách' });
+    navLinks.push({
+      label: 'Khám phá',
       dropdown: [
+        { to: '/mentors', label: 'Tìm Mentors' },
+        { to: '/blogs', label: 'Blog' },
         { to: '/jobs', label: 'Việc làm' },
-        { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' },
-        { to: '/mentor-register', label: 'Trở thành Mentor' },
+        { to: '/mentor-register', label: 'Đăng ký Mentor' },
+        { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' }
       ]
+    });
+    navLinks.push({ to: '/pricing', label: 'Gói dịch vụ' });
+  } else {
+    if (!isAdmin) {
+      navLinks.push({ to: '/mentors', label: 'Mentors' });
     }
-  ];
 
-  if (profile?.role === 'admin' || profile?.role === 'Admin' || user?.user_metadata?.role === 'admin') {
-    navLinks.push({ to: '/admin', label: 'Quản trị' });
-  }
+    if (isRecruiter) {
+      navLinks.push({ to: '/question-bank', label: 'Ngân hàng câu hỏi' });
+    }
 
-  if (profile?.role === 'recruiter' || user?.user_metadata?.role === 'recruiter') {
-    navLinks.push({ to: '/recruiter', label: 'Trang Tuyển Dụng' });
-  }
+    if (!isRecruiter && !isMentor) { // This covers Admin
+      navLinks.push({ to: '/pricing', label: 'Gói dịch vụ' });
+    }
 
-  if (profile?.role === 'mentor' || user?.user_metadata?.role === 'mentor') {
-    navLinks.push({ to: '/mentor', label: 'Mentor Portal' });
+    navLinks.push({ to: '/blogs', label: 'Blog' });
+
+    if (isAdmin) {
+      navLinks.push({ to: '/admin', label: 'Quản trị' });
+    }
+
+    if (isRecruiter) {
+      navLinks.push({ to: '/recruiter', label: 'Tuyển Dụng' });
+    }
+
+    if (isMentor) {
+      navLinks.push({ to: '/mentor', label: 'Mentor Portal' });
+    }
   }
 
   return (
@@ -226,8 +243,35 @@ const Header = () => {
                     ? user.user_metadata.full_name.charAt(0).toUpperCase()
                     : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </div>
-                {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                {profile?.role === 'recruiter' && (
+                <span>
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+                {profile?.role?.toLowerCase() === 'admin' ? (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #d97706, #fbbf24)',
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px',
+                    boxShadow: '0 0 8px rgba(217, 119, 6, 0.6), 0 0 16px rgba(251, 191, 36, 0.4)'
+                  }}>
+                    ADMIN
+                  </span>
+                ) : isMentor ? (
+                  <span style={{
+                    background: 'var(--color-moss, #6B7F5C)',
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    MENTOR
+                  </span>
+                ) : profile?.role === 'recruiter' ? (
                   <span style={{
                     background: '#0ea5e9', // Premium Ocean/Sky Blue color for company
                     color: 'white',
@@ -239,21 +283,7 @@ const Header = () => {
                   }}>
                     COMPANY
                   </span>
-                )}
-                {profile?.role === 'mentor' && (
-                  <span style={{
-                    background: '#4d7c0f', // Professional Green for Mentor
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '12px',
-                    fontSize: '0.65rem',
-                    fontWeight: 'bold',
-                    marginLeft: '4px'
-                  }}>
-                    MENTOR
-                  </span>
-                )}
-                {profile?.plan && profile.plan !== 'Free' && profile?.role !== 'recruiter' && profile?.role !== 'mentor' && (
+                ) : profile?.plan && profile.plan !== 'Free' && (
                   <span style={{
                     background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
                     color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
@@ -397,8 +427,39 @@ const Header = () => {
               fontFamily: 'var(--font-serif)',
               fontSize: '1.5rem',
               fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}>
-              Xin chào, {user.user_metadata?.full_name || user.email?.split('@')[0]}
+              Xin chào, <span>
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+                {profile?.role?.toLowerCase() === 'admin' && (
+                  <span style={{
+                    background: 'linear-gradient(135deg, #d97706, #fbbf24)',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    boxShadow: '0 0 8px rgba(217, 119, 6, 0.6), 0 0 16px rgba(251, 191, 36, 0.4)'
+                  }}>
+                    ADMIN
+                  </span>
+                )}
+                {isMentor && (
+                  <span style={{
+                    background: 'var(--color-moss, #6B7F5C)',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    MENTOR
+                  </span>
+                )}
             </Link>
             <button onClick={handleLogout} className="btn btn--outline" style={{
               padding: '0.6rem 2rem',
