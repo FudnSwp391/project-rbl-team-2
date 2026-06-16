@@ -50,6 +50,10 @@ const Header = () => {
     navLinks.push({ to: '/admin', label: 'Quản trị' });
   }
 
+  if (profile?.role === 'recruiter' || user?.user_metadata?.role === 'recruiter') {
+    navLinks.push({ to: '/recruiter', label: 'Trang Tuyển Dụng' });
+  }
+
   return (
     <header id="main-header" style={{
       position: 'fixed',
