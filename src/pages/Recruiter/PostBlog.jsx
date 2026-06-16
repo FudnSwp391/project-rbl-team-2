@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '../../utils/supabaseClient';
 
 const PostBlog = () => {
   const { id } = useParams();
@@ -7,21 +8,104 @@ const PostBlog = () => {
   const isEditing = !!id;
 
   const [formData, setFormData] = useState({
-    title: isEditing ? 'How to ace a technical interview at TechCorp' : '',
-    type: isEditing ? 'Article' : 'Article',
-    content: isEditing ? 'Here are some tips for interviewing...' : '',
-    videoUrl: isEditing ? '' : ''
+    title: '',
+    type: 'Article',
+    content: '',
+    videoUrl: ''
   });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    checkCompanyStatus();
+    if (isEditing) {
+      fetchBlogDetails();
+    }
+  }, [id]);
+
+  const checkCompanyStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase.from('companies').select('status').eq('recruiter_id', session.user.id).single();
+      if (data?.status !== 'approved') {
+        alert('Bạn chưa được duyệt để đăng bài!');
+        navigate('/recruiter');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchBlogDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) throw error;
+      if (data) {
+        setFormData({
+          title: data.title || '',
+          type: data.type || 'Article',
+          content: data.content || '',
+          videoUrl: data.video_url || ''
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching blog details:', err);
+      setError('Could not load blog details.');
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setTimeout(() => {
+  const handleSubmit = async (e, status) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('You must be logged in to post a blog.');
+
+      const authorId = session.user.id;
+
+      const blogPayload = {
+        author_id: authorId,
+        title: formData.title,
+        type: formData.type,
+        content: formData.content,
+        video_url: formData.type === 'Video' ? formData.videoUrl : null,
+        status: status
+      };
+
+      if (isEditing) {
+        const { error: updateError } = await supabase
+          .from('blogs')
+          .update(blogPayload)
+          .eq('id', id);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('blogs')
+          .insert([blogPayload]);
+        if (insertError) throw insertError;
+      }
+
       navigate('/recruiter/blogs');
-    }, 500);
+    } catch (err) {
+      console.error('Error saving blog:', err);
+      setError(err.message || 'An error occurred while saving the blog.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,7 +116,13 @@ const PostBlog = () => {
           <h1 style={{ marginTop: 'var(--spacing-sm)' }}>{isEditing ? 'Edit Blog' : 'Create New Blog'}</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass-card reveal is-visible">
+        {error && (
+          <div style={{ background: '#ffebee', color: '#c62828', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={(e) => handleSubmit(e, 'published')} className="glass-card reveal is-visible">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             <div>
@@ -51,8 +141,8 @@ const PostBlog = () => {
             <div>
               <label style={labelStyle}>Content Type</label>
               <select name="type" value={formData.type} onChange={handleChange} style={inputStyle}>
-                <option>Article</option>
-                <option>Video</option>
+                <option value="Article">Article</option>
+                <option value="Video">Video</option>
               </select>
             </div>
 
@@ -84,9 +174,9 @@ const PostBlog = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => navigate('/recruiter/blogs')} className="btn btn--outline">Cancel</button>
-              <button type="button" className="btn btn--outline" style={{ background: 'var(--color-surface)' }}>Save as Draft</button>
-              <button type="submit" className="btn btn--primary btn--pill">{isEditing ? 'Update & Publish' : 'Publish Now'}</button>
+              <button type="button" onClick={() => navigate('/recruiter/blogs')} className="btn btn--outline" disabled={loading}>Cancel</button>
+              <button type="button" onClick={(e) => handleSubmit(e, 'draft')} className="btn btn--outline" style={{ background: 'var(--color-surface)' }} disabled={loading}>Save as Draft</button>
+              <button type="submit" className="btn btn--primary btn--pill" disabled={loading}>{isEditing ? 'Update & Publish' : 'Publish Now'}</button>
             </div>
 
           </div>

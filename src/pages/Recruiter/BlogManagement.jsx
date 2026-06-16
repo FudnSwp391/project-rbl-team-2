@@ -1,17 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-
-const mockBlogs = [
-  { id: 1, title: 'How to ace a technical interview at TechCorp', type: 'Article', views: 1205, status: 'Published', date: '3 days ago' },
-  { id: 2, title: 'Inside our engineering culture', type: 'Video', views: 856, status: 'Draft', date: '1 week ago' },
-];
+import { supabase } from '../../utils/supabaseClient';
 
 const BlogManagement = () => {
-  const [blogs, setBlogs] = useState(mockBlogs);
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async () => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('You must be logged in.');
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('author_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      
+      setBlogs(data || []);
+    } catch (err) {
+      console.error('Error fetching blogs:', err);
+      setError('Failed to load blogs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublish = async (blogId) => {
+    try {
+      const { error } = await supabase
+        .from('blogs')
+        .update({ status: 'published' })
+        .eq('id', blogId);
+        
+      if (error) throw error;
+      fetchBlogs();
+    } catch (err) {
+      console.error('Error publishing blog:', err);
+      alert('Failed to publish blog.');
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
 
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: 'calc(100vh - 80px)' }}>
       <div className="container">
+        
+        <div style={{ marginBottom: '1.5rem' }}>
+          <Link to="/recruiter" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+            ← Về trang Dashboard
+          </Link>
+        </div>
+
         <div className="reveal is-visible" style={{ marginBottom: 'var(--spacing-xl)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span className="label">Recruiter Portal</span>
@@ -23,54 +78,65 @@ const BlogManagement = () => {
           </Link>
         </div>
 
-        <div className="grid-auto">
-          {blogs.map(blog => (
-            <div key={blog.id} className="glass-card reveal is-visible" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.05em', 
-                  fontWeight: '600',
-                  color: blog.type === 'Video' ? 'var(--color-accent)' : 'var(--color-moss)',
-                  background: 'rgba(255,255,255,0.7)',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '4px'
-                }}>
-                  {blog.type === 'Video' ? '🎥 Video' : '📄 Article'}
-                </span>
-                <span style={{
-                  fontSize: '0.75rem',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '50px',
-                  background: blog.status === 'Published' ? 'var(--color-moss-light)' : 'var(--color-stone)',
-                  color: 'white'
-                }}>
-                  {blog.status}
-                </span>
+        {error && (
+          <div style={{ background: '#ffebee', color: '#c62828', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem' }}>Loading...</div>
+        ) : (
+          <div className="grid-auto">
+            {blogs.map(blog => (
+              <div key={blog.id} className="glass-card reveal is-visible" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.05em', 
+                    fontWeight: '600',
+                    color: blog.type === 'Video' ? 'var(--color-accent)' : 'var(--color-moss)',
+                    background: 'rgba(255,255,255,0.7)',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '4px'
+                  }}>
+                    {blog.type === 'Video' ? '🎥 Video' : '📄 Article'}
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '50px',
+                    background: blog.status === 'published' ? 'var(--color-moss-light)' : 'var(--color-stone)',
+                    color: 'white',
+                    textTransform: 'capitalize'
+                  }}>
+                    {blog.status}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', flex: 1 }}>{blog.title}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                  <span>{formatDate(blog.created_at)}</span>
+                  <span>{blog.views} views</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <Link to={`/recruiter/blogs/edit/${blog.id}`} className="btn btn--outline" style={{ flex: 1, padding: '0.5rem', textAlign: 'center', justifyContent: 'center' }}>Edit</Link>
+                  {blog.status === 'draft' && (
+                    <button onClick={() => handlePublish(blog.id)} className="btn btn--primary" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center' }}>Publish</button>
+                  )}
+                  {blog.status === 'published' && (
+                    <Link to={`/blog/${blog.id}`} className="btn btn--outline" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center', textAlign: 'center' }}>View</Link>
+                  )}
+                </div>
               </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', flex: 1 }}>{blog.title}</h3>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                <span>{blog.date}</span>
-                <span>{blog.views} views</span>
+            ))}
+            {blogs.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
+                No blogs created yet.
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                <Link to={`/recruiter/blogs/edit/${blog.id}`} className="btn btn--outline" style={{ flex: 1, padding: '0.5rem', textAlign: 'center', justifyContent: 'center' }}>Edit</Link>
-                {blog.status === 'Draft' && (
-                  <button className="btn btn--primary" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center' }}>Publish</button>
-                )}
-                {blog.status === 'Published' && (
-                  <Link to={`/blog/${blog.id}`} className="btn btn--outline" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center' }}>View</Link>
-                )}
-              </div>
-            </div>
-          ))}
-          {blogs.length === 0 && (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
-              No blogs created yet.
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
