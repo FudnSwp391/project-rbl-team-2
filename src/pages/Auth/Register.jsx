@@ -28,8 +28,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const { register } = useAuth();
+  const { user, register } = useAuth();
   const navigate = useNavigate();
 
   const pwdStrength = getPasswordStrength(password);

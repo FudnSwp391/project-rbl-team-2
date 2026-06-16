@@ -22,6 +22,7 @@ const BlogList = () => {
           created_at,
           content,
           profiles!blogs_author_id_fkey (
+            full_name,
             companies (company_name)
           )
         `)
@@ -36,7 +37,8 @@ const BlogList = () => {
         type: blog.type || 'Article',
         date: new Date(blog.created_at).toLocaleDateString(),
         summary: blog.content ? blog.content.substring(0, 100) + '...' : '',
-        company: blog.profiles?.companies?.[0]?.company_name || 'Admin',
+        authorName: blog.profiles?.full_name || 'Tác giả',
+        company: blog.profiles?.companies?.[0]?.company_name || null,
       }));
       
       setBlogs(formattedBlogs);
@@ -94,9 +96,11 @@ const BlogList = () => {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
-                    🏢
+                    {blog.company ? '🏢' : '👤'}
                   </div>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-charcoal)' }}>{blog.company}</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-charcoal)' }}>
+                    {blog.company ? blog.company : blog.authorName}
+                  </span>
                 </div>
 
               </Link>

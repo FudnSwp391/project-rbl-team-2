@@ -32,17 +32,25 @@ const Header = () => {
     setMenuOpen(false);
   }, [location]);
 
-  const navLinks = [
-    { to: '/', label: 'Trang chủ' },
-    { to: '/interview', label: 'Phỏng vấn' },
-    { to: '/cv-analysis', label: 'Phân tích CV' },
+  let navLinks = [
+    { to: '/', label: 'Trang chủ' }
+  ];
+
+  if (profile?.role !== 'mentor' && user?.user_metadata?.role !== 'mentor') {
+    navLinks.push({ to: '/interview', label: 'Phỏng vấn' });
+    navLinks.push({ to: '/cv-analysis', label: 'Phân tích CV' });
+  }
+
+  navLinks = [
+    ...navLinks,
     { to: '/mentors', label: 'Mentors' },
     { to: '/blogs', label: 'Blog' },
     {
-      label: 'Tuyển dụng',
+      label: 'Tuyển dụng & Đăng ký',
       dropdown: [
-        { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' },
         { to: '/jobs', label: 'Việc làm' },
+        { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' },
+        { to: '/mentor-register', label: 'Trở thành Mentor' },
       ]
     }
   ];
@@ -191,9 +199,17 @@ const Header = () => {
           ))}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Link to="/profile" style={{
-                textDecoration: 'none',
-                color: 'var(--color-charcoal)',
+              <Link 
+                to={
+                  profile?.role === 'mentor' || user?.user_metadata?.role === 'mentor' 
+                    ? '/mentor/profile' 
+                    : profile?.role === 'recruiter' || user?.user_metadata?.role === 'recruiter'
+                      ? '/recruiter/company'
+                      : '/profile'
+                } 
+                style={{
+                  textDecoration: 'none',
+                  color: 'var(--color-charcoal)',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 display: 'flex',
@@ -224,7 +240,20 @@ const Header = () => {
                     COMPANY
                   </span>
                 )}
-                {profile?.plan && profile.plan !== 'Free' && profile?.role !== 'recruiter' && (
+                {profile?.role === 'mentor' && (
+                  <span style={{
+                    background: '#4d7c0f', // Professional Green for Mentor
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    MENTOR
+                  </span>
+                )}
+                {profile?.plan && profile.plan !== 'Free' && profile?.role !== 'recruiter' && profile?.role !== 'mentor' && (
                   <span style={{
                     background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
                     color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),

@@ -9,7 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, loginWithOAuth } = useAuth();
+  const { user, login, loginWithOAuth } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {

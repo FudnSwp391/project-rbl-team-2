@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../utils/AuthContext';
 import itaLogo from '../../assets/ita-logo.png';
 import './LandingPage.css';
 
 const LandingPage = () => {
+  const { user } = useAuth();
   const heroRef = useRef(null);
   const [scrollY, setScrollY] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -341,7 +343,11 @@ const LandingPage = () => {
             Tham gia cùng hàng nghìn ứng viên đã cải thiện kỹ năng phỏng vấn với ITA.
           </p>
           <div className="reveal reveal--delay-2" style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/register" className="btn btn--accent">
+            <Link 
+              to={user ? "#" : "/register"} 
+              className="btn btn--accent"
+              onClick={(e) => { if (user) e.preventDefault(); }}
+            >
               Đăng ký miễn phí
             </Link>
             <Link to="/interview" className="btn btn--outline">
