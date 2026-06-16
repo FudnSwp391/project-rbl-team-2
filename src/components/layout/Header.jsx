@@ -40,6 +40,7 @@ const Header = () => {
     { to: '/interview', label: 'Phỏng vấn' },
     { to: '/cv-analysis', label: 'Phân tích CV' },
     ...(!isMentor ? [{ to: '/dashboard', label: 'Thử thách' }] : []),
+    { to: '/mentors', label: 'Mentors' },
     { to: '/blogs', label: 'Blog' },
     ...(!isMentor ? [
       {

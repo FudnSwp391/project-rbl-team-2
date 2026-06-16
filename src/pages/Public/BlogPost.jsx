@@ -18,33 +18,92 @@ const extractVideoFromContent = (content) => {
 
 const BlogPost = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [blog, setBlog] = useState(null);
+  const [authorName, setAuthorName] = useState('');
+  const [authorRole, setAuthorRole] = useState('user');
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
-    fetchBlog();
+    if (id) fetchBlog();
   }, [id]);
+
+  // Resolve author name AFTER blog is loaded and user context is available
+  useEffect(() => {
+    if (!blog) return;
+
+    const resolveAuthor = async () => {
+      // Priority 1: If the current logged-in user IS the author, use their profile
+      if (user?.id === blog.author_id && profile?.full_name) {
+        setAuthorName(profile.full_name);
+        setAuthorRole(profile.role || 'user');
+        return;
+      }
+
+      // Priority 2: Try to fetch the author's profile directly (may fail due to RLS)
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', blog.author_id)
+          .maybeSingle(); // maybeSingle returns null instead of erroring on 0 rows
+
+        if (data?.full_name) {
+          setAuthorName(data.full_name);
+          setAuthorRole(data.role || 'user');
+          return;
+        }
+      } catch (e) {
+        // Silently handle RLS errors
+      }
+
+      // Priority 3: Use current user's metadata if they are the author
+      if (user?.id === blog.author_id) {
+        setAuthorName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Tác giả');
+        setAuthorRole(profile?.role || 'mentor');
+        return;
+      }
+
+      // Fallback
+      setAuthorName('Tác giả');
+      setAuthorRole('mentor');
+    };
+
+    resolveAuthor();
+  }, [blog, user, profile]);
 
   const fetchBlog = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('blogs')
-      .select(`
-        *,
-        profiles:author_id (full_name, role)
-      `)
-      .eq('id', id)
-      .single();
+    setFetchError(null);
 
-    if (!error && data) {
-      setBlog(data);
-      // Update views incrementally (optional simple approach)
-      supabase.rpc('increment_blog_views', { blog_id: id }).then();
-    } else {
-      console.error('Error fetching blog:', error);
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching blog:', error);
+        setFetchError(error.message);
+      } else if (data) {
+        setBlog(data);
+
+        // Increment views silently
+        try {
+          await supabase.rpc('increment_blog_views', { blog_id: id });
+        } catch (_) {
+          // RPC may not exist — that's fine
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setFetchError('Đã xảy ra lỗi khi tải bài viết.');
+    } finally {
+      // ALWAYS stop loading — this fixes the "Đang tải..." forever bug
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Logic cộng điểm cho người đọc blog
@@ -52,28 +111,32 @@ const BlogPost = () => {
     if (!user || !blog) return;
     
     const timer = setTimeout(() => {
-      const storageKey = `ita_user_data_${user.id}`;
-      let savedData = JSON.parse(localStorage.getItem(storageKey)) || { points: 0, completedChallenges: [] };
-      
-      const today = new Date().toLocaleDateString('vi-VN');
-      
-      if (savedData.challengesDate !== today) {
-        savedData.challengesDate = today;
-        savedData.completedChallenges = [];
-      }
-      
-      if (!savedData.completedChallenges.includes('blog')) {
-        savedData.completedChallenges.push('blog');
-        savedData.points = (savedData.points || 0) + 5;
-        localStorage.setItem(storageKey, JSON.stringify(savedData));
+      try {
+        const storageKey = `ita_user_data_${user.id}`;
+        let savedData = JSON.parse(localStorage.getItem(storageKey)) || { points: 0, completedChallenges: [] };
         
-        supabase.from('profiles').update({
-          points: savedData.points
-        }).eq('id', user.id).then(({error}) => {
-          if (!error) {
-            alert('🎉 Chúc mừng! Bạn đã hoàn thành thử thách "Đọc blog" và nhận được 5 điểm!');
-          }
-        });
+        const today = new Date().toLocaleDateString('vi-VN');
+        
+        if (savedData.challengesDate !== today) {
+          savedData.challengesDate = today;
+          savedData.completedChallenges = [];
+        }
+        
+        if (!savedData.completedChallenges.includes('blog')) {
+          savedData.completedChallenges.push('blog');
+          savedData.points = (savedData.points || 0) + 5;
+          localStorage.setItem(storageKey, JSON.stringify(savedData));
+          
+          supabase.from('profiles').update({
+            points: savedData.points
+          }).eq('id', user.id).then(({error}) => {
+            if (!error) {
+              alert('🎉 Chúc mừng! Bạn đã hoàn thành thử thách "Đọc blog" và nhận được 5 điểm!');
+            }
+          });
+        }
+      } catch (e) {
+        // localStorage might fail
       }
     }, 5000);
 
@@ -92,7 +155,9 @@ const BlogPost = () => {
     return (
       <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
         <h2>Không tìm thấy bài viết</h2>
-        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>Bài viết có thể đã bị xóa hoặc chưa được xuất bản.</p>
+        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>
+          {fetchError || 'Bài viết có thể đã bị xóa hoặc chưa được xuất bản.'}
+        </p>
         <Link to="/blogs" className="btn btn--primary btn--pill">Quay lại danh sách</Link>
       </div>
     );
@@ -103,12 +168,14 @@ const BlogPost = () => {
   const isVideo = !!rawVideoUrl;
   
   // Clean content from the [VIDEO: ...] tag if it's there
-  let cleanContent = blog.content.replace(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/, '');
+  let cleanContent = (blog.content || '').replace(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/, '');
 
   // Format date
-  const formattedDate = new Date(blog.created_at).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
-  const authorName = blog.profiles?.full_name || 'Người dùng ẩn danh';
-  const role = blog.profiles?.role === 'mentor' ? 'Mentor' : (blog.profiles?.role === 'admin' ? 'Admin' : 'Thành viên');
+  const formattedDate = blog.created_at 
+    ? new Date(blog.created_at).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
+  
+  const roleLabel = authorRole === 'mentor' ? 'Mentor' : (authorRole === 'admin' ? 'Admin' : 'Thành viên');
 
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>
@@ -151,11 +218,11 @@ const BlogPost = () => {
                   <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
                     <User size={14} />
                   </div>
-                  {authorName}
+                  {authorName || 'Tác giả'}
                 </div>
                 <span style={{ opacity: 0.5 }}>•</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                   {role}
+                   {roleLabel}
                 </span>
                 <span style={{ opacity: 0.5 }}>•</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

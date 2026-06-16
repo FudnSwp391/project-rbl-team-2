@@ -62,6 +62,11 @@ const MentorReviews = () => {
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: 'calc(100vh - 80px)' }}>
       <div className="container">
+        {/* Back to Dashboard */}
+        <Link to="/mentor" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-secondary)', fontSize: '0.9rem', textDecoration: 'none', marginBottom: '1.5rem', transition: 'color 0.3s', fontFamily: 'var(--font-sans)' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-charcoal)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-secondary)'}>
+          ← Quay lại Mentor Dashboard
+        </Link>
+
         {/* Header */}
         <div className="reveal is-visible" style={{ marginBottom: 'var(--spacing-xl)' }}>
           <span className="label">Mentor Portal</span>

@@ -10,26 +10,33 @@ const MentorSchedule = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [errorMsg, setErrorMsg] = useState(null);
+
   useEffect(() => {
     if (user?.id) fetchBookings();
   }, [user]);
 
   const fetchBookings = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       const { data, error } = await supabase
         .from('mentor_bookings')
-        .select('*, profiles(full_name, email)')
+        .select('*, candidate:candidate_id(*)')
         .eq('mentor_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching bookings:', error.message);
+        setErrorMsg('Lỗi khi tải lịch hẹn: ' + error.message + '. (Có thể bảng mentor_bookings chưa thiết lập khóa ngoại Foreign Key tới bảng profiles)');
         setBookings([]);
       } else {
         const mapped = (data || []).map(item => ({
           id: item.id,
-          candidateName: item.profiles?.full_name || item.candidate_name || 'Ứng viên',
+          candidateName: item.candidate?.full_name || item.candidate_name || 'Ứng viên',
+          candidateEmail: item.candidate?.email || '',
+          candidatePhone: item.candidate?.phone || '',
+          candidateCvUrl: item.candidate?.cv_url || null,
           date: item.booking_date || (item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : ''),
           time: item.booking_time || '--:--',
           topic: item.topic || 'Mentoring session',
@@ -94,6 +101,11 @@ const MentorSchedule = () => {
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: 'calc(100vh - 80px)' }}>
       <div className="container">
+        {/* Back to Dashboard */}
+        <Link to="/mentor" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-secondary)', fontSize: '0.9rem', textDecoration: 'none', marginBottom: '1.5rem', transition: 'color 0.3s', fontFamily: 'var(--font-sans)' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-charcoal)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-secondary)'}>
+          ← Quay lại Mentor Dashboard
+        </Link>
+
         {/* Header */}
         <div className="reveal is-visible" style={{ marginBottom: 'var(--spacing-xl)' }}>
           <span className="label">Mentor Portal</span>
@@ -166,7 +178,7 @@ const MentorSchedule = () => {
                     <h3 style={{ fontSize: '1.05rem', margin: '0 0 0.25rem 0', color: 'var(--color-charcoal)' }}>
                       {booking.candidateName}
                     </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                         <Calendar size={14} /> {booking.date}
                       </span>
@@ -177,6 +189,26 @@ const MentorSchedule = () => {
                         <MessageSquare size={14} /> {booking.topic}
                       </span>
                     </div>
+
+                    {booking.status !== 'pending' && (
+                      <div style={{ background: 'rgba(0,0,0,0.02)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-charcoal)' }}>Thông tin Ứng viên:</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <div><strong>Email:</strong> <a href={`mailto:${booking.candidateEmail}`} style={{ color: 'var(--color-primary)' }}>{booking.candidateEmail || 'N/A'}</a></div>
+                          <div><strong>SĐT (Zalo):</strong> {booking.candidatePhone ? <a href={`https://zalo.me/${booking.candidatePhone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>{booking.candidatePhone}</a> : 'N/A'}</div>
+                          {booking.candidateCvUrl && (
+                            <div style={{ marginTop: '0.25rem', display: 'flex', gap: '0.5rem' }}>
+                              <a href={booking.candidateCvUrl} target="_blank" rel="noopener noreferrer" className="btn btn--outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', display: 'inline-block' }}>
+                                Xem CV Ứng viên
+                              </a>
+                              <Link to={`/mentor/reviews`} className="btn btn--outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', display: 'inline-block' }}>
+                                Xem Video Phỏng vấn AI
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Status */}
@@ -226,7 +258,13 @@ const MentorSchedule = () => {
               );
             })}
 
-            {filteredBookings.length === 0 && (
+            {errorMsg && (
+              <div style={{ padding: '1rem', background: 'rgba(255,0,0,0.1)', color: 'red', borderRadius: '8px', marginBottom: '1rem' }}>
+                {errorMsg}
+              </div>
+            )}
+
+            {!errorMsg && filteredBookings.length === 0 && (
               <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--color-text-secondary)' }}>
                 <Calendar size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
                 <p style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>

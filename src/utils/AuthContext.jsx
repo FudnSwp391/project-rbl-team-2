@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
             }
             setUser(sessionUser);
             let { data, error } = await supabase.from('profiles').select('*').eq('id', sessionUser.id).single();
-            
+
             // Self-healing: If user exists in Auth but has no row in the profiles table, create it immediately!
             // This heals the 406 profile fetch error and resolves the 409 foreign-key conflict when saving CVs.
             if ((!data || error) && sessionUser) {
@@ -32,13 +32,13 @@ export const AuthProvider = ({ children }) => {
                     status: 'active',
                     created_at: new Date().toISOString()
                 };
-                
+
                 const { data: insertedData, error: insertError } = await supabase
                     .from('profiles')
                     .insert([newProfile])
                     .select()
                     .single();
-                
+
                 if (!insertError) {
                     data = insertedData;
                     console.info('[AuthContext] Profile successfully healed!');
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
                     console.error('[AuthContext] Failed to heal profile:', insertError.message);
                 }
             }
-            
+
             if (data?.status === 'banned') {
                 await supabase.auth.signOut();
                 setUser(null);

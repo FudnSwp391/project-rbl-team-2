@@ -46,6 +46,11 @@ import BlogPost from '../pages/Public/BlogPost';
 import JobView from '../pages/Public/JobView';
 import JobList from '../pages/Public/JobList';
 
+// User Booking Components
+import MentorDirectory from '../pages/User/MentorDirectory';
+import BookMentor from '../pages/User/BookMentor';
+import MyBookings from '../pages/User/MyBookings';
+
 // Placeholder components
 const MockInterviewPlaceholder = () => <div className="container animate-fade"><h1>AI Mock Interview Room</h1></div>;
 
@@ -78,6 +83,11 @@ const AppRoutes = () => {
       <Route path="/interview" element={<ProtectedRoute><MockInterviewPlaceholder /></ProtectedRoute>} />
       <Route path="/cv-analysis" element={<ProtectedRoute><CVManager /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+      
+      {/* Protected User Booking Routes */}
+      <Route path="/mentors" element={<ProtectedRoute><MentorDirectory /></ProtectedRoute>} />
+      <Route path="/mentors/book/:id" element={<ProtectedRoute><BookMentor /></ProtectedRoute>} />
+      <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
 
       {/* Protected Recruiter Routes */}
       <Route path="/recruiter-register" element={<RecruiterRegistration />} />

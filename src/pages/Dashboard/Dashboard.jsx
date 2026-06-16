@@ -285,6 +285,33 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Mentor Mentoring */}
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-md)' }}>
+            <Star color="hsl(var(--primary-hsl))" />
+            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Mentoring 1-on-1</h2>
+          </div>
+          
+          <div style={{ 
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', 
+            justifyContent: 'center', padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' 
+          }}>
+            <User size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+            <p style={{ marginBottom: '1.5rem' }}>Kết nối với chuyên gia để nhận lời khuyên định hướng và mock interview.</p>
+            {localPlan === 'Free' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                <Link to="/pricing" className="btn btn--outline" style={{ fontSize: '0.85rem' }}>Nâng cấp để Đặt lịch</Link>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>* Dành cho thành viên Pro/Premium</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                <Link to="/mentors" className="btn btn--primary">Tìm Mentor ngay</Link>
+                <Link to="/my-bookings" style={{ fontSize: '0.85rem', color: 'var(--color-charcoal)', textDecoration: 'none', fontWeight: 500 }}>Xem lịch sử hẹn →</Link>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

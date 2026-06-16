@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import { useAuth } from '../../utils/AuthContext';
 import { Play, FileText, User } from 'lucide-react';
 
 const BlogList = () => {
+  const { user, profile } = useAuth();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,21 +15,46 @@ const BlogList = () => {
 
   const fetchBlogs = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('blogs')
-      .select(`
-        *,
-        profiles:author_id (full_name, role)
-      `)
-      .eq('status', 'published')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setBlogs(data);
-    } else {
-      console.error('Error fetching blogs:', error);
+      if (!error && data) {
+        // Try to fetch author profiles (may fail due to RLS — that's OK)
+        const authorIds = [...new Set(data.map(b => b.author_id).filter(Boolean))];
+        let authorMap = {};
+
+        if (authorIds.length > 0) {
+          try {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name, role')
+              .in('id', authorIds);
+            
+            (profiles || []).forEach(p => { authorMap[p.id] = p; });
+          } catch (_) {
+            // RLS blocks profile reads — we'll use fallbacks
+          }
+        }
+
+        // Attach author info to each blog
+        const enriched = data.map(blog => ({
+          ...blog,
+          _author: authorMap[blog.author_id] || null,
+        }));
+
+        setBlogs(enriched);
+      } else {
+        console.error('Error fetching blogs:', error);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const formatDate = (dateStr) => {
@@ -70,8 +97,13 @@ const BlogList = () => {
           <div className="grid-auto">
             {blogs.map((blog, index) => {
               const isVideo = hasVideo(blog);
-              const authorName = blog.profiles?.full_name || 'Người dùng ẩn danh';
-              const role = blog.profiles?.role === 'mentor' ? 'Mentor' : (blog.profiles?.role === 'admin' ? 'Admin' : 'Thành viên');
+              // Use current user profile if they are the author, otherwise use fetched profile
+              const isOwnBlog = user?.id === blog.author_id;
+              const authorName = isOwnBlog
+                ? (profile?.full_name || user?.user_metadata?.full_name || 'Bạn')
+                : (blog._author?.full_name || 'Tác giả');
+              const authorRole = isOwnBlog ? (profile?.role || 'user') : (blog._author?.role || 'mentor');
+              const role = authorRole === 'mentor' ? 'Mentor' : (authorRole === 'admin' ? 'Admin' : 'Thành viên');
               
               // Tạo summary từ content
               let summary = blog.content.replace(/\[VIDEO:.*?\]/g, '').replace(/[#*`]/g, '').substring(0, 150);
