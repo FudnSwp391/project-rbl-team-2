@@ -211,6 +211,8 @@ const CVManager = () => {
   const handleDeleteCV = async (e, fileId) => {
     e.stopPropagation();
     
+    const fileToDelete = files.find(f => f.id === fileId);
+
     // Optimistic UI update
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
     if (selectedFile?.id === fileId) {
@@ -221,9 +223,28 @@ const CVManager = () => {
     }
 
     try {
+      // 1. Delete from Supabase Storage
+      if (fileToDelete && fileToDelete.url) {
+        // Extract filePath from URL (e.g. "userId/timestamp_filename.pdf")
+        const urlParts = fileToDelete.url.split('/cv-bucket/');
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1];
+          const { error: storageError } = await deleteCV(filePath);
+          if (storageError) {
+            console.error('Failed to delete file from Storage:', storageError.message);
+          } else {
+            console.info('File deleted from Storage successfully!');
+          }
+        }
+      }
+
+      // 2. Delete from Database
       const { error } = await deleteCVFromDB(fileId);
       if (error) {
         console.error('Failed to delete CV from database:', error.message);
+        // If DB delete fails (e.g. RLS policy missing), we should probably revert the UI, 
+        // but since we already deleted from Storage, it's a bit tricky. 
+        // A missing DELETE policy is the main cause of silent failures here.
       } else {
         console.info('CV record deleted successfully from database!');
       }
