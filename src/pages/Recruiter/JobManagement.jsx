@@ -63,6 +63,32 @@ const JobManagement = () => {
     }
   };
 
+  const handleReopenJob = async (jobId) => {
+    if (!window.confirm('Are you sure you want to reopen this job?')) return;
+    
+    // Optimistic update
+    setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? { ...job, status: 'open' } : job));
+
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'open' })
+        .eq('id', jobId);
+        
+      if (error) {
+        if (error.message === 'TypeError: Failed to fetch') {
+          console.warn('Ignoring fake network error from Adblock/Antivirus');
+        } else {
+          throw error;
+        }
+      }
+    } catch (err) {
+      console.error('Error reopening job:', err);
+      alert('Failed to reopen job: ' + err.message);
+      fetchJobs(); // Revert on real error
+    }
+  };
+
   const handleDeleteJob = async (jobId) => {
     if (!window.confirm('Are you sure you want to completely delete this job? This action cannot be undone.')) return;
     
@@ -160,6 +186,9 @@ const JobManagement = () => {
                           <Link to={`/recruiter/jobs/edit/${job.id}`} className="btn btn--outline" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>Edit</Link>
                           {job.status === 'open' && (
                             <button onClick={() => handleCloseJob(job.id)} className="btn btn--outline" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#f0ad4e', borderColor: '#f0ad4e' }}>Close</button>
+                          )}
+                          {job.status === 'closed' && (
+                            <button onClick={() => handleReopenJob(job.id)} className="btn btn--outline" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: 'var(--color-moss)', borderColor: 'var(--color-moss)' }}>Reopen</button>
                           )}
                           <button onClick={() => handleDeleteJob(job.id)} className="btn btn--outline" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#d9534f', borderColor: '#d9534f' }}>Delete</button>
                         </div>

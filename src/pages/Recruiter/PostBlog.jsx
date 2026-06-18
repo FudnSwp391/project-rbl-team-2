@@ -87,17 +87,21 @@ const PostBlog = () => {
 
       const authorId = session.user.id;
 
+      if (formData.category && !tagsArray.includes(formData.category)) {
+        tagsArray.push(formData.category);
+      }
+
       const payload = {
         title: formData.title,
         content: formData.content,
-        category: formData.category || null,
         status: isDraft ? 'draft' : 'published',
         cover_image_url: formData.cover_image_url || null,
         tags: tagsArray,
       };
 
+      // Tích hợp video_url thẳng vào content để tránh lỗi thiếu cột
       if (formData.video_url) {
-        payload.video_url = formData.video_url;
+        payload.content = `[VIDEO: ${formData.video_url}]\n\n${payload.content}`;
       }
 
       if (isEditing) {
@@ -106,37 +110,14 @@ const PostBlog = () => {
           .update(payload)
           .eq('id', id);
           
-        if (updateError) {
-          // Fallback if video_url column doesn't exist
-          if (updateError.message?.includes('video_url') || updateError.message?.includes('column')) {
-            delete payload.video_url;
-            if (formData.video_url) {
-              payload.content = `[VIDEO: ${formData.video_url}]\n\n${formData.content}`;
-            }
-            const { error: retryError } = await supabase.from('blogs').update(payload).eq('id', id);
-            if (retryError) throw retryError;
-          } else {
-             throw updateError;
-          }
-        }
+        if (updateError) throw updateError;
       } else {
         payload.author_id = authorId;
         const { error: insertError } = await supabase
           .from('blogs')
           .insert([payload]);
           
-        if (insertError) {
-           if (insertError.message?.includes('video_url') || insertError.message?.includes('column')) {
-             delete payload.video_url;
-             if (formData.video_url) {
-               payload.content = `[VIDEO: ${formData.video_url}]\n\n${formData.content}`;
-             }
-             const { error: retryError } = await supabase.from('blogs').insert([payload]);
-             if (retryError) throw retryError;
-           } else {
-             throw insertError;
-           }
-        }
+        if (insertError) throw insertError;
       }
 
       alert(isEditing ? 'Cập nhật bài viết thành công!' : 'Tạo bài viết thành công!');

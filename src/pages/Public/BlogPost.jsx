@@ -34,20 +34,38 @@ const BlogPost = () => {
     if (!blog) return;
 
     const resolveAuthor = async () => {
-      // Priority 1: If the current logged-in user IS the author, use their profile
+      // Priority 1: Check if author represents an approved company
+      try {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('company_name')
+          .eq('recruiter_id', blog.author_id)
+          .eq('status', 'approved')
+          .maybeSingle();
+
+        if (companyData?.company_name) {
+          setAuthorName(companyData.company_name);
+          setAuthorRole('company');
+          return;
+        }
+      } catch (e) {
+        // Ignore
+      }
+
+      // Priority 2: If the current logged-in user IS the author, use their profile
       if (user?.id === blog.author_id && profile?.full_name) {
         setAuthorName(profile.full_name);
         setAuthorRole(profile.role || 'user');
         return;
       }
 
-      // Priority 2: Try to fetch the author's profile directly (may fail due to RLS)
+      // Priority 3: Try to fetch the author's profile directly (may fail due to RLS)
       try {
         const { data } = await supabase
           .from('profiles')
           .select('full_name, role')
           .eq('id', blog.author_id)
-          .maybeSingle(); // maybeSingle returns null instead of erroring on 0 rows
+          .maybeSingle(); 
 
         if (data?.full_name) {
           setAuthorName(data.full_name);
@@ -58,7 +76,7 @@ const BlogPost = () => {
         // Silently handle RLS errors
       }
 
-      // Priority 3: Use current user's metadata if they are the author
+      // Priority 4: Use current user's metadata if they are the author
       if (user?.id === blog.author_id) {
         setAuthorName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Tác giả');
         setAuthorRole(profile?.role || 'mentor');
@@ -175,7 +193,7 @@ const BlogPost = () => {
     ? new Date(blog.created_at).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
   
-  const roleLabel = authorRole === 'mentor' ? 'Mentor' : (authorRole === 'admin' ? 'Admin' : 'Thành viên');
+  const roleLabel = authorRole === 'company' ? 'Doanh nghiệp' : (authorRole === 'mentor' ? 'Mentor' : (authorRole === 'admin' ? 'Admin' : 'Thành viên'));
 
   return (
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>
@@ -215,8 +233,8 @@ const BlogPost = () => {
               
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-charcoal)', fontWeight: '500' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
-                    <User size={14} />
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                    {authorRole === 'company' ? '🏢' : <User size={14} />}
                   </div>
                   {authorName || 'Tác giả'}
                 </div>

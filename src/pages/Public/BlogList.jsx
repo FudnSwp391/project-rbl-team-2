@@ -18,7 +18,6 @@ const BlogList = () => {
         .select(`
           id,
           title,
-          type,
           created_at,
           content,
           profiles!blogs_author_id_fkey (
@@ -31,15 +30,18 @@ const BlogList = () => {
 
       if (error) throw error;
       
-      const formattedBlogs = (data || []).map(blog => ({
-        id: blog.id,
-        title: blog.title,
-        type: blog.type || 'Article',
-        date: new Date(blog.created_at).toLocaleDateString(),
+      const formattedBlogs = (data || []).map(blog => {
+        const isVideo = blog.content && blog.content.includes('[VIDEO:');
+        return {
+          id: blog.id,
+          title: blog.title,
+          type: isVideo ? 'Video' : 'Article',
+          date: new Date(blog.created_at).toLocaleDateString(),
         summary: blog.content ? blog.content.substring(0, 100) + '...' : '',
         authorName: blog.profiles?.full_name || 'Tác giả',
         company: blog.profiles?.companies?.[0]?.company_name || null,
-      }));
+        };
+      });
       
       setBlogs(formattedBlogs);
     } catch (err) {
