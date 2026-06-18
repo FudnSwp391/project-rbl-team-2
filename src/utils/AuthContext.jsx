@@ -52,6 +52,16 @@ export const AuthProvider = ({ children }) => {
                 setUser(null);
                 setProfile(null);
             } else {
+                if (data && data.plan) {
+                    const { data: planData } = await supabase.from('subscription_plans').select('*').eq('name', data.plan).single();
+                    if (planData) {
+                        data.planLimits = {
+                            max_mentor_bookings: planData.max_mentor_bookings || 0,
+                            max_ai_interviews: planData.max_ai_interviews || 0,
+                            max_questions: planData.max_questions || 5
+                        };
+                    }
+                }
                 setProfile(data || null);
             }
             setLoading(false);

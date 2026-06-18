@@ -3,6 +3,7 @@ import { CheckCircle, Zap, Shield, Crown, Star, FolderOpen } from 'lucide-react'
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import PaymentModal from '../../components/PaymentModal';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const PricingPage = () => {
   const { user, profile } = useAuth();
@@ -13,6 +14,12 @@ const PricingPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [orderCode, setOrderCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [dbPlans, setDbPlans] = useState([]);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isExchangeMode = new URLSearchParams(location.search).get('mode') === 'exchange';
+  const currentPoints = profile?.points || 0;
 
   React.useEffect(() => {
     if (user && profile) {
@@ -47,7 +54,24 @@ const PricingPage = () => {
       };
       fetchLatestUsage();
     }
+
+    const fetchPlans = async () => {
+      const { data } = await supabase.from('subscription_plans').select('*');
+      if (data) setDbPlans(data);
+    };
+    fetchPlans();
   }, [user, profile]);
+
+  const getPlanLimits = (planName) => {
+    const p = dbPlans.find(plan => plan.name.toLowerCase() === planName.toLowerCase());
+    return {
+      price: p?.price ?? (planName === 'Free' ? 0 : (planName === 'Pro' ? 5000 : 10000)),
+      duration_days: p?.duration_days ?? (planName === 'Free' ? 0 : (planName === 'Pro' ? 14 : 30)),
+      max_ai_interviews: p?.max_ai_interviews || (planName === 'Free' ? 1 : (planName === 'Pro' ? 5 : 30)),
+      max_questions: p?.max_questions || (planName === 'Free' ? 5 : (planName === 'Pro' ? 10 : 999)),
+      max_mentor_bookings: p?.max_mentor_bookings || (planName === 'Free' ? 0 : (planName === 'Pro' ? 1 : 5))
+    };
+  };
 
   // CẤU HÌNH THÔNG TIN NGÂN HÀNG CỦA BẠN TẠI ĐÂY
   const BANK_ID = 'TPBank'; // Tên viết tắt hoặc BIN của ngân hàng (VD: MB, VCB, TCB)
@@ -62,7 +86,8 @@ const PricingPage = () => {
 
     setIsProcessing(true);
     const code = 'RBL' + Math.floor(100000 + Math.random() * 900000); // Sinh mã dạng RBL123456
-    const price = planName === 'Pro' ? 5000 : 10000;
+    const planLimits = getPlanLimits(planName);
+    const price = planLimits.price;
 
     // Lưu vào CSDL
     const { error } = await supabase.from('orders').insert([{
@@ -84,14 +109,62 @@ const PricingPage = () => {
     }
   };
 
+  const handleExchange = async (planName) => {
+    if (!user) {
+      alert('Vui lòng đăng nhập!');
+      return;
+    }
+    
+    const cost = planName === 'Pro' ? 300 : 500;
+    if (currentPoints < cost) {
+      alert(`Bạn không có đủ điểm để đổi gói ${planName}. Cần ${cost} điểm, bạn đang có ${currentPoints} điểm.`);
+      return;
+    }
+    
+    if (!window.confirm(`Xác nhận dùng ${cost} điểm để đổi gói ${planName}?`)) return;
+    
+    setIsProcessing(true);
+    const planLimits = getPlanLimits(planName);
+    const durationDays = planLimits.duration_days;
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + durationDays);
+    
+    try {
+      const { error } = await supabase.from('profiles').update({
+        plan: planName,
+        plan_expires_at: expiresAt.toISOString(),
+        points: Math.max(0, currentPoints - cost)
+      }).eq('id', user.id);
+      
+      if (error) throw error;
+      
+      const storageKey = `ita_user_data_${user.id}`;
+      let savedData = JSON.parse(localStorage.getItem(storageKey));
+      if (savedData) {
+        savedData.points = Math.max(0, savedData.points - cost);
+        localStorage.setItem(storageKey, JSON.stringify(savedData));
+      }
+      
+      alert(`Đổi gói thành công! Bạn đã được cấp gói ${planName}.`);
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Lỗi khi đổi gói:', err);
+      alert('Có lỗi xảy ra: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="container animate-fade" style={{ paddingTop: '120px', paddingBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
       <header style={{ marginBottom: 'var(--spacing-xl)' }}>
         <h1 style={{ fontSize: '3rem', marginBottom: 'var(--spacing-sm)' }}>
-          Nâng cấp <span className="gradient-text">Trải nghiệm</span> của bạn
+          {isExchangeMode ? <><span className="gradient-text">Đổi Điểm</span> Nhận Gói Dịch Vụ</> : <>Nâng cấp <span className="gradient-text">Trải nghiệm</span> của bạn</>}
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
-          Chọn gói phù hợp để mở khóa toàn bộ tính năng phỏng vấn AI và bộ câu hỏi chuyên sâu.
+          {isExchangeMode 
+            ? `Sử dụng điểm tích lũy của bạn để đổi lấy các gói đặc quyền. Bạn đang có ${currentPoints} điểm.` 
+            : `Chọn gói phù hợp để mở khóa toàn bộ tính năng phỏng vấn AI và bộ câu hỏi chuyên sâu.`}
         </p>
         {user && (
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
@@ -110,11 +183,11 @@ const PricingPage = () => {
         <div className="glass-card" style={{ padding: '2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ marginBottom: '1.5rem' }}>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Gói Free</h3>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>0đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/tháng</span></div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{getPlanLimits('Free').price === 0 ? '0đ' : `${getPlanLimits('Free').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{getPlanLimits('Free').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Free').duration_days} ngày`}</span></div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-            <FeatureItem text="1 lượt luyện tập với AI" />
-            <FeatureItem text="5 lượt luyện tập question" />
+            <FeatureItem text={`${getPlanLimits('Free').max_ai_interviews} lượt luyện tập với AI`} />
+            <FeatureItem text={`${getPlanLimits('Free').max_questions > 900 ? 'Không giới hạn' : getPlanLimits('Free').max_questions} lượt luyện tập question`} />
           </ul>
           <button style={{
             width: '100%', padding: '0.85rem', borderRadius: '12px', border: '2px solid #e2e8f0',
@@ -137,12 +210,14 @@ const PricingPage = () => {
               <Zap color="hsl(var(--primary-hsl))" />
               <h3 style={{ fontSize: '1.8rem', margin: 0, color: 'var(--primary)' }}>Pro</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>5.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/14 ngày</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+              {isExchangeMode ? '300 điểm' : `${getPlanLimits('Pro').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{getPlanLimits('Pro').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Pro').duration_days} ngày`}</span>
+            </div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-            <FeatureItem text="5 lượt luyện tập với AI" />
-            <FeatureItem text="10 lượt luyện tập question" />
-            <FeatureItem text="Đặt lịch mentor 1 lần" />
+            <FeatureItem text={`${getPlanLimits('Pro').max_ai_interviews} lượt luyện tập với AI`} />
+            <FeatureItem text={`${getPlanLimits('Pro').max_questions > 900 ? 'Không giới hạn' : getPlanLimits('Pro').max_questions} lượt luyện tập question`} />
+            <FeatureItem text={`Đặt lịch mentor ${getPlanLimits('Pro').max_mentor_bookings} lần`} />
           </ul>
           <button style={{
             width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
@@ -153,9 +228,13 @@ const PricingPage = () => {
           }}
           onMouseOver={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
           onMouseOut={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0) scale(1)'; }}
-          onClick={() => currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) && handleUpgrade('Pro')} disabled={isProcessing || currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
+          onClick={() => {
+            if (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) return;
+            if (isExchangeMode) handleExchange('Pro');
+            else handleUpgrade('Pro');
+          }} disabled={isProcessing || currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
           >
-            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng gói cao hơn' : (currentPlan === 'Pro' ? 'Đang sử dụng' : 'Nâng cấp Pro')))}
+            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang xử lý...' : (currentPlan === 'Premium' ? 'Đang sử dụng gói cao hơn' : (currentPlan === 'Pro' ? 'Đang sử dụng' : (isExchangeMode ? 'Đổi 300 điểm' : 'Nâng cấp Pro'))))}
           </button>
         </div>
 
@@ -166,12 +245,14 @@ const PricingPage = () => {
               <Crown color="#f59e0b" />
               <h3 style={{ fontSize: '1.5rem', margin: 0, color: '#f59e0b' }}>Premium</h3>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>10.000đ <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>/30 ngày</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+              {isExchangeMode ? '500 điểm' : `${getPlanLimits('Premium').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{getPlanLimits('Premium').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Premium').duration_days} ngày`}</span>
+            </div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-            <FeatureItem text="30 lượt luyện tập với AI" />
-            <FeatureItem text="Không giới hạn luyện tập question" />
-            <FeatureItem text="Đặt lịch mentor 5 lần" />
+            <FeatureItem text={`${getPlanLimits('Premium').max_ai_interviews} lượt luyện tập với AI`} />
+            <FeatureItem text={`${getPlanLimits('Premium').max_questions > 900 ? 'Không giới hạn' : getPlanLimits('Premium').max_questions} lượt luyện tập question`} />
+            <FeatureItem text={`Đặt lịch mentor ${getPlanLimits('Premium').max_mentor_bookings} lần`} />
           </ul>
           <button style={{
             width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
@@ -182,10 +263,14 @@ const PricingPage = () => {
           }}
           onMouseOver={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
           onMouseOut={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0) scale(1)'; }}
-          onClick={() => currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) && handleUpgrade('Premium')}
+          onClick={() => {
+            if (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) return;
+            if (isExchangeMode) handleExchange('Premium');
+            else handleUpgrade('Premium');
+          }}
           disabled={isProcessing || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
           >
-            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang tạo đơn hàng...' : (currentPlan === 'Premium' ? 'Đang sử dụng' : 'Nâng cấp Premium'))}
+            {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang xử lý...' : (currentPlan === 'Premium' ? 'Đang sử dụng' : (isExchangeMode ? 'Đổi 500 điểm' : 'Nâng cấp Premium')))}
           </button>
         </div>
       </div>
@@ -200,14 +285,17 @@ const PricingPage = () => {
           accountName={ACCOUNT_NAME}
           onClose={() => setShowPayment(false)}
           onSuccess={async () => {
-            const durationDays = selectedPlan.name === 'Pro' ? 14 : 30;
+            const planLimits = getPlanLimits(selectedPlan.name);
+            const durationDays = planLimits.duration_days;
             const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + durationDays);
+            if (durationDays > 0) {
+              expiresAt.setDate(expiresAt.getDate() + durationDays);
+            }
             
             try {
               await supabase.from('profiles').update({
                 plan: selectedPlan.name,
-                plan_expires_at: expiresAt.toISOString()
+                plan_expires_at: durationDays > 0 ? expiresAt.toISOString() : null
               }).eq('id', user.id);
             } catch (err) {
               console.error('Lỗi khi nâng cấp DB:', err);

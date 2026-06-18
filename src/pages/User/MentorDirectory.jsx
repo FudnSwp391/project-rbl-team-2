@@ -13,7 +13,7 @@ const MentorDirectory = () => {
 
   // Lấy plan từ local state, nếu null thì gán mặc định là Free
   const currentPlan = profile?.plan || 'Free';
-  const isPremiumOrPro = currentPlan === 'Pro' || currentPlan === 'Premium';
+  const isPremiumOrPro = (profile?.planLimits?.max_mentor_bookings || 0) > 0;
 
   useEffect(() => {
     fetchMentors();

@@ -29,21 +29,20 @@ const BlogsView = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
-      const { error } = await supabase.from('blogs').delete().eq('id', id);
-      if (error) alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
-      else setItems(items.filter(item => item.id !== id));
+      const { data, error } = await supabase.from('blogs').delete().eq('id', id).select();
+      if (error) {
+        alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      } else if (!data || data.length === 0) {
+        alert('Không thể xóa bài viết. Bạn không có quyền (Lỗi RLS) hoặc bài đã bị xóa.');
+      } else {
+        setItems(items.filter(item => item.id !== id));
+      }
     }
   };
 
   const handleEdit = (item) => {
     setCurrentItem(item);
     setTagsInput(item.tags ? (Array.isArray(item.tags) ? item.tags.join(', ') : item.tags) : '');
-    setIsEditing(true);
-  };
-
-  const handleAdd = () => {
-    setCurrentItem({ title: '', content: '', status: 'draft', cover_image_url: '' });
-    setTagsInput('');
     setIsEditing(true);
   };
 
@@ -77,25 +76,7 @@ const BlogsView = () => {
     <div className="animate-fade" style={{ position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
         <h2>Bài viết / Blog ({items.length})</h2>
-        <button 
-          className="btn-primary" 
-          style={{ 
-            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-            background: 'linear-gradient(135deg, #ffffff, #e2e8f0)',
-            color: '#000000',
-            fontWeight: '600',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '8px',
-            border: 'none', 
-            boxShadow: '0 4px 15px rgba(255, 255, 255, 0.15)',
-            transition: 'all 0.3s ease'
-          }} 
-          onClick={handleAdd}
-          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-        >
-          <Plus size={18} /> Viết bài mới
-        </button>
+
       </div>
 
       <div className="glass-card" style={{ overflowX: 'auto', padding: 0 }}>

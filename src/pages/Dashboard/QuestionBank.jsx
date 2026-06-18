@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
@@ -135,15 +136,19 @@ const QuestionBank = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getUsageLimit = (plan) => {
-    const p = plan ? plan.toLowerCase() : 'free';
-    if (p === 'premium') return Infinity;
-    if (p === 'pro') return 10; // 10 practices per day
-    return 5; // 5 practices per day
-  };
-
-  const usageLimit = getUsageLimit(localPlan);
+  const usageLimit = profile?.planLimits?.max_questions || 5;
   const isBlocked = usageCount >= usageLimit;
+
+  useEffect(() => {
+    if (isBlocked) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isBlocked]);
 
   const handlePracticeClick = async (questionId) => {
     if (isBlocked) return;
@@ -339,17 +344,18 @@ const QuestionBank = () => {
       </div>
 
       {/* Paywall Overlay */}
-      {isBlocked && (
+      {isBlocked && createPortal(
         <div style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          zIndex: 50, background: 'rgba(250, 248, 245, 0.4)'
-        }}>
+          zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)'
+        }} data-lenis-prevent="true">
           <div className="glass-premium" style={{
             padding: '3.5rem 2.5rem', borderRadius: '24px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-            maxWidth: '480px', animation: 'fadeIn 0.5s ease-out'
+            maxWidth: '480px', animation: 'fadeIn 0.5s ease-out', background: '#ffffff',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
           }}>
             <div style={{ 
               background: 'var(--color-earth)', padding: '1.25rem', borderRadius: '20px',
@@ -365,7 +371,8 @@ const QuestionBank = () => {
             
             <button className="btn btn--primary btn--pill" onClick={() => navigate('/pricing')}>Xem các Gói Nâng cấp</button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Scroll to Top Button */}

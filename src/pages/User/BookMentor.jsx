@@ -69,9 +69,7 @@ const BookMentor = () => {
       }
 
       // 2. Check Quota limit
-      let limit = 0;
-      if (currentPlan === 'Pro') limit = 1;
-      else if (currentPlan === 'Premium') limit = 5;
+      let limit = profile?.planLimits?.max_mentor_bookings || 0;
 
       if (limit === 0) {
         setQuotaStatus({ allowed: false, used: 0, limit: 0, loading: false });
@@ -225,7 +223,7 @@ const BookMentor = () => {
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
                     {currentPlan === 'Free'
-                      ? 'Tính năng đặt lịch hẹn 1-on-1 với Mentor chỉ dành cho thành viên Pro (1 lượt/kỳ) và Premium (5 lượt/kỳ).'
+                      ? 'Tính năng đặt lịch hẹn 1-on-1 với Mentor chỉ dành cho thành viên có lượt đặt lịch trong gói.'
                       : `Bạn đã sử dụng ${quotaStatus.used}/${quotaStatus.limit} lượt đặt lịch trong chu kỳ này.`
                     }
                   </p>

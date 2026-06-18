@@ -128,6 +128,11 @@ const BlogPost = () => {
   useEffect(() => {
     if (!user || !blog) return;
     
+    // Bỏ qua logic thử thách nếu là tài khoản đặc quyền
+    if (['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) {
+      return;
+    }
+    
     const timer = setTimeout(() => {
       try {
         const storageKey = `ita_user_data_${user.id}`;

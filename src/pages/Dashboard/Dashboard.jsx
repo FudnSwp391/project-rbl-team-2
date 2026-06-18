@@ -36,6 +36,14 @@ const Dashboard = () => {
         challengesDate: '',
         completedChallenges: []
       };
+    } else if (profile) {
+      // Đồng bộ từ DB xuống LocalStorage nếu Admin hoặc thiết bị khác đã thay đổi điểm
+      if (profile.points !== undefined && profile.points !== savedData.points) {
+        savedData.points = profile.points;
+      }
+      if (profile.streak_days !== undefined && profile.streak_days !== savedData.streak) {
+        savedData.streak = profile.streak_days;
+      }
     }
     
     let isDataUpdated = false;
@@ -160,9 +168,9 @@ const Dashboard = () => {
   }, [user, profile]);
 
   const hasPremium = localPlan && localPlan.toLowerCase() !== 'free';
-  const planLimit = localPlan === 'Premium' ? Infinity : (localPlan === 'Pro' ? 10 : 5);
-  const remainingCount = localPlan === 'Premium' ? '∞' : Math.max(0, planLimit - usageCount);
-  const displayLimit = localPlan === 'Premium' ? '∞' : planLimit;
+  const planLimit = profile?.planLimits?.max_questions || 5;
+  const remainingCount = Math.max(0, planLimit - usageCount);
+  const displayLimit = planLimit;
   const isSpecialRole = ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase());
 
   return (
@@ -182,7 +190,7 @@ const Dashboard = () => {
                 Gói {localPlan} {planDaysLeft !== null ? `(Còn ${planDaysLeft} ngày)` : ''}
               </div>
               <div style={{ padding: '0.4rem 0.8rem', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '99px', fontSize: '0.85rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
-                Số lượt luyện tập còn lại: {remainingCount}/{displayLimit}
+                Số lượt luyện tập còn lại: {planLimit > 900 ? 'Không giới hạn' : `${remainingCount}/${displayLimit}`}
               </div>
             </div>
           )}
@@ -215,7 +223,7 @@ const Dashboard = () => {
               <button 
                 className="btn btn-secondary" 
                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                onClick={() => alert("Tính năng dùng điểm đổi gói đang trong quá trình phát triển!")}
+                onClick={() => navigate('/pricing?mode=exchange')}
               >
                 Đổi gói
               </button>

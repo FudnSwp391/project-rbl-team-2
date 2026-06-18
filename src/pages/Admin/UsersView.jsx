@@ -64,7 +64,8 @@ const UsersView = () => {
       email: currentUser.email,
       role: currentUser.role,
       plan: currentUser.plan,
-      status: currentUser.status
+      status: currentUser.status,
+      points: Math.max(0, parseInt(currentUser.points || 0, 10))
     };
 
     if (currentUser.id) {
@@ -256,17 +257,29 @@ const UsersView = () => {
                 </div>
               </div>
               
-              <div>
-                <label style={labelStyle}>Trạng thái tài khoản</label>
-                <select
-                  value={currentUser.status || 'active'}
-                  onChange={e => setCurrentUser({ ...currentUser, status: e.target.value })}
-                  style={inputStyle}
-                >
-                  <option value="active">Hoạt động bình thường (Active)</option>
-                  <option value="pending">Chờ duyệt / Tạm khóa (Pending)</option>
-                  <option value="banned">Cấm vĩnh viễn (Banned)</option>
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Trạng thái tài khoản</label>
+                  <select
+                    value={currentUser.status || 'active'}
+                    onChange={e => setCurrentUser({ ...currentUser, status: e.target.value })}
+                    style={inputStyle}
+                  >
+                    <option value="active">Hoạt động bình thường (Active)</option>
+                    <option value="pending">Chờ duyệt / Tạm khóa (Pending)</option>
+                    <option value="banned">Cấm vĩnh viễn (Banned)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Điểm tích lũy (Points)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentUser.points ?? 0}
+                    onChange={e => setCurrentUser({ ...currentUser, points: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
               </div>
               
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>

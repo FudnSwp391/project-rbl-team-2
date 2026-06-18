@@ -18,6 +18,13 @@ const AdminRoute = ({ children }) => {
       // Kiểm tra role trong user_metadata trước
       const metaRole = user.user_metadata?.role;
       if (metaRole === 'admin') {
+        // Đồng bộ quyền admin xuống database để vượt qua RLS
+        const { error: syncError } = await supabase.from('profiles').update({ 
+          role: 'admin' 
+        }).eq('id', user.id);
+        
+        if (syncError) console.error('Failed to sync admin role:', syncError);
+        
         setIsAdmin(true);
         setCheckingRole(false);
         return;
