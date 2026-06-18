@@ -150,7 +150,7 @@ function createEmptyCVResult(fileName, reason) {
 //  TEXT EXTRACTION — PDF (pdf.js) + DOCX (mammoth)
 // ─────────────────────────────────────────────
 
-async function extractTextFromFile(file) {
+export async function extractTextFromFile(file) {
   // --- PDF ---
   if (file.type === 'application/pdf') {
     return await extractPdfText(file)

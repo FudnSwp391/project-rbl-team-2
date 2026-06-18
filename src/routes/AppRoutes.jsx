@@ -48,8 +48,12 @@ import MentorDirectory from '../pages/User/MentorDirectory';
 import BookMentor from '../pages/User/BookMentor';
 import MyBookings from '../pages/User/MyBookings';
 
-// Placeholder components
-const MockInterviewPlaceholder = () => <div className="container animate-fade"><h1>AI Mock Interview Room</h1></div>;
+// Interview Pages
+import InterviewLanding from '../pages/Interview/InterviewLanding';
+import InterviewSetup from '../pages/Interview/InterviewSetup';
+import InterviewRoom from '../pages/Interview/InterviewRoom';
+import InterviewResult from '../pages/Interview/InterviewResult';
+import InterviewHistory from '../pages/Interview/InterviewHistory';
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -76,10 +80,16 @@ const AppRoutes = () => {
       <Route path="/challenge/questions" element={<ProtectedRoute><DailyQuestions /></ProtectedRoute>} />
       <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
       <Route path="/question-bank/practice/:id" element={<ProtectedRoute><QuestionPractice /></ProtectedRoute>} />
-      <Route path="/interview" element={<ProtectedRoute><MockInterviewPlaceholder /></ProtectedRoute>} />
       <Route path="/cv-analysis" element={<ProtectedRoute><CVManager /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       
+      {/* Interview Routes (Protected) */}
+      <Route path="/interview" element={<ProtectedRoute><InterviewLanding /></ProtectedRoute>} />
+      <Route path="/interview/setup" element={<ProtectedRoute><InterviewSetup /></ProtectedRoute>} />
+      <Route path="/interview/room" element={<ProtectedRoute><InterviewRoom /></ProtectedRoute>} />
+      <Route path="/interview/result/:id" element={<ProtectedRoute><InterviewResult /></ProtectedRoute>} />
+      <Route path="/interview/history" element={<ProtectedRoute><InterviewHistory /></ProtectedRoute>} />
+
       {/* Protected User Booking Routes */}
       <Route path="/mentors" element={<ProtectedRoute><MentorDirectory /></ProtectedRoute>} />
       <Route path="/mentors/book/:id" element={<ProtectedRoute><BookMentor /></ProtectedRoute>} />

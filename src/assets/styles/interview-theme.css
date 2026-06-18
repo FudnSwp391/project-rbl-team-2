@@ -1,0 +1,450 @@
+/* ============================================
+   INTERVIEW THEME — AI-Powered Dark Mode
+   Extends the Floema earthy design system
+   ============================================ */
+
+/* ── Interview Earthy Cream Tokens ── */
+.interview-theme {
+  --iv-bg-primary: var(--color-cream);
+  --iv-bg-secondary: var(--color-cream-dark);
+  --iv-bg-surface: rgba(255, 255, 255, 0.55);
+  --iv-bg-elevated: rgba(255, 255, 255, 0.85);
+  --iv-bg-hover: rgba(255, 255, 255, 0.95);
+  --iv-bg-input: #FFFFFF;
+
+  /* Accent Colors — Warm Earthy spectrum */
+  --iv-accent-blue: var(--color-earth);
+  --iv-accent-purple: var(--color-accent);
+  --iv-accent-cyan: var(--color-moss);
+  --iv-accent-indigo: var(--color-stone);
+  --iv-gradient-primary: linear-gradient(135deg, var(--color-charcoal), var(--color-earth));
+  --iv-gradient-secondary: linear-gradient(135deg, var(--color-earth), var(--color-accent));
+  --iv-gradient-accent: linear-gradient(135deg, var(--color-accent), var(--color-cream-dark));
+  --iv-gradient-warm: linear-gradient(135deg, var(--color-highlight), var(--color-accent));
+
+  /* Text */
+  --iv-text-primary: var(--color-charcoal);
+  --iv-text-secondary: var(--color-text-secondary);
+  --iv-text-muted: var(--color-text-muted);
+  --iv-text-accent: var(--color-earth);
+
+  /* Status Colors */
+  --iv-success: var(--color-moss);
+  --iv-success-soft: rgba(107, 127, 92, 0.1);
+  --iv-warning: var(--color-accent);
+  --iv-warning-soft: rgba(196, 149, 106, 0.1);
+  --iv-danger: #B22222;
+  --iv-danger-soft: rgba(178, 34, 34, 0.08);
+  --iv-info: var(--color-stone);
+  --iv-info-soft: rgba(155, 147, 133, 0.1);
+
+  /* Borders */
+  --iv-border: rgba(44, 40, 36, 0.08);
+  --iv-border-strong: rgba(44, 40, 36, 0.16);
+  --iv-border-accent: rgba(139, 115, 85, 0.25);
+
+  /* Shadows & Glow */
+  --iv-shadow-sm: var(--shadow-sm);
+  --iv-shadow-md: var(--shadow-md);
+  --iv-shadow-lg: var(--shadow-lg);
+  --iv-glow-blue: 0 0 20px rgba(139, 115, 85, 0.12);
+  --iv-glow-purple: 0 0 20px rgba(196, 149, 106, 0.1);
+  --iv-glow-cyan: 0 0 20px rgba(107, 127, 92, 0.1);
+
+  /* Spacing */
+  --iv-radius-sm: 8px;
+  --iv-radius-md: 12px;
+  --iv-radius-lg: 16px;
+  --iv-radius-xl: 24px;
+  --iv-radius-full: 9999px;
+
+  /* Transitions */
+  --iv-transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --iv-transition-slow: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Apply dark background */
+  background: var(--iv-bg-primary);
+  color: var(--iv-text-primary);
+  min-height: 100vh;
+}
+
+/* ── Interview Glass Card ── */
+.iv-glass {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--iv-border);
+  border-radius: var(--iv-radius-lg);
+  transition: all var(--iv-transition);
+}
+
+.iv-glass:hover {
+  border-color: var(--iv-border-strong);
+  box-shadow: var(--iv-shadow-md);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.iv-glass--elevated {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--iv-border-strong);
+  box-shadow: var(--iv-shadow-sm);
+}
+
+/* ── Interview Buttons ── */
+.iv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--iv-radius-full);
+  cursor: pointer;
+  transition: all var(--iv-transition);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.iv-btn--primary {
+  background: var(--iv-gradient-primary);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(139, 115, 85, 0.2);
+}
+
+.iv-btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 115, 85, 0.3);
+}
+
+.iv-btn--secondary {
+  background: var(--iv-bg-elevated);
+  color: var(--iv-text-primary);
+  border: 1px solid var(--iv-border-strong);
+}
+
+.iv-btn--secondary:hover {
+  background: var(--iv-bg-hover);
+  border-color: var(--iv-accent-blue);
+}
+
+.iv-btn--danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--iv-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.iv-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+}
+
+.iv-btn--ghost {
+  background: transparent;
+  color: var(--iv-text-secondary);
+  border: 1px solid transparent;
+}
+
+.iv-btn--ghost:hover {
+  background: var(--iv-bg-elevated);
+  color: var(--iv-text-primary);
+}
+
+.iv-btn--lg {
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-btn--sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+}
+
+.iv-btn--icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--iv-radius-md);
+}
+
+/* ── Badges ── */
+.iv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--iv-radius-full);
+  text-transform: uppercase;
+}
+
+.iv-badge--success {
+  background: var(--iv-success-soft);
+  color: var(--iv-success);
+}
+
+.iv-badge--warning {
+  background: var(--iv-warning-soft);
+  color: var(--iv-warning);
+}
+
+.iv-badge--danger {
+  background: var(--iv-danger-soft);
+  color: var(--iv-danger);
+}
+
+.iv-badge--info {
+  background: var(--iv-info-soft);
+  color: var(--iv-accent-blue);
+}
+
+.iv-badge--purple {
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--iv-accent-purple);
+}
+
+/* ── Progress Bar ── */
+.iv-progress {
+  width: 100%;
+  height: 6px;
+  background: var(--iv-bg-elevated);
+  border-radius: var(--iv-radius-full);
+  overflow: hidden;
+}
+
+.iv-progress__fill {
+  height: 100%;
+  border-radius: var(--iv-radius-full);
+  background: var(--iv-gradient-primary);
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Input Fields ── */
+.iv-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--iv-bg-input);
+  border: 1px solid var(--iv-border);
+  border-radius: var(--iv-radius-md);
+  color: var(--iv-text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  transition: all var(--iv-transition);
+  outline: none;
+}
+
+.iv-input:focus {
+  border-color: var(--iv-accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.iv-input::placeholder {
+  color: var(--iv-text-muted);
+}
+
+/* ── Animations ── */
+@keyframes iv-fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes iv-slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes iv-slide-in-right {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes iv-scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes iv-pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2),
+                0 0 40px rgba(139, 92, 246, 0.1);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.35),
+                0 0 60px rgba(139, 92, 246, 0.2);
+    transform: scale(1.03);
+  }
+}
+
+@keyframes iv-orb-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes iv-recording-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes iv-waveform {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes iv-typing-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes iv-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes iv-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes iv-counter {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes iv-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Utility animations */
+.iv-animate-fade {
+  animation: iv-fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.iv-animate-slide-up {
+  animation: iv-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.iv-animate-scale {
+  animation: iv-scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger delays */
+.iv-delay-1 { animation-delay: 0.05s; opacity: 0; }
+.iv-delay-2 { animation-delay: 0.1s; opacity: 0; }
+.iv-delay-3 { animation-delay: 0.15s; opacity: 0; }
+.iv-delay-4 { animation-delay: 0.2s; opacity: 0; }
+.iv-delay-5 { animation-delay: 0.25s; opacity: 0; }
+.iv-delay-6 { animation-delay: 0.3s; opacity: 0; }
+.iv-delay-7 { animation-delay: 0.35s; opacity: 0; }
+.iv-delay-8 { animation-delay: 0.4s; opacity: 0; }
+
+/* ── Grid Background Pattern ── */
+.iv-grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(44, 40, 36, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 40, 36, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Gradient Orbs (Background decoration) ── */
+.iv-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.iv-orb--blue {
+  width: 400px;
+  height: 400px;
+  background: rgba(107, 127, 92, 0.06); /* Moss */
+  top: -100px;
+  right: -100px;
+}
+
+.iv-orb--purple {
+  width: 350px;
+  height: 350px;
+  background: rgba(196, 149, 106, 0.05); /* Sand */
+  bottom: -50px;
+  left: -50px;
+}
+
+/* ── Scrollbar (Interview Cream) ── */
+.interview-theme::-webkit-scrollbar {
+  width: 6px;
+}
+
+.interview-theme::-webkit-scrollbar-track {
+  background: var(--iv-bg-primary);
+}
+
+.interview-theme::-webkit-scrollbar-thumb {
+  background: var(--color-sand);
+  border-radius: 3px;
+}
+
+.interview-theme::-webkit-scrollbar-thumb:hover {
+  background: var(--color-earth);
+}
+
+.interview-theme {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sand) var(--iv-bg-primary);
+}
+
+/* ── Tooltip ── */
+.iv-tooltip {
+  position: relative;
+}
+
+.iv-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 0.4rem 0.75rem;
+  background: var(--iv-bg-elevated);
+  color: var(--iv-text-primary);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  border-radius: var(--iv-radius-sm);
+  border: 1px solid var(--iv-border);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--iv-transition);
+  z-index: 100;
+}
+
+.iv-tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Selection ── */
+.interview-theme ::selection {
+  background: rgba(196, 149, 106, 0.25);
+  color: var(--color-charcoal);
+}

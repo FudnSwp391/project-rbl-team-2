@@ -1,0 +1,29 @@
+Sheets in workbook:
+Name: Tuần 1, ID: 1, RelID: rId1
+Name: Tuần 2, ID: 5, RelID: rId2
+
+Shared strings count: 19
+
+Sheet XML files:
+xl/worksheets/_rels/sheet2.xml.rels
+xl/worksheets/sheet1.xml
+xl/worksheets/sheet2.xml
+
+--- xl/worksheets/_rels/sheet2.xml.rels ---
+
+--- xl/worksheets/sheet1.xml ---
+Row 1: A1:STT, B1:Giai đoạn/Thành phần DTC, C1:Nội dung Prompt (Câu lệnh), D1:Phản hồi của AI & Quyết định của người học (Reflection)
+Row 2: A2:1, B2:RESEARCH, C2:Gợi ý cho tôi các website nổi tiếng để tham khảo xu hướng thiết kế UI hiện đại cho Landing Page của một ứng dụng công nghệ (SaaS), D2:Phản hồi: AI đề xuất một số nền tảng tham khảo UI/UX phổ biến như Dribbble, Behance, Awwwards, Mobbin và Land-book để tìm ý tưởng Landing Page SaaS theo xu hướng hiện đại.
+Quyết định: Tôi đánh giá Land-book và Mobbin là phù hợp nhất vì chúng tập trung nhiều vào Landing Page thực tế và UI của các sản phẩm công nghệ. Tôi quyết định sử dụng hai nền tảng này để tham khảo bố cục à tiếp tục yêu cầu AI gợi ý wireframe mẫu phù hợp cho dự án SaaS của mình.
+Row 3: A3:2, B3:Abstraction / System Design, C3:Tôi muốn thiết kế database schema trên Supabase cho một ứng dụng quản lý CV. Hãy gợi ý cho tôi cấu trúc các bảng cần thiết, D3:Phản hồi: AI tạo ra 5 bảng riêng biệt bao gồm Users, CVs, Education, Experience, Skills có quan hệ khóa ngoại (Foreign Key) chằng chịt.
+Quyết định: Tôi nhận thấy thiết kế này sẽ gây ra tình trạng over-fetching và n-plus-one query khi load 1 CV (Oversimplification). Tôi quyết định chỉ giữ lại bảng Users và CVs, đồng thời gộp Education, Experience, Skills thành một trường có kiểu dữ liệu JSONB trong bảng CVs để tối ưu tốc độ đọc dữ liệu từ Supabase.
+Row 4: A4:3, B4:Decomposition / Feature Breakdown, C4:Tôi muốn xây dựng tính năng "Phân tích CV và gợi ý sửa đổi bằng AI" trong ứng dụng React + Supabase. Hãy phân rã (decompose) chức năng này thành các phần nhỏ hơn và đề xuất các component cần thiết ở Frontend để tôi chia việc cho nhóm., D4:Phản hồi: AI phân rã tính năng thành 4 phần độc lập: (1) Component kéo-thả để upload file PDF lên Supabase Storage, (2) Edge Function trung gian để trích xuất text từ file và gửi đến Gemini API, (3) Component hiển thị tổng quan kết quả (điểm đánh giá, thanh tiến trình), (4) Component hiển thị chi tiết các lỗi và đề xuất sửa đổi.
+Quyết định: Tôi duyệt luồng phân rã này để phân chia công việc trong nhóm: một thành viên viết giao diện Upload bằng CSS Glassmorphism, một thành viên cấu hình Storage để lấy URL file, và bản thân tôi viết Supabase Edge Function để xử lý gọi API AI nhằm bảo mật API Key ở phía server
+Row 5: A5:4, B5:Algorithm Design / Flow Optimization , C5:Hãy thiết kế thuật toán/luồng xử lý cho tính năng "Phỏng vấn thử (Mock Interview)". Khi ứng viên trả lời câu hỏi bằng văn bản hoặc giọng nói, hệ thống sẽ chấm điểm và sinh câu hỏi tiếp theo như thế nào?, D5:Phản hồi: AI đề xuất thuật toán phỏng vấn động (Dynamic): ứng viên chọn ngành -> hệ thống gọi API AI sinh câu hỏi 1 -> ứng viên trả lời -> gọi API AI để chấm điểm câu 1 và sinh tiếp câu hỏi 2 -> lặp lại 5 lần -> tổng kết và lưu kết quả vào bảng interviews.
+Quyết định: Nhận thấy việc gọi API AI liên tục cho từng câu hỏi đơn lẻ sẽ tạo ra độ trễ lớn (high latency) và làm tăng chi phí API quá cao, tôi quyết định tối ưu thuật toán: Sinh sẵn bộ 5 câu hỏi cố định theo ngành ngay từ đầu và lưu vào React State. Khi ứng viên trả lời xong cả 5 câu, hệ thống mới gửi toàn bộ lịch sử lên Edge Function để chấm điểm một lần duy nhất, giúp tối ưu chi phí và tăng tốc độ phản hồi
+
+--- xl/worksheets/sheet2.xml ---
+Row 1: A1:STT, B1:Giai đoạn/Thành phần DTC, C1:Nội dung Prompt (Câu lệnh), D1:Phản hồi của AI & Quyết định của người học (Reflection)
+Row 2: A2:1, B2:Pattern Recognition / UI Implementation, C2:Tôi muốn làm hiệu ứng cuộn trang Parallax giống website Floema. Làm sao để text nền phía sau và hình khối phía trước di chuyển lên với tốc độ khác nhau khi người dùng cuộn chuột?, D2:Phản hồi: AI nhận diện pattern của hiệu ứng Parallax và cung cấp công thức toán học tính toán tỷ lệ translateY dựa trên vị trí cuộn trang (ví dụ: text nền cuộn tốc độ 10%, hình khối cuộn 40%).
+
+Quyết định: Tôi quyết định sử dụng công thức tính toán mà AI gợi ý, đưa vào sự kiện lắng nghe scroll trong React Component để tạo ra hiệu ứng chiều sâu (dual-layer), giúp giao diện có cảm giác cao cấp và mượt mà hơn.
