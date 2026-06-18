@@ -1,14 +1,27 @@
 import React, { useEffect, useRef } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import Lenis from 'lenis';
 import Header from './components/layout/Header';
 import AppRoutes from './routes/AppRoutes';
 import './index.css';
 
-function App() {
+function AppContent() {
+  const location = useLocation();
   const lenisRef = useRef(null);
 
+  // Hide Header/Footer on interview routes for immersive experience
+  const isInterviewRoute = location.pathname === '/interview' || location.pathname.startsWith('/interview/');
+
   useEffect(() => {
+    // Disable Lenis on interview routes (they handle their own scrolling)
+    if (isInterviewRoute) {
+      if (lenisRef.current) {
+        lenisRef.current.destroy();
+        lenisRef.current = null;
+      }
+      return;
+    }
+
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -30,17 +43,29 @@ function App() {
     return () => {
       lenis.destroy();
     };
-  }, []);
+  }, [isInterviewRoute]);
+
+  if (isInterviewRoute) {
+    return (
+      <AppRoutes />
+    );
+  }
 
   return (
+    <div className="app" data-lenis-prevent={false}>
+      <Header />
+      <main style={{ flex: 1 }}>
+        <AppRoutes />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function App() {
+  return (
     <Router>
-      <div className="app" data-lenis-prevent={false}>
-        <Header />
-        <main style={{ flex: 1 }}>
-          <AppRoutes />
-        </main>
-        <Footer />
-      </div>
+      <AppContent />
     </Router>
   );
 }
