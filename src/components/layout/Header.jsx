@@ -36,36 +36,45 @@ const Header = () => {
   const isRecruiter = profile?.role?.toLowerCase() === 'recruiter' || profile?.role?.toLowerCase() === 'company';
   const isAdmin = profile?.role?.toLowerCase() === 'admin' || user?.user_metadata?.role?.toLowerCase() === 'admin';
 
-  let navLinks = [
-    { to: '/interview', label: 'Phỏng vấn' },
-    { to: '/cv-analysis', label: 'Phân tích CV' },
-  ];
+  let navLinks = [];
 
   const isCandidate = !isMentor && !isAdmin && !isRecruiter;
 
-  if (isCandidate) {
-    navLinks.push({ to: '/dashboard', label: 'Thử thách' });
-    navLinks.push({
-      label: 'Khám phá',
-      dropdown: [
-        { to: '/mentors', label: 'Tìm Mentors' },
-        { to: '/blogs', label: 'Blog' },
-        { to: '/jobs', label: 'Việc làm' },
-        { to: '/mentor-register', label: 'Đăng ký Mentor' },
-        { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' }
-      ]
-    });
-    navLinks.push({ to: '/pricing', label: 'Gói dịch vụ' });
+  if (isRecruiter) {
+    navLinks = [
+      { to: '/recruiter', label: 'Recruiter Portal' },
+      { to: '/blogs', label: 'Blog' },
+      { to: '/jobs', label: 'Việc làm' }
+    ];
+  } else if (isCandidate) {
+    navLinks = [
+      { to: '/interview', label: 'Phỏng vấn' },
+      { to: '/cv-analysis', label: 'Phân tích CV' },
+      { to: '/dashboard', label: 'Thử thách' },
+      {
+        label: 'Khám phá',
+        dropdown: [
+          { to: '/mentors', label: 'Tìm Mentors' },
+          { to: '/blogs', label: 'Blog' },
+          { to: '/jobs', label: 'Việc làm' },
+          { to: '/mentor-register', label: 'Đăng ký Mentor' },
+          { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' }
+        ]
+      },
+      { to: '/pricing', label: 'Gói dịch vụ' }
+    ];
   } else {
+    navLinks = [
+      { to: '/interview', label: 'Phỏng vấn' },
+      { to: '/cv-analysis', label: 'Phân tích CV' }
+    ];
+
     if (!isAdmin) {
       navLinks.push({ to: '/mentors', label: 'Mentors' });
     }
+    navLinks.push({ to: '/jobs', label: 'Việc làm' });
 
-    if (isRecruiter) {
-      navLinks.push({ to: '/question-bank', label: 'Ngân hàng câu hỏi' });
-    }
-
-    if (!isRecruiter && !isMentor) { // This covers Admin
+    if (!isMentor) {
       navLinks.push({ to: '/pricing', label: 'Gói dịch vụ' });
     }
 
@@ -73,10 +82,6 @@ const Header = () => {
 
     if (isAdmin) {
       navLinks.push({ to: '/admin', label: 'Quản trị' });
-    }
-
-    if (isRecruiter) {
-      navLinks.push({ to: '/recruiter', label: 'Tuyển Dụng' });
     }
 
     if (isMentor) {
@@ -220,9 +225,7 @@ const Header = () => {
                 to={
                   profile?.role === 'mentor' || user?.user_metadata?.role === 'mentor' 
                     ? '/mentor/profile' 
-                    : profile?.role === 'recruiter' || user?.user_metadata?.role === 'recruiter'
-                      ? '/recruiter/company'
-                      : '/profile'
+                    : '/profile'
                 } 
                 style={{
                   textDecoration: 'none',

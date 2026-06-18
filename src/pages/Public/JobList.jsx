@@ -13,26 +13,24 @@ const JobList = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // 1. Fetch approved companies
+      const { data: companiesData } = await supabase
+        .from('companies')
+        .select('id, recruiter_id, company_name, logo_url')
+        .eq('status', 'approved');
+        
+      // 2. Fetch open jobs
+      const { data: jobsData, error: jobsError } = await supabase
         .from('jobs')
-        .select(`
-          id,
-          title,
-          job_type,
-          location,
-          created_at,
-          profiles!jobs_recruiter_id_fkey (
-            companies (id, company_name, logo_url)
-          )
-        `)
+        .select('id, title, job_type, location, created_at, recruiter_id')
         .eq('status', 'open')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (jobsError) throw jobsError;
       
-      const formattedJobs = (data || []).map(job => {
-        const comp = job.profiles?.companies;
-        const companyData = Array.isArray(comp) ? comp[0] : comp;
+      const formattedJobs = (jobsData || []).map(job => {
+        const companyData = (companiesData || []).find(c => c.recruiter_id === job.recruiter_id);
         return {
           id: job.id,
           title: job.title,

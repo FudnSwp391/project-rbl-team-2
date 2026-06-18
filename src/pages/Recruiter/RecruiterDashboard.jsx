@@ -42,8 +42,8 @@ const RecruiterDashboard = () => {
     <div className="section" style={{ background: 'var(--color-cream)', minHeight: 'calc(100vh - 80px)' }}>
       <div className="container">
         <div className="reveal is-visible" style={{ marginBottom: 'var(--spacing-xl)' }}>
-          <span className="label">Recruiter Portal</span>
-          <h1 style={{ marginTop: 'var(--spacing-sm)' }}>Dashboard</h1>
+          <span className="label">Dashboard</span>
+          <h1 style={{ marginTop: 'var(--spacing-sm)' }}>Recruiter Portal</h1>
           <p>Manage your company profile, job postings, and share knowledge through blogs.</p>
         </div>
 

@@ -74,7 +74,7 @@ const JobView = () => {
         <div className="glass-card reveal is-visible" style={{ padding: '3rem', position: 'relative' }}>
           {job.status === 'closed' && (
             <div style={{ background: '#ffebee', color: '#c62828', padding: '0.5rem 1rem', borderRadius: '4px', display: 'inline-block', marginBottom: '1rem', fontWeight: 'bold' }}>
-              BÀI ĐĂNG ĐÃ ĐÓNG
+              ĐÃ NGỪNG TUYỂN DỤNG
             </div>
           )}
           

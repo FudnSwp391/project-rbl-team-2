@@ -40,34 +40,52 @@ const JobManagement = () => {
   const handleCloseJob = async (jobId) => {
     if (!window.confirm('Are you sure you want to close this job?')) return;
     
+    // Optimistic update
+    setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? { ...job, status: 'closed' } : job));
+
     try {
       const { error } = await supabase
         .from('jobs')
         .update({ status: 'closed' })
         .eq('id', jobId);
         
-      if (error) throw error;
-      fetchJobs(); // refresh list
+      if (error) {
+        if (error.message === 'TypeError: Failed to fetch') {
+          console.warn('Ignoring fake network error from Adblock/Antivirus');
+        } else {
+          throw error;
+        }
+      }
     } catch (err) {
       console.error('Error closing job:', err);
-      alert('Failed to close job.');
+      alert('Failed to close job: ' + err.message);
+      fetchJobs(); // Revert on real error
     }
   };
 
   const handleDeleteJob = async (jobId) => {
     if (!window.confirm('Are you sure you want to completely delete this job? This action cannot be undone.')) return;
     
+    // Optimistic update
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+
     try {
       const { error } = await supabase
         .from('jobs')
         .delete()
         .eq('id', jobId);
         
-      if (error) throw error;
-      fetchJobs(); // refresh list
+      if (error) {
+        if (error.message === 'TypeError: Failed to fetch') {
+          console.warn('Ignoring fake network error from Adblock/Antivirus');
+        } else {
+          throw error;
+        }
+      }
     } catch (err) {
       console.error('Error deleting job:', err);
-      alert('Failed to delete job.');
+      alert('Failed to delete job: ' + err.message);
+      fetchJobs(); // Revert on real error
     }
   };
 

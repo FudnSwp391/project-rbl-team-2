@@ -5,7 +5,7 @@ import { supabase } from '../../utils/supabaseClient';
 import './Auth.css';
 
 const Profile = () => {
-  const { user, updateProfile, updatePassword } = useAuth();
+  const { user, profile, updateProfile, updatePassword } = useAuth();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('personal'); // personal, cv, history
@@ -416,18 +416,22 @@ const Profile = () => {
             >
               <span>👤</span> Hồ sơ cá nhân
             </button>
-            <button 
-              className={`profile-tab-btn ${activeTab === 'cv' ? 'active' : ''}`}
-              onClick={() => setActiveTab('cv')}
-            >
-              <span>📄</span> Quản lý CV
-            </button>
-            <button 
-              className={`profile-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-              onClick={() => setActiveTab('history')}
-            >
-              <span>🕒</span> Lịch sử thực hành
-            </button>
+            {profile?.role !== 'company' && profile?.role !== 'recruiter' && (
+              <>
+                <button 
+                  className={`profile-tab-btn ${activeTab === 'cv' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('cv')}
+                >
+                  <span>📄</span> Quản lý CV
+                </button>
+                <button 
+                  className={`profile-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('history')}
+                >
+                  <span>🕒</span> Lịch sử thực hành
+                </button>
+              </>
+            )}
           </div>
 
           {/* Main Content Area */}
