@@ -6,6 +6,7 @@ import {
   getOpenRouterApiKey,
   rotateOpenRouterKey
 } from './aiKeyManager';
+import { GoogleGenAI } from '@google/genai';
 
 // Groq models to try in order (large → small fallback)
 const GROQ_MODELS = [
@@ -198,40 +199,25 @@ async function callGroq(prompt, model, typeId, diffId, retryCount = 0) {
  */
 async function callGemini(prompt, typeId, diffId, retryCount = 0) {
   const activeKey = getGeminiApiKey();
-  console.log(`[AI Interview] Calling Gemini API. Remaining retries: ${3 - retryCount}`);
+  console.log(`[AI Interview] Calling Gemini SDK. Remaining retries: ${3 - retryCount}`);
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${activeKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-        }),
+    const ai = new GoogleGenAI({ apiKey: activeKey });
+    const result = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: 'You are a professional technical interviewer. Respond with valid JSON only, no markdown.',
+        temperature: 0.7,
+        maxOutputTokens: 2048,
       }
-    );
+    });
 
-    if (!response.ok) {
-      console.warn(`[AI Interview] Gemini returned HTTP ${response.status}`);
-
-      // Rotate Gemini Key on 429 Rate Limit or 401/403 Invalid Key errors
-      if ((response.status === 429 || response.status === 401 || response.status === 403) && retryCount < 3) {
-        console.log(`[AI Interview] Rate limit (429) or Auth error detected on Gemini Key. Rotating Gemini Key...`);
-        rotateGeminiKey();
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return callGemini(prompt, typeId, diffId, retryCount + 1);
-      }
-      throw new Error(`Gemini: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = result.text;
     console.log('[AI Interview] Gemini raw response length:', text.length);
     return parseQuestionsJson(text, typeId, diffId);
   } catch (error) {
-    console.error('[AI Interview] Gemini fetch error:', error.message);
+    console.error('[AI Interview] Gemini SDK error:', error.message);
     if (retryCount < 3) {
       console.log(`[AI Interview] Error calling Gemini. Rotating Gemini Key...`);
       rotateGeminiKey();
@@ -370,29 +356,17 @@ async function callGroqRaw(prompt, model, systemInstruction, retryCount = 0) {
 async function callGeminiRaw(prompt, retryCount = 0) {
   const activeKey = getGeminiApiKey();
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${activeKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-        }),
+    const ai = new GoogleGenAI({ apiKey: activeKey });
+    const result = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
       }
-    );
+    });
 
-    if (!response.ok) {
-      if ((response.status === 429 || response.status === 401 || response.status === 403) && retryCount < 3) {
-        rotateGeminiKey();
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return callGeminiRaw(prompt, retryCount + 1);
-      }
-      throw new Error(`Gemini: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return result.text;
   } catch (error) {
     if (retryCount < 3) {
       rotateGeminiKey();

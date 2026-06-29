@@ -3,7 +3,7 @@
  * Manages pools of API keys for Groq and Gemini to bypass Rate Limits (429).
  */
 
-// 1. Define pools of API Keys (loading from .env with fallback to user's provided keys)
+// 1. Define pools of API Keys
 const GROQ_KEYS_POOL = [
   import.meta.env.VITE_GROQ_API_KEY_1,
   import.meta.env.VITE_GROQ_API_KEY_2,
@@ -11,18 +11,20 @@ const GROQ_KEYS_POOL = [
   import.meta.env.VITE_GROQ_API_KEY_4,
   import.meta.env.VITE_GROQ_API_KEY_5,
   import.meta.env.VITE_GROQ_API_KEY, // Default fallback
-  
-  // Fallbacks should be provided via environment variables (.env)
-].filter((key) => key && key.trim() !== '' && key !== 'your_groq_api_key_here');
+].map(k => (k || '').trim()).filter((key) => key.length > 10);
 
 const GEMINI_KEYS_POOL = [
   import.meta.env.VITE_GEMINI_API_KEY_1,
+  import.meta.env.VITE_GEMINI_API_KEY_2,
+  import.meta.env.VITE_GEMINI_API_KEY_3,
+  import.meta.env.VITE_GEMINI_API_KEY_4,
+  import.meta.env.VITE_GEMINI_API_KEY_5,
   import.meta.env.VITE_GEMINI_API_KEY, // Default fallback
-].filter((key) => key && key.trim() !== '' && key !== 'your_gemini_api_key_here');
+].map(k => (k || '').trim()).filter((key) => key.length > 10);
 
 const OPENROUTER_KEYS_POOL = [
   import.meta.env.VITE_OPENROUTER_API_KEY,
-].filter((key) => key && key.trim() !== '' && key !== 'your_openrouter_api_key_here');
+].map(k => (k || '').trim()).filter((key) => key.length > 10);
 
 // Remove duplicate keys to keep pools clean
 const GROQ_KEYS = [...new Set(GROQ_KEYS_POOL)];

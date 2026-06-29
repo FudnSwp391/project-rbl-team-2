@@ -7,6 +7,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { analyzeCV, extractDocxHtml } from '../../utils/cvAnalysisService';
+import IT_JOB_POSITIONS, { JOB_CATEGORIES } from '../../constants/itJobPositions';
 import './CVManager.css';
 
 // NOTE: Supabase upload is ready in cvStorageService.js
@@ -24,6 +25,8 @@ const CVManager = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [docxHtml, setDocxHtml] = useState(null);
+  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const fileInputRef = useRef(null);
 
   // Load CV history from database on mount or when user changes
@@ -105,6 +108,10 @@ const CVManager = () => {
     setPendingFile(file);
     setPreviewUrl(null);
     setDocxHtml(null);
+    setSelectedFile(null);
+    setAnalysisResult(null);
+    setSelectedPosition(null);
+    setCategoryFilter('all');
 
     // Create preview based on file type
     if (file.type === 'application/pdf') {
@@ -152,7 +159,7 @@ const CVManager = () => {
       const result = await analyzeCV(pendingFile, (progress, status) => {
         setAnalysisProgress(progress);
         setAnalysisStatus(status);
-      });
+      }, selectedPosition);
 
       // Update the database record with the AI score and JSON analysis result
       if (user?.id && dbRecord?.id) {
@@ -179,10 +186,87 @@ const CVManager = () => {
       setFiles((prev) => [newFile, ...prev]);
       setSelectedFile(newFile);
       setAnalysisResult(result);
+
+      // --- AUTOMATIC POSITION MATCHING ---
+      if (!selectedPosition && result.suggestedPositionId) {
+        const autoMatchedPos = IT_JOB_POSITIONS.find(p => p.id === result.suggestedPositionId);
+        if (autoMatchedPos) {
+          setSelectedPosition(autoMatchedPos);
+          // Set the category filter to match the newly selected position
+          setCategoryFilter(autoMatchedPos.category);
+        }
+      }
+
       setPendingFile(null);
     } catch (err) {
       console.error('Analysis error:', err);
       alert('Có lỗi xảy ra khi phân tích CV');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  /* ---------- Re-analyze CV ---------- */
+  const handleReanalyzeCV = async () => {
+    if (!selectedFile) return;
+    
+    let fileToAnalyze = selectedFile.localFile;
+    
+    if (!fileToAnalyze && selectedFile.url) {
+      setIsAnalyzing(true);
+      setAnalysisStatus('Đang tải file từ server...');
+      try {
+        const response = await fetch(selectedFile.url);
+        const blob = await response.blob();
+        fileToAnalyze = new File([blob], selectedFile.name, { type: selectedFile.type });
+      } catch (e) {
+        console.error("Failed to fetch file for re-analysis", e);
+        alert("Không thể tải file để phân tích lại.");
+        setIsAnalyzing(false);
+        return;
+      }
+    }
+
+    if (!fileToAnalyze) {
+      alert("Không tìm thấy dữ liệu file để phân tích.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setAnalysisProgress(0);
+    setAnalysisStatus('Bắt đầu phân tích lại...');
+
+    try {
+      const result = await analyzeCV(fileToAnalyze, (progress, status) => {
+        setAnalysisProgress(progress);
+        setAnalysisStatus(status);
+      }, selectedPosition);
+
+      if (selectedFile.id && selectedFile.id !== Date.now().toString()) {
+         const { error: updateError } = await updateCVAnalysis(selectedFile.id, result, result.atsScore);
+         if (updateError) {
+           console.error('Failed to update CV analysis in DB:', updateError.message);
+         }
+      }
+
+      const updatedFile = { ...selectedFile, analysis: result, score: result.atsScore };
+      setSelectedFile(updatedFile);
+      setAnalysisResult(result);
+      
+      setFiles(prev => prev.map(f => f.id === selectedFile.id ? updatedFile : f));
+
+      if (!selectedPosition && result.suggestedPositionId) {
+        const autoMatchedPos = IT_JOB_POSITIONS.find(p => p.id === result.suggestedPositionId);
+        if (autoMatchedPos) {
+          setSelectedPosition(autoMatchedPos);
+          setCategoryFilter(autoMatchedPos.category);
+        }
+      }
+
+    } catch (err) {
+      console.error('Re-analysis error:', err);
+      alert('Có lỗi xảy ra khi phân tích lại CV');
     } finally {
       setIsAnalyzing(false);
     }
@@ -194,6 +278,19 @@ const CVManager = () => {
     setAnalysisResult(file.analysis);
     setPreviewUrl(null);
     setDocxHtml(null);
+    setPendingFile(null);
+
+    // Restore the position it was evaluated against
+    if (file.analysis?.evaluatedPositionId) {
+      const matchedPos = IT_JOB_POSITIONS.find(p => p.id === file.analysis?.evaluatedPositionId);
+      if (matchedPos) {
+        setSelectedPosition(matchedPos);
+        setCategoryFilter(matchedPos.category);
+      }
+    } else {
+      setSelectedPosition(null);
+      setCategoryFilter('all');
+    }
 
     if (file.localFile?.type === 'application/pdf') {
       setPreviewUrl(URL.createObjectURL(file.localFile));
@@ -220,6 +317,8 @@ const CVManager = () => {
       setAnalysisResult(null);
       setPreviewUrl(null);
       setDocxHtml(null);
+      setSelectedPosition(null);
+      setCategoryFilter('all');
     }
 
     try {
@@ -357,6 +456,72 @@ const CVManager = () => {
                 <><Sparkles size={18} /> Tải lên & Phân tích CV</>
               )}
             </button>
+          </div>
+
+          {/* Position Selector */}
+          <div className="glass-card cv-position-selector">
+            <div className="cv-position-selector__title">
+              <Target size={18} />
+              Chọn vị trí ứng tuyển mục tiêu
+            </div>
+            <p className="cv-position-selector__desc">
+              Chọn vị trí IT để AI đánh giá mức độ phù hợp của CV với yêu cầu ngành
+            </p>
+
+            <div className="cv-position-selector__categories">
+              {JOB_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  className={`cv-position-selector__cat-btn ${categoryFilter === cat.id ? 'cv-position-selector__cat-btn--active' : ''}`}
+                  onClick={() => setCategoryFilter(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            <select
+              className="cv-position-selector__select"
+              value={selectedPosition?.id || ''}
+              onChange={(e) => {
+                const pos = IT_JOB_POSITIONS.find(p => p.id === e.target.value);
+                setSelectedPosition(pos || null);
+              }}
+            >
+              <option value="">-- Không chỉ định (phân tích tổng quát) --</option>
+              {IT_JOB_POSITIONS
+                .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
+                .map(pos => (
+                  <option key={pos.id} value={pos.id}>
+                    {pos.name} ({pos.rating})
+                  </option>
+                ))}
+            </select>
+
+            {selectedPosition && (
+              <div className="cv-position-selector__info animate-fade">
+                <div className="cv-position-selector__info-row">
+                  <span className="cv-position-selector__info-label">📊 Rating:</span>
+                  <span className="cv-position-selector__info-value">{selectedPosition.rating}</span>
+                </div>
+                <div className="cv-position-selector__info-row">
+                  <span className="cv-position-selector__info-label">💰 Mức lương:</span>
+                  <span className="cv-position-selector__info-value">{selectedPosition.demandSalary}</span>
+                </div>
+                <div className="cv-position-selector__info-row">
+                  <span className="cv-position-selector__info-label">📝 Mô tả:</span>
+                  <span className="cv-position-selector__info-value">{selectedPosition.description}</span>
+                </div>
+                <div className="cv-position-selector__skills">
+                  <span className="cv-position-selector__info-label">🔑 Kỹ năng bắt buộc:</span>
+                  <div className="cv-position-selector__skill-tags">
+                    {selectedPosition.requiredSkills.map(s => (
+                      <span key={s} className="cv-position-selector__skill-tag">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* CV List */}
@@ -509,17 +674,221 @@ const CVManager = () => {
                 )}
               </div>
 
-              {/* 12-Section Detailed Report */}
+              {/* 12-Section Detailed Report - JSON Structured */}
               <div className="glass-card" style={{ marginTop: 'var(--spacing-md)' }}>
                 <div className="cv-analysis-card__title cv-analysis-card__title--purple" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                   <FileText size={20} /> Đánh giá chi tiết (Elite Technical Recruiter)
                 </div>
-                <div className="cv-markdown-report">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {analysisResult.detailedReport}
-                  </ReactMarkdown>
-                </div>
+                
+                {analysisResult.executiveSummary && (
+                  <div className="cv-report-section">
+                    <h3>1. Executive Summary</h3>
+                    <div className="cv-report-box">
+                      <p><strong>Cấp độ đánh giá:</strong> <span className="tag-level">{analysisResult.executiveSummary.level}</span></p>
+                      <p><strong>🔥 Điểm mạnh:</strong> {analysisResult.executiveSummary.strengths}</p>
+                      <p><strong>⚠️ Điểm yếu:</strong> {analysisResult.executiveSummary.weaknesses}</p>
+                    </div>
+                  </div>
+                )}
+
+                {analysisResult.atsAnalysis && (
+                  <div className="cv-report-section">
+                    <h3>2. Phân tích độ tương thích ATS</h3>
+                    <p>{analysisResult.atsAnalysis}</p>
+                  </div>
+                )}
+
+                {analysisResult.layoutEvaluation && (
+                  <div className="cv-report-section">
+                    <h3>3. Đánh giá Bố cục & Thiết kế</h3>
+                    <p>{analysisResult.layoutEvaluation}</p>
+                  </div>
+                )}
+
+                {analysisResult.technicalSkills && (
+                  <div className="cv-report-section">
+                    <h3>4. Kỹ năng chuyên môn</h3>
+                    <div className="cv-report-box">
+                      <p><strong>[Trích xuất từ CV]:</strong> {(analysisResult.technicalSkills.extractedSkills || []).join(', ')}</p>
+                      <p><strong>Nhận định thị trường:</strong> {analysisResult.technicalSkills.marketRelevance}</p>
+                      {analysisResult.technicalSkills.urgentSkillsToLearn && analysisResult.technicalSkills.urgentSkillsToLearn.length > 0 && (
+                        <p><strong>Cần học gấp:</strong> {(analysisResult.technicalSkills.urgentSkillsToLearn || []).join(', ')}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {analysisResult.projectsEvaluation && (
+                  <div className="cv-report-section">
+                    <h3>5. Dự án Thực tế</h3>
+                    {analysisResult.projectsEvaluation.length === 0 ? <p>Không tìm thấy dự án nào trong CV.</p> : analysisResult.projectsEvaluation.map((proj, idx) => (
+                      <div key={idx} className="cv-report-box" style={{ marginBottom: '1rem' }}>
+                        <p><strong>Dự án:</strong> {proj.name}</p>
+                        <p><strong>Loại:</strong> {proj.type}</p>
+                        <p><strong>Kiến trúc & Tech Stack:</strong> {proj.architectureAndStack}</p>
+                        <p style={{ color: 'var(--color-danger)' }}><strong>Điểm yếu:</strong> {proj.critique}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {analysisResult.workExperience && (
+                  <div className="cv-report-section">
+                    <h3>6. Kinh nghiệm làm việc</h3>
+                    <p>{analysisResult.workExperience.evaluation}</p>
+                    {!analysisResult.workExperience.isNoExperience && analysisResult.workExperience.improvedBulletPoints && analysisResult.workExperience.improvedBulletPoints.length > 0 && (
+                      <div className="cv-report-box">
+                        <strong>Đề xuất viết lại chuẩn STAR:</strong>
+                        <ul>
+                          {analysisResult.workExperience.improvedBulletPoints.map((bp, i) => <li key={i}>{bp}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {analysisResult.achievementsAndStar && (
+                  <div className="cv-report-section">
+                    <h3>7. Đánh giá Thành tích (STAR)</h3>
+                    <p>{analysisResult.achievementsAndStar.evaluation}</p>
+                    <p><em>Gợi ý: {analysisResult.achievementsAndStar.suggestions}</em></p>
+                  </div>
+                )}
+
+                {analysisResult.redFlags && analysisResult.redFlags.length > 0 && (
+                  <div className="cv-report-section">
+                    <h3 style={{ color: 'var(--color-danger)' }}>8. Cờ Đỏ (Red Flags)</h3>
+                    <ul style={{ color: 'var(--color-danger)' }}>
+                      {analysisResult.redFlags.map((flag, idx) => <li key={idx}>{flag}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {analysisResult.hiringProbability && (
+                  <div className="cv-report-section">
+                    <h3>9. Khả năng được tuyển dụng</h3>
+                    <div className="cv-report-box">
+                      <p><strong>Tỷ lệ gọi phỏng vấn:</strong> {analysisResult.hiringProbability.overallPercentage}%</p>
+                      <ul>
+                        <li><strong>Startup:</strong> {analysisResult.hiringProbability.startup}</li>
+                        <li><strong>Outsourcing:</strong> {analysisResult.hiringProbability.outsourcing}</li>
+                        <li><strong>Product:</strong> {analysisResult.hiringProbability.productCompany}</li>
+                        <li><strong>Enterprise/FAANG:</strong> {analysisResult.hiringProbability.enterprise}</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {analysisResult.improvementRoadmap && (
+                  <div className="cv-report-section">
+                    <h3>10. Lộ trình cải thiện</h3>
+                    <div className="cv-roadmap">
+                      <div className="roadmap-box high">
+                        <strong>Ưu tiên cao (24h):</strong>
+                        <ul>{(analysisResult.improvementRoadmap.highPriority || []).map((item, i) => <li key={i}>{item}</li>)}</ul>
+                      </div>
+                      <div className="roadmap-box medium">
+                        <strong>Ưu tiên trung bình (1 tuần):</strong>
+                        <ul>{(analysisResult.improvementRoadmap.mediumPriority || []).map((item, i) => <li key={i}>{item}</li>)}</ul>
+                      </div>
+                      <div className="roadmap-box low">
+                        <strong>Dài hạn:</strong>
+                        <ul>{(analysisResult.improvementRoadmap.lowPriority || []).map((item, i) => <li key={i}>{item}</li>)}</ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {analysisResult.missingSections && (
+                  <div className="cv-report-section">
+                    <h3>11. Các mục còn thiếu</h3>
+                    <ul>
+                      {analysisResult.missingSections.map((sec, i) => <li key={i}>{sec}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {analysisResult.finalVerdict && (
+                  <div className="cv-report-section">
+                    <h3>12. Tổng kết</h3>
+                    <p>{analysisResult.finalVerdict.summary}</p>
+                    <div className="cv-report-box">
+                      <strong>Hành động ngay:</strong>
+                      <ol>
+                        {(analysisResult.finalVerdict.immediateActions || []).map((act, i) => <li key={i}>{act}</li>)}
+                      </ol>
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Job Match Score Card */}
+              {analysisResult.jobMatchScore !== undefined && analysisResult.jobMatchScore !== null && (
+                (() => {
+                  const evaluatedPos = IT_JOB_POSITIONS.find(p => p.id === analysisResult.evaluatedPositionId);
+                  const displayPosName = evaluatedPos ? evaluatedPos.name : analysisResult.suggestedPosition;
+                  
+                  // Check if the globally selected dropdown position matches the one evaluated
+                  const isMismatch = selectedPosition && analysisResult.evaluatedPositionId && selectedPosition.id !== analysisResult.evaluatedPositionId;
+
+                  if (isMismatch) {
+                    return (
+                      <div className="glass-card cv-job-match mismatch-warning animate-fade" style={{ marginTop: 'var(--spacing-md)', background: 'rgba(255, 165, 0, 0.05)', border: '1px solid rgba(255, 165, 0, 0.3)' }}>
+                        <div className="cv-job-match__header" style={{ color: 'orange', marginBottom: '1rem' }}>
+                          <AlertCircle size={20} />
+                          <h3>Chưa phân tích cho vị trí: {selectedPosition.name}</h3>
+                        </div>
+                        <p style={{ marginBottom: '1rem', fontSize: '0.95rem' }}>
+                          Điểm số <strong>{analysisResult.jobMatchScore}/100</strong> bên dưới là của vị trí <strong>{displayPosName}</strong>. 
+                          Bạn vừa đổi Dropdown sang một vị trí mới, vui lòng bấm phân tích lại để AI đánh giá với bộ tiêu chuẩn khắt khe của <strong>{selectedPosition.name}</strong>.
+                        </p>
+                        <button 
+                          className="cv-btn cv-btn-primary" 
+                          onClick={handleReanalyzeCV}
+                          style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}
+                        >
+                          <Target size={18} /> Phân tích lại CV cho vị trí này
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="glass-card cv-job-match animate-fade" style={{ marginTop: 'var(--spacing-md)' }}>
+                      <div className="cv-job-match__header">
+                        <Target size={20} color="var(--color-accent)" />
+                        <h3>Đánh giá phù hợp: {displayPosName}</h3>
+                      </div>
+                      <div className="cv-job-match__score-row">
+                        <ATSScoreRing score={analysisResult.jobMatchScore} label="Job Match" />
+                        {evaluatedPos ? (
+                          <div className="cv-job-match__market">
+                            <div className="cv-job-match__market-item">
+                              <span className="cv-job-match__market-label">📊 Rating ngành</span>
+                              <span className="cv-job-match__market-value">{evaluatedPos.rating}</span>
+                            </div>
+                            <div className="cv-job-match__market-item">
+                              <span className="cv-job-match__market-label">💰 Mức lương</span>
+                              <span className="cv-job-match__market-value">{evaluatedPos.demandSalary}</span>
+                            </div>
+                            <div className="cv-job-match__market-item">
+                              <span className="cv-job-match__market-label">🔥 Đặc điểm</span>
+                              <span className="cv-job-match__market-value" style={{ fontSize: '0.8rem' }}>{evaluatedPos.characteristics}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="cv-job-match__market">
+                             <div className="cv-job-match__market-item">
+                              <span className="cv-job-match__market-label">🤖 AI ĐỀ XUẤT</span>
+                              <span className="cv-job-match__market-value">Vị trí này được AI tự động phân tích và đề xuất dựa trên kỹ năng của bạn.</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
             </div>
           )}
         </div>
@@ -529,7 +898,7 @@ const CVManager = () => {
 };
 
 /* ===== ATS Score Ring Component ===== */
-const ATSScoreRing = ({ score }) => {
+const ATSScoreRing = ({ score, label }) => {
   const radius = 65;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
@@ -563,7 +932,7 @@ const ATSScoreRing = ({ score }) => {
       </svg>
       <div className="cv-ats__score-text">
         <div className="cv-ats__score-value" style={{ color }}>{score}</div>
-        <div className="cv-ats__score-label">ATS Score</div>
+        <div className="cv-ats__score-label">{label || 'ATS Score'}</div>
       </div>
     </div>
   );
