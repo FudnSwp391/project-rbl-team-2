@@ -25,6 +25,7 @@ dist-ssr
 
 # Sensitive environment variables
 .env
+test_*.js
 
 # Learning Log (Local only)
 LAB1_NHAT_KY_HOC_TAP.md
@@ -39,3 +40,7 @@ SWT_AI_AUDIT_LOG.md
 
 # Private Testing Files
 Testing/
+
+# Local audit log folder
+ai_audit_log_files/
+

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
+import { Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
 
 const getPasswordStrength = (pass) => {
@@ -25,6 +26,8 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -75,7 +78,7 @@ const Register = () => {
         throw error;
       }
 
-      setSuccess('Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản (nếu Supabase yêu cầu).');
+      setSuccess('Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản.');
       
       // Optionally redirect after a few seconds or let the user click login
       setTimeout(() => {
@@ -135,16 +138,26 @@ const Register = () => {
 
           <div className="auth-form-group">
             <label htmlFor="password">Mật khẩu</label>
-            <input
-              type="password"
-              id="password"
-              className="auth-input"
-              placeholder="Tạo mật khẩu (ít nhất 8 ký tự)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength="8"
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                className="auth-input"
+                placeholder="Tạo mật khẩu (ít nhất 8 ký tự)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength="8"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             {password && (
               <div style={{ marginTop: '8px' }}>
                 <div style={{ height: '4px', width: '100%', backgroundColor: '#e9ecef', borderRadius: '2px', overflow: 'hidden' }}>
@@ -159,16 +172,26 @@ const Register = () => {
 
           <div className="auth-form-group">
             <label htmlFor="confirmPassword">Xác nhận mật khẩu</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              className="auth-input"
-              placeholder="Nhập lại mật khẩu"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength="8"
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                className="auth-input"
+                placeholder="Nhập lại mật khẩu"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength="8"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+              >
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           {error && <div className="auth-error-msg">{error}</div>}
