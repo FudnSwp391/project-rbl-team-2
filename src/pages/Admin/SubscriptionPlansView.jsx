@@ -2,11 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const SubscriptionPlansView = () => {
+  const confirm = useConfirm();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditing]);
+
   const [currentItem, setCurrentItem] = useState(null);
   const [featuresInput, setFeaturesInput] = useState('');
 
@@ -27,10 +40,14 @@ const SubscriptionPlansView = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa gói dịch vụ này?')) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa gói dịch vụ này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error } = await supabase.from('subscription_plans').delete().eq('id', id);
-      if (error) alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
-      else setItems(items.filter(item => item.id !== id));
+      if (error) toast.error('Lỗi khi xóa: ' + error.message);
+      else {
+        toast.success('Xóa thành công');
+        setItems(items.filter(item => item.id !== id));
+      }
     }
   };
 
@@ -77,10 +94,12 @@ const SubscriptionPlansView = () => {
 
     if (currentItem.id) {
       const { error } = await supabase.from('subscription_plans').update(payload).eq('id', currentItem.id);
-      if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi cập nhật: ' + error.message);
+      toast.success('Cập nhật gói thành công');
     } else {
       const { error } = await supabase.from('subscription_plans').insert([payload]);
-      if (error) return alert('Lỗi thêm mới: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi thêm mới: ' + error.message);
+      toast.success('Thêm gói dịch vụ mới thành công');
     }
     
     setIsEditing(false);
@@ -226,8 +245,8 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
   width: '100%', maxWidth: '600px', maxHeight: '95vh', overflowY: 'auto', 

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
-import { Crown, Search, Filter, BookMarked, ChevronDown, CheckCircle, ArrowUp } from 'lucide-react';
+import { Crown, Search, Filter, BookMarked, ChevronDown, CheckCircle, ArrowUp, History } from 'lucide-react';
 
 const QuestionBank = () => {
   const { user, profile } = useAuth();
@@ -176,11 +176,21 @@ const QuestionBank = () => {
   return (
     <div className="container" style={{ paddingTop: '8rem', paddingBottom: 'var(--spacing-xl)', position: 'relative' }}>
       
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
-          <BookMarked color="var(--color-earth)" size={36} /> Ngân hàng Câu hỏi
-        </h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Luyện tập từng câu hỏi phỏng vấn theo định hướng chuyên sâu để chinh phục buổi phỏng vấn thực tế.</p>
+      <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
+            <BookMarked color="var(--color-earth)" size={36} /> Ngân hàng Câu hỏi
+          </h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Luyện tập từng câu hỏi phỏng vấn theo định hướng chuyên sâu để chinh phục buổi phỏng vấn thực tế.</p>
+        </div>
+        <button 
+          className="btn btn--outline" 
+          onClick={() => navigate('/question-bank/history')}
+          style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '50px', background: 'var(--color-cream)', borderColor: 'var(--color-earth)' }}
+        >
+          <History size={18} color="var(--color-earth)" /> 
+          <span style={{ color: 'var(--color-earth)', fontWeight: 600 }}>Lịch sử luyện tập</span>
+        </button>
       </header>
 
       <div style={{ 

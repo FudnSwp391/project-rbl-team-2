@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { useAuth } from '../../utils/AuthContext';
 import { Search, User, Briefcase, Award, Clock, Star, Phone, Link as LinkIcon, Mail, Calendar } from 'lucide-react';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const MentorDirectory = () => {
+  const confirm = useConfirm();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [mentors, setMentors] = useState([]);
@@ -165,9 +167,10 @@ const MentorDirectory = () => {
 
                 {/* Booking Button */}
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (!isPremiumOrPro) {
-                      if (window.confirm('Tính năng này chỉ dành cho gói Pro hoặc Premium. Bạn có muốn nâng cấp ngay?')) {
+                      const isConfirmed = await new Promise(resolve => confirm({ message: 'Tính năng này chỉ dành cho gói Pro hoặc Premium. Bạn có muốn nâng cấp ngay?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
                         navigate('/pricing');
                       }
                     } else {

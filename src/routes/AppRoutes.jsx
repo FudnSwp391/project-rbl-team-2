@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/Landing/LandingPage';
 import CVManager from '../pages/CV/CVManager';
 import Login from '../pages/Auth/Login';
@@ -15,6 +15,16 @@ import QuestionBank from '../pages/Dashboard/QuestionBank';
 import QuestionPractice from '../pages/Dashboard/QuestionPractice';
 import PricingPage from '../pages/Subscriptions/PricingPage';
 import AdminPanel from '../pages/Admin/AdminPanel';
+import UsersView from '../pages/Admin/UsersView';
+import StatisticsView from '../pages/Admin/StatisticsView';
+import QuestionBankView from '../pages/Admin/QuestionBankView';
+import BlogsView from '../pages/Admin/BlogsView';
+import PracticeHistory from '../pages/Dashboard/PracticeHistory';
+import ChallengesView from '../pages/Admin/ChallengesView';
+import SubscriptionPlansView from '../pages/Admin/SubscriptionPlansView';
+import OrdersView from '../pages/Admin/OrdersView';
+import EmployersView from '../pages/Admin/EmployersView';
+import MentorsView from '../pages/Admin/MentorsView';
 
 // Recruiter Components
 import RecruiterDashboard from '../pages/Recruiter/RecruiterDashboard';
@@ -79,9 +89,22 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/challenge/questions" element={<ProtectedRoute><DailyQuestions /></ProtectedRoute>} />
       <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
+      <Route path="/question-bank/history" element={<ProtectedRoute><PracticeHistory /></ProtectedRoute>} />
       <Route path="/question-bank/practice/:id" element={<ProtectedRoute><QuestionPractice /></ProtectedRoute>} />
       <Route path="/cv-analysis" element={<ProtectedRoute><CVManager /></ProtectedRoute>} />
-      <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+      
+      <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>}>
+        <Route index element={<Navigate to="statistics" replace />} />
+        <Route path="statistics" element={<StatisticsView />} />
+        <Route path="users" element={<UsersView />} />
+        <Route path="questions" element={<QuestionBankView />} />
+        <Route path="blogs" element={<BlogsView />} />
+        <Route path="challenges" element={<ChallengesView />} />
+        <Route path="subscriptions" element={<SubscriptionPlansView />} />
+        <Route path="orders" element={<OrdersView />} />
+        <Route path="employers" element={<EmployersView />} />
+        <Route path="mentors" element={<MentorsView />} />
+      </Route>
       
       {/* Interview Routes (Protected) */}
       <Route path="/interview" element={<ProtectedRoute><InterviewLanding /></ProtectedRoute>} />

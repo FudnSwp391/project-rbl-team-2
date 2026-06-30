@@ -4,6 +4,7 @@ import { supabase } from '../../utils/supabaseClient';
 import { useAuth } from '../../utils/AuthContext';
 import { Calendar, Clock, MessageSquare, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import emailjs from '@emailjs/browser';
+import toast from 'react-hot-toast';
 
 const BookMentor = () => {
   const { id } = useParams(); // mentor_id
@@ -167,15 +168,33 @@ const BookMentor = () => {
       } catch (emailError) {
         console.error("Lỗi khi gửi email:", emailError);
         const errorDetail = emailError.text || emailError.message || JSON.stringify(emailError);
-        alert(`Lịch đã được đặt nhưng có lỗi khi gửi email thông báo tự động. Chi tiết lỗi EmailJS: ${errorDetail}\n\nBạn vui lòng kiểm tra lại Template ID và Service ID.`);
+        toast.error(`Lịch đã được đặt nhưng có lỗi khi gửi email thông báo tự động. Chi tiết lỗi EmailJS: ${errorDetail}`);
       }
 
-      alert('Đặt lịch thành công! Đã gửi thông báo đến Mentor.');
+      // 1. Gửi thông báo cho Mentor
+      await supabase.from('notifications').insert([{
+        user_id: realMentorId,
+        title: 'Có lịch hẹn mới!',
+        content: `Ứng viên ${profile?.full_name || user.email} vừa đặt lịch hẹn với bạn vào ${formData.time} ngày ${formData.date}.`,
+        type: 'info',
+        action_link: '/mentor/schedule'
+      }]);
+
+      // 2. Gửi thông báo cho Ứng viên
+      await supabase.from('notifications').insert([{
+        user_id: user.id,
+        title: 'Đặt lịch thành công',
+        content: `Bạn đã đặt lịch hẹn thành công với Mentor ${mentor.full_name} vào ${formData.time} ngày ${formData.date}.`,
+        type: 'success',
+        action_link: '/my-bookings'
+      }]);
+
+      toast.success('Đặt lịch thành công! Đã gửi thông báo đến Mentor.');
       navigate('/my-bookings');
 
     } catch (err) {
       console.error('Lỗi khi đặt lịch:', err);
-      alert('Đã xảy ra lỗi khi đặt lịch: ' + (err.message || 'Vui lòng kiểm tra lại SQL schema (cần có bảng mentor_bookings)'));
+      toast.error('Đã xảy ra lỗi khi đặt lịch: ' + (err.message || 'Vui lòng kiểm tra lại SQL schema'));
     } finally {
       setSubmitting(false);
     }

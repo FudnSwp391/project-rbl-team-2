@@ -1,122 +1,176 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const MentorsView = () => {
+  const confirm = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'managed'
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pendingCount, setPendingCount] = useState(0);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMentors();
+      fetchPendingCount();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [page, searchTerm, activeTab]);
+
+  const fetchPendingCount = async () => {
+    const { count } = await supabase.from('mentors').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    setPendingCount(count || 0);
+  };
+
   const fetchMentors = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('mentors')
-      .select('*')
-      .order('created_at', { ascending: false });
+    
+    let query = supabase.from('mentors').select('*', { count: 'exact' });
+    
+    if (activeTab === 'pending') {
+      query = query.eq('status', 'pending');
+    } else {
+      query = query.neq('status', 'pending');
+    }
+    
+    if (searchTerm) {
+      query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+    }
+
+    const from = (page - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
+
+    const { data, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
       
     if (error) {
+      toast.error('Lỗi khi tải mentors: ' + error.message);
       console.error('Error fetching mentors:', error);
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('mentors')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!fallbackError) {
-        setMentors(fallbackData || []);
-      }
     } else {
       setMentors(data || []);
+      setTotalPages(Math.ceil((count || 0) / itemsPerPage) || 1);
     }
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchMentors();
-  }, []);
-
   const handleApprove = async (mentor) => {
-    if (window.confirm(`Bạn có chắc chắn muốn DUYỆT đăng ký mentor của ${mentor.full_name}?`)) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: `Bạn có chắc chắn muốn DUYỆT đăng ký mentor của ${mentor.full_name}?`, isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error: updateMentorError } = await supabase
         .from('mentors')
         .update({ status: 'approved' })
         .eq('id', mentor.id);
 
       if (updateMentorError) {
-        return alert('Lỗi khi duyệt (update mentors): ' + updateMentorError.message);
+        return toast.error('Lỗi khi duyệt (update mentors): ' + updateMentorError.message);
       }
 
+      // 2. Cập nhật role trong profiles
       if (mentor.mentor_id) {
         const { error: updateProfileError } = await supabase
           .from('profiles')
-          .update({ role: 'mentor', status: 'active' })
+          .update({ role: 'mentor', status: 'active', plan: 'Premium' })
           .eq('id', mentor.mentor_id);
           
         if (updateProfileError) {
            console.error('Không thể cập nhật role cho user:', updateProfileError);
-           alert('Đã duyệt hồ sơ, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
+           toast.error('Đã duyệt đơn đăng ký Mentor, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
         } else {
-           alert(`Đã duyệt thành công Mentor ${mentor.full_name}!`);
+           // GỬI THÔNG BÁO CHO MENTOR
+           await supabase.from('notifications').insert([{
+             user_id: mentor.mentor_id,
+             title: 'Hồ sơ Mentor của bạn đã được duyệt!',
+             content: 'Chúc mừng bạn đã chính thức trở thành Mentor. Bạn hiện đã có thể truy cập Mentor Portal để cập nhật lịch trống và nhận yêu cầu hướng dẫn.',
+             type: 'success',
+             action_link: '/mentor/profile'
+           }]);
+           toast.success('Duyệt Mentor thành công và đã gửi thông báo!');
         }
+      } else {
+        toast.success('Duyệt Mentor thành công!');
       }
-
       fetchMentors();
+      fetchPendingCount();
     }
   };
 
   const handleReject = async (mentor) => {
-    if (window.confirm(`Bạn có chắc chắn muốn TỪ CHỐI yêu cầu đăng ký của ${mentor.full_name}?`)) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: `Bạn có chắc chắn muốn TỪ CHỐI yêu cầu đăng ký của ${mentor.full_name}?`, isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error: updateMentorError } = await supabase
         .from('mentors')
         .update({ status: 'rejected' })
         .eq('id', mentor.id);
 
       if (updateMentorError) {
-        return alert('Lỗi khi từ chối: ' + updateMentorError.message);
+        return toast.error('Lỗi khi từ chối: ' + updateMentorError.message);
       }
+      toast.success(`Đã từ chối Mentor ${mentor.full_name}`);
 
-      // Nếu trước đó đã approved, có thể cần revoke quyền
-      if (mentor.status === 'approved' && mentor.mentor_id) {
-        let planToRestore = 'Free';
-        let expiresAt = null;
-        const { data: latestOrder } = await supabase
-          .from('orders')
-          .select('plan_name, created_at')
-          .eq('user_id', mentor.mentor_id)
-          .eq('status', 'paid')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-          
-        if (latestOrder) {
-          const durationDays = latestOrder.plan_name === 'Pro' ? 14 : (latestOrder.plan_name === 'Premium' ? 30 : 0);
-          const orderDate = new Date(latestOrder.created_at);
-          const expirationDate = new Date(orderDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
-          
-          if (expirationDate > new Date()) {
-            planToRestore = latestOrder.plan_name;
-            expiresAt = expirationDate.toISOString();
+      if (mentor.mentor_id) {
+        // Lấy thông tin profile hiện tại để kiểm tra xem có đang là mentor không
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', mentor.mentor_id).single();
+        
+        if (profile && profile.role === 'mentor') {
+          // Nếu đang là mentor thì phải thu hồi quyền (Hạ cấp về candidate)
+          let planToRestore = 'Free';
+          let expiresAt = null;
+          const { data: latestOrder } = await supabase
+            .from('orders')
+            .select('plan_name, created_at')
+            .eq('user_id', mentor.mentor_id)
+            .eq('status', 'paid')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (latestOrder) {
+            const durationDays = latestOrder.plan_name === 'Pro' ? 14 : (latestOrder.plan_name === 'Premium' ? 30 : 0);
+            const orderDate = new Date(latestOrder.created_at);
+            const expirationDate = new Date(orderDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+            
+            if (expirationDate > new Date()) {
+              planToRestore = latestOrder.plan_name;
+              expiresAt = expirationDate.toISOString();
+            }
           }
-        }
 
-        await supabase
-          .from('profiles')
-          .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
-          .eq('id', mentor.mentor_id);
+          await supabase
+            .from('profiles')
+            .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
+            .eq('id', mentor.mentor_id);
+
+          // GỬI THÔNG BÁO TỪ CHỐI/HUỶ DUYỆT
+          await supabase.from('notifications').insert([{
+            user_id: mentor.mentor_id,
+            title: 'Hồ sơ Mentor của bạn chưa được duyệt / Đã bị đình chỉ',
+            content: 'Quản trị viên đã từ chối yêu cầu đăng ký Mentor hoặc tạm đình chỉ tài khoản Mentor của bạn. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.',
+            type: 'warning'
+          }]);
+        } else {
+          // Nếu không phải mentor (chỉ đang chờ duyệt), chỉ gửi thông báo từ chối
+          await supabase.from('notifications').insert([{
+            user_id: mentor.mentor_id,
+            title: 'Yêu cầu đăng ký Mentor của bạn đã bị từ chối',
+            content: 'Rất tiếc, hồ sơ Mentor của bạn hiện tại chưa phù hợp hoặc thiếu thông tin xác minh.',
+            type: 'warning'
+          }]);
+        }
       }
 
       fetchMentors();
+      fetchPendingCount();
     }
   };
-
-  const pendingCount = mentors.filter(m => m.status === 'pending').length;
-
-  const filteredMentors = mentors.filter(mentor => {
-    const matchesSearch = (mentor.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (mentor.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'pending' ? mentor.status === 'pending' : mentor.status !== 'pending';
-    return matchesSearch && matchesTab;
-  });
 
   return (
     <div className="animate-fade" style={{ position: 'relative' }}>
@@ -143,7 +197,7 @@ const MentorsView = () => {
 
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
         <button
-          onClick={() => setActiveTab('pending')}
+          onClick={() => { setActiveTab('pending'); setPage(1); }}
           style={{
             padding: '0.75rem 1.5rem',
             background: 'none',
@@ -162,7 +216,7 @@ const MentorsView = () => {
           {pendingCount > 0 && <span style={{ background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem' }}>{pendingCount}</span>}
         </button>
         <button
-          onClick={() => setActiveTab('managed')}
+          onClick={() => { setActiveTab('managed'); setPage(1); }}
           style={{
             padding: '0.75rem 1.5rem',
             background: 'none',
@@ -190,7 +244,7 @@ const MentorsView = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredMentors.length > 0 ? filteredMentors.map(mentor => (
+            {mentors.length > 0 ? mentors.map(mentor => (
               <tr key={mentor.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                 <td style={{ padding: '1rem', fontWeight: '600', color: '#1e293b' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -241,6 +295,26 @@ const MentorsView = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: 'var(--spacing-md)' }}>
+        <button
+          disabled={page === 1}
+          onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', transition: 'transform 0.2s', opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+        >
+          &larr; Prev
+        </button>
+        <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontWeight: '600', color: '#334155' }}>
+          {page} / {totalPages}
+        </span>
+        <button
+          disabled={page === totalPages || totalPages === 0}
+          onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', transition: 'transform 0.2s', opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
+        >
+          Next &rarr;
+        </button>
       </div>
 
       {/* Detail Modal */}
@@ -366,8 +440,8 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
   width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', 

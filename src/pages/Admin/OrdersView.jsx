@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { RefreshCw, Search, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const OrdersView = () => {
   const [orders, setOrders] = useState([]);
@@ -10,7 +11,7 @@ const OrdersView = () => {
   const fetchOrders = async () => {
     setLoading(true);
     // Lấy danh sách giao dịch, sắp xếp mới nhất lên đầu
-    const { data, error } = await supabase
+    const { data: ordersData, error } = await supabase
       .from('orders')
       .select(`
         id, user_id, plan_name, price, order_code, status, created_at
@@ -19,9 +20,32 @@ const OrdersView = () => {
 
     if (error) {
       console.error('Error fetching orders:', error);
-      alert('Lỗi khi tải lịch sử thanh toán: ' + error.message);
+      toast.error('Lỗi khi tải lịch sử thanh toán: ' + error.message);
     } else {
-      setOrders(data || []);
+      const ordersList = ordersData || [];
+      const userIds = [...new Set(ordersList.map(order => order.user_id).filter(Boolean))];
+      
+      let profilesMap = {};
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+          
+        if (!profilesError && profilesData) {
+          profilesMap = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {});
+        }
+      }
+
+      const mergedOrders = ordersList.map(order => ({
+        ...order,
+        profiles: profilesMap[order.user_id] || null
+      }));
+
+      setOrders(mergedOrders);
     }
     setLoading(false);
   };
@@ -33,6 +57,8 @@ const OrdersView = () => {
   const filteredOrders = orders.filter(order => 
     (order.order_code && order.order_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (order.user_id && order.user_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (order.profiles?.full_name && order.profiles.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (order.profiles?.email && order.profiles.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (order.plan_name && order.plan_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -83,7 +109,7 @@ const OrdersView = () => {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '1rem 0' }}>Mã Đơn</th>
-                  <th style={{ padding: '1rem 0' }}>Người dùng (ID)</th>
+                  <th style={{ padding: '1rem 0' }}>Người dùng</th>
                   <th style={{ padding: '1rem 0' }}>Gói dịch vụ</th>
                   <th style={{ padding: '1rem 0' }}>Số tiền</th>
                   <th style={{ padding: '1rem 0' }}>Trạng thái</th>
@@ -94,8 +120,17 @@ const OrdersView = () => {
                 {filteredOrders.length > 0 ? filteredOrders.map(order => (
                   <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '1rem 0', fontWeight: 'bold', color: 'var(--primary)' }}>{order.order_code}</td>
-                    <td style={{ padding: '1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }} title={order.user_id}>
-                      {order.user_id ? order.user_id.substring(0, 8) + '...' : 'N/A'}
+                    <td style={{ padding: '1rem 0', fontSize: '0.85rem' }} title={order.user_id}>
+                      {order.profiles?.full_name ? (
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{order.profiles.full_name}</div>
+                          <div style={{ color: 'var(--text-secondary)' }}>{order.profiles.email}</div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          {order.user_id ? order.user_id.substring(0, 8) + '...' : 'N/A'}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '1rem 0' }}>{order.plan_name}</td>
                     <td style={{ padding: '1rem 0' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.price)}</td>

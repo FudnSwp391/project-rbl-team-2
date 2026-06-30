@@ -2,22 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const QuestionBankView = () => {
+  const confirm = useConfirm();
   const [questions, setQuestions] = useState([]);
   const [industries, setIndustries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditing]);
   const [currentQ, setCurrentQ] = useState(null);
 
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(questions.length / itemsPerPage) || 1;
-
-  const paginatedQuestions = questions.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   useEffect(() => {
     fetchQuestions();
+  }, [page]);
+
+  useEffect(() => {
     fetchIndustries();
   }, []);
 
@@ -39,31 +52,38 @@ const QuestionBankView = () => {
 
   const fetchQuestions = async () => {
     setLoading(true);
+    const from = (page - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
+
     // Sử dụng bảng 'questions' và join bảng 'industries' để lấy tên ngành
-    const { data, error } = await supabase
+    const { data, count, error } = await supabase
       .from('questions')
-      .select('*, industries(name)');
+      .select('*, industries(name)', { count: 'exact' })
+      .order('id', { ascending: false })
+      .range(from, to);
       
     if (error) {
-      alert('Lỗi khi tải câu hỏi: ' + error.message);
+      toast.error('Lỗi khi tải câu hỏi: ' + error.message);
       console.error('Error fetching questions:', error);
     } else {
-      // Sắp xếp tạm ở client vì bảng questions không có created_at
-      const sortedData = (data || []).sort((a, b) => (a.id > b.id ? -1 : 1));
-      setQuestions(sortedData);
+      setQuestions(data || []);
+      setTotalPages(Math.ceil((count || 0) / itemsPerPage) || 1);
     }
     setLoading(false);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa câu hỏi này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error } = await supabase.from('questions').delete().eq('id', id);
       if (error) {
-        alert('Lỗi khi xóa: ' + error.message);
+        toast.error('Lỗi khi xóa: ' + error.message);
       } else {
-        setQuestions(questions.filter(q => q.id !== id));
-        if (paginatedQuestions.length === 1 && page > 1) {
+        toast.success('Xóa câu hỏi thành công');
+        if (questions.length === 1 && page > 1) {
           setPage(page - 1);
+        } else {
+          fetchQuestions();
         }
       }
     }
@@ -92,7 +112,7 @@ const QuestionBankView = () => {
     e.preventDefault();
     
     if (!currentQ.industry_id) {
-      alert('Vui lòng chọn Ngành nghề!');
+      toast.error('Vui lòng chọn Ngành nghề!');
       return;
     }
 
@@ -108,11 +128,13 @@ const QuestionBankView = () => {
     if (currentQ.id) {
       // Update
       const { error } = await supabase.from('questions').update(payload).eq('id', currentQ.id);
-      if (error) return alert('Lỗi cập nhật: ' + error.message);
+      if (error) return toast.error('Lỗi cập nhật: ' + error.message);
+      toast.success('Cập nhật câu hỏi thành công!');
     } else {
       // Insert
       const { error } = await supabase.from('questions').insert([payload]);
-      if (error) return alert('Lỗi thêm mới: ' + error.message);
+      if (error) return toast.error('Lỗi thêm mới: ' + error.message);
+      toast.success('Thêm câu hỏi mới thành công!');
     }
     
     setIsEditing(false);
@@ -159,7 +181,7 @@ const QuestionBankView = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedQuestions.map(q => {
+            {questions.map(q => {
               const isOldMCQCorrectAnswer = q.correct_answer === 'A' || q.correct_answer === 'B' || q.correct_answer === 'C' || q.correct_answer === 'D';
               return (
               <tr key={q.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
@@ -197,7 +219,7 @@ const QuestionBankView = () => {
       <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: 'var(--spacing-md)' }}>
         <button
           disabled={page === 1}
-          onClick={() => setPage(page - 1)}
+          onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           style={{ ...pageBtnStyle, opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
         >
           &larr; Prev
@@ -206,9 +228,9 @@ const QuestionBankView = () => {
           {page} / {totalPages}
         </span>
         <button
-          disabled={page === totalPages}
-          onClick={() => setPage(page + 1)}
-          style={{ ...pageBtnStyle, opacity: page === totalPages ? 0.5 : 1, cursor: page === totalPages ? 'not-allowed' : 'pointer' }}
+          disabled={page === totalPages || totalPages === 0}
+          onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          style={{ ...pageBtnStyle, opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
         >
           Next &rarr;
         </button>
@@ -344,8 +366,8 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
   width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', 

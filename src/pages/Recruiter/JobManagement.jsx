@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const JobManagement = () => {
+  const confirm = useConfirm();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,7 +40,8 @@ const JobManagement = () => {
   };
 
   const handleCloseJob = async (jobId) => {
-    if (!window.confirm('Are you sure you want to close this job?')) return;
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Are you sure you want to close this job?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (!isConfirmed) return;
     
     // Optimistic update
     setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? { ...job, status: 'closed' } : job));
@@ -64,7 +67,8 @@ const JobManagement = () => {
   };
 
   const handleReopenJob = async (jobId) => {
-    if (!window.confirm('Are you sure you want to reopen this job?')) return;
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Are you sure you want to reopen this job?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (!isConfirmed) return;
     
     // Optimistic update
     setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? { ...job, status: 'open' } : job));
@@ -90,7 +94,8 @@ const JobManagement = () => {
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!window.confirm('Are you sure you want to completely delete this job? This action cannot be undone.')) return;
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Are you sure you want to completely delete this job? This action cannot be undone.', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (!isConfirmed) return;
     
     // Optimistic update
     setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));

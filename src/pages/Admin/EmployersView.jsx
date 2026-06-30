@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const EmployersView = () => {
+  const confirm = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,8 @@ const EmployersView = () => {
   };
 
   const handleApprove = async (company) => {
-    if (window.confirm(`Bạn có chắc chắn muốn DUYỆT nhà tuyển dụng ${company.company_name}?`)) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: `Bạn có chắc chắn muốn DUYỆT nhà tuyển dụng ${company.company_name}?`, isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       // 1. Cập nhật trạng thái company
       const { error: updateCompanyError } = await supabase
         .from('companies')
@@ -46,7 +50,7 @@ const EmployersView = () => {
         .eq('id', company.id);
 
       if (updateCompanyError) {
-        return alert('Lỗi khi duyệt (update companies): ' + updateCompanyError.message);
+        return toast.error('Lỗi khi duyệt (update companies): ' + updateCompanyError.message);
       }
 
       // 2. Cập nhật role trong profiles
@@ -58,8 +62,20 @@ const EmployersView = () => {
           
         if (updateProfileError) {
            console.error('Không thể cập nhật role cho user:', updateProfileError);
-           alert('Đã duyệt công ty, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
+           toast.error('Đã duyệt công ty, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
+        } else {
+           // Gửi thông báo
+           await supabase.from('notifications').insert([{
+             user_id: company.recruiter_id,
+             title: 'Hồ sơ Nhà tuyển dụng đã được duyệt!',
+             content: 'Chúc mừng bạn đã chính thức trở thành Nhà tuyển dụng. Bạn hiện đã có thể truy cập Recruiter Portal để quản lý công ty và đăng tuyển.',
+             type: 'success',
+             action_link: '/recruiter/dashboard'
+           }]);
+           toast.success('Duyệt nhà tuyển dụng thành công và đã gửi thông báo');
         }
+      } else {
+        toast.success('Duyệt nhà tuyển dụng thành công');
       }
 
       fetchCompanies();
@@ -67,15 +83,17 @@ const EmployersView = () => {
   };
 
   const handleReject = async (company) => {
-    if (window.confirm(`Bạn có chắc chắn muốn TỪ CHỐI nhà tuyển dụng ${company.company_name}?`)) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: `Bạn có chắc chắn muốn TỪ CHỐI nhà tuyển dụng ${company.company_name}?`, isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error: updateCompanyError } = await supabase
         .from('companies')
         .update({ status: 'rejected' })
         .eq('id', company.id);
 
       if (updateCompanyError) {
-        return alert('Lỗi khi từ chối: ' + updateCompanyError.message);
+        return toast.error('Lỗi khi từ chối: ' + updateCompanyError.message);
       }
+      toast.success('Đã từ chối nhà tuyển dụng');
 
       // Nếu trước đó đã approved, có thể cần revoke quyền
       if (company.status === 'approved' && company.recruiter_id) {
@@ -102,10 +120,24 @@ const EmployersView = () => {
           }
         }
 
-        await supabase
-          .from('profiles')
-          .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
-          .eq('id', company.recruiter_id);
+          await supabase
+            .from('profiles')
+            .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
+            .eq('id', company.recruiter_id);
+
+          await supabase.from('notifications').insert([{
+            user_id: company.recruiter_id,
+            title: 'Tài khoản Nhà tuyển dụng đã bị đình chỉ',
+            content: 'Quản trị viên đã tạm đình chỉ tài khoản Nhà tuyển dụng của bạn. Vui lòng liên hệ hỗ trợ.',
+            type: 'warning'
+          }]);
+      } else if (company.recruiter_id) {
+          await supabase.from('notifications').insert([{
+            user_id: company.recruiter_id,
+            title: 'Yêu cầu đăng ký Nhà tuyển dụng bị từ chối',
+            content: 'Rất tiếc, hồ sơ đăng ký Nhà tuyển dụng của bạn không được duyệt do chưa phù hợp.',
+            type: 'warning'
+          }]);
       }
 
       fetchCompanies();
@@ -368,8 +400,8 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
   width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', 

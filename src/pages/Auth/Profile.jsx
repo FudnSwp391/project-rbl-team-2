@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import './Auth.css';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const Profile = () => {
+  const confirm = useConfirm();
   const { user, profile, updateProfile, updatePassword } = useAuth();
   const navigate = useNavigate();
   
@@ -75,7 +77,8 @@ const Profile = () => {
   };
 
   const handleDeleteCV = async (cv) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa CV này?')) return;
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa CV này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (!isConfirmed) return;
     
     try {
       // Dùng hàm RPC lách chặn DELETE của network (sử dụng POST)
