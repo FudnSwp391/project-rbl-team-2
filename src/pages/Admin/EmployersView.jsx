@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const EmployersView = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,7 +47,7 @@ const EmployersView = () => {
         .eq('id', company.id);
 
       if (updateCompanyError) {
-        return alert('Lỗi khi duyệt (update companies): ' + updateCompanyError.message);
+        return toast.error('Lỗi khi duyệt (update companies): ' + updateCompanyError.message);
       }
 
       // 2. Cập nhật role trong profiles
@@ -58,8 +59,20 @@ const EmployersView = () => {
           
         if (updateProfileError) {
            console.error('Không thể cập nhật role cho user:', updateProfileError);
-           alert('Đã duyệt công ty, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
+           toast.error('Đã duyệt công ty, nhưng có lỗi khi cập nhật role cho User: ' + updateProfileError.message);
+        } else {
+           // Gửi thông báo
+           await supabase.from('notifications').insert([{
+             user_id: company.recruiter_id,
+             title: 'Hồ sơ Nhà tuyển dụng đã được duyệt!',
+             content: 'Chúc mừng bạn đã chính thức trở thành Nhà tuyển dụng. Bạn hiện đã có thể truy cập Recruiter Portal để quản lý công ty và đăng tuyển.',
+             type: 'success',
+             action_link: '/recruiter/dashboard'
+           }]);
+           toast.success('Duyệt nhà tuyển dụng thành công và đã gửi thông báo');
         }
+      } else {
+        toast.success('Duyệt nhà tuyển dụng thành công');
       }
 
       fetchCompanies();
@@ -74,8 +87,9 @@ const EmployersView = () => {
         .eq('id', company.id);
 
       if (updateCompanyError) {
-        return alert('Lỗi khi từ chối: ' + updateCompanyError.message);
+        return toast.error('Lỗi khi từ chối: ' + updateCompanyError.message);
       }
+      toast.success('Đã từ chối nhà tuyển dụng');
 
       // Nếu trước đó đã approved, có thể cần revoke quyền
       if (company.status === 'approved' && company.recruiter_id) {
@@ -102,10 +116,24 @@ const EmployersView = () => {
           }
         }
 
-        await supabase
-          .from('profiles')
-          .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
-          .eq('id', company.recruiter_id);
+          await supabase
+            .from('profiles')
+            .update({ role: 'candidate', plan: planToRestore, plan_expires_at: expiresAt })
+            .eq('id', company.recruiter_id);
+
+          await supabase.from('notifications').insert([{
+            user_id: company.recruiter_id,
+            title: 'Tài khoản Nhà tuyển dụng đã bị đình chỉ',
+            content: 'Quản trị viên đã tạm đình chỉ tài khoản Nhà tuyển dụng của bạn. Vui lòng liên hệ hỗ trợ.',
+            type: 'warning'
+          }]);
+      } else if (company.recruiter_id) {
+          await supabase.from('notifications').insert([{
+            user_id: company.recruiter_id,
+            title: 'Yêu cầu đăng ký Nhà tuyển dụng bị từ chối',
+            content: 'Rất tiếc, hồ sơ đăng ký Nhà tuyển dụng của bạn không được duyệt do chưa phù hợp.',
+            type: 'warning'
+          }]);
       }
 
       fetchCompanies();

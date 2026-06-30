@@ -154,7 +154,13 @@ const BlogPost = () => {
             points: savedData.points
           }).eq('id', user.id).then(({error}) => {
             if (!error) {
-              alert('🎉 Chúc mừng! Bạn đã hoàn thành thử thách "Đọc blog" và nhận được 5 điểm!');
+              supabase.from('notifications').insert([{
+                user_id: user.id,
+                title: 'Thử thách hoàn thành!',
+                content: 'Bạn đã hoàn thành thử thách "Đọc blog" hôm nay và nhận được 5 điểm thưởng.',
+                type: 'success',
+                action_link: '/challenge/questions'
+              }]).then();
             }
           });
         }

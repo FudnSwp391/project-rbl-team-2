@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Lenis from 'lenis';
 import Header from './components/layout/Header';
 import AppRoutes from './routes/AppRoutes';
+import BookingReminder from './components/BookingReminder';
 import './index.css';
 
 function AppContent() {
@@ -53,6 +55,7 @@ function AppContent() {
 
   return (
     <div className="app" data-lenis-prevent={false}>
+      <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#333', color: '#fff' } }} />
       <Header />
       <main style={{ flex: 1 }}>
         <AppRoutes />
@@ -65,6 +68,7 @@ function AppContent() {
 function App() {
   return (
     <Router>
+      <BookingReminder />
       <AppContent />
     </Router>
   );

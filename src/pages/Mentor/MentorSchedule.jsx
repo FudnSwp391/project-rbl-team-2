@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle, XCircle, Video, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
+import toast from 'react-hot-toast';
 
 const MentorSchedule = () => {
   const { user } = useAuth();
@@ -63,9 +64,22 @@ const MentorSchedule = () => {
       .eq('id', id);
 
     if (error) {
-      alert('Lỗi khi chấp nhận lịch hẹn: ' + error.message);
+      toast.error('Lỗi khi chấp nhận lịch hẹn: ' + error.message);
     } else {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'accepted' } : b));
+      toast.success('Đã chấp nhận lịch hẹn');
+      
+      // Notify candidate
+      const booking = bookings.find(b => b.id === id);
+      if (booking && booking.candidate_id) {
+        await supabase.from('notifications').insert([{
+          user_id: booking.candidate_id,
+          title: 'Lịch hẹn đã được chấp nhận',
+          content: `Mentor đã chấp nhận lịch hẹn của bạn vào ${booking.time} ngày ${booking.date}.`,
+          type: 'success',
+          action_link: '/my-bookings'
+        }]);
+      }
     }
   };
 
@@ -77,9 +91,22 @@ const MentorSchedule = () => {
       .eq('id', id);
 
     if (error) {
-      alert('Lỗi khi từ chối lịch hẹn: ' + error.message);
+      toast.error('Lỗi khi từ chối lịch hẹn: ' + error.message);
     } else {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'rejected' } : b));
+      toast.success('Đã từ chối lịch hẹn');
+      
+      // Notify candidate
+      const booking = bookings.find(b => b.id === id);
+      if (booking && booking.candidate_id) {
+        await supabase.from('notifications').insert([{
+          user_id: booking.candidate_id,
+          title: 'Lịch hẹn bị từ chối',
+          content: `Rất tiếc, Mentor không thể nhận lịch hẹn của bạn vào ${booking.time} ngày ${booking.date}.`,
+          type: 'warning',
+          action_link: '/my-bookings'
+        }]);
+      }
     }
   };
 

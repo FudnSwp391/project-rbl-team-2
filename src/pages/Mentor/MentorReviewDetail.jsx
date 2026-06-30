@@ -96,6 +96,15 @@ const MentorReviewDetail = () => {
           alert('Lỗi khi gửi đánh giá: ' + error.message);
           return;
         }
+      } else {
+        // Gửi thông báo cho ứng viên
+        await supabase.from('notifications').insert([{
+          user_id: review.user_id,
+          title: 'Mentor đã gửi đánh giá mới',
+          content: `Mentor ${user.user_metadata?.full_name || 'của bạn'} đã nhận xét bài phỏng vấn/luyện tập của bạn. Nhấn vào đây để xem chi tiết!`,
+          type: 'info',
+          action_link: `/interview/result/${review.id}`
+        }]);
       }
 
       setSubmitted(true);

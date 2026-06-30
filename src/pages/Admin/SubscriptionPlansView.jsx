@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const SubscriptionPlansView = () => {
   const [items, setItems] = useState([]);
@@ -29,8 +30,11 @@ const SubscriptionPlansView = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa gói dịch vụ này?')) {
       const { error } = await supabase.from('subscription_plans').delete().eq('id', id);
-      if (error) alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
-      else setItems(items.filter(item => item.id !== id));
+      if (error) toast.error('Lỗi khi xóa: ' + error.message);
+      else {
+        toast.success('Xóa thành công');
+        setItems(items.filter(item => item.id !== id));
+      }
     }
   };
 
@@ -77,10 +81,12 @@ const SubscriptionPlansView = () => {
 
     if (currentItem.id) {
       const { error } = await supabase.from('subscription_plans').update(payload).eq('id', currentItem.id);
-      if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi cập nhật: ' + error.message);
+      toast.success('Cập nhật gói thành công');
     } else {
       const { error } = await supabase.from('subscription_plans').insert([payload]);
-      if (error) return alert('Lỗi thêm mới: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi thêm mới: ' + error.message);
+      toast.success('Thêm gói dịch vụ mới thành công');
     }
     
     setIsEditing(false);

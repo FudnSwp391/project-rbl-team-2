@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
-import NotificationDropdown from './NotificationDropdown';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -37,57 +36,43 @@ const Header = () => {
   const isRecruiter = profile?.role?.toLowerCase() === 'recruiter' || profile?.role?.toLowerCase() === 'company';
   const isAdmin = profile?.role?.toLowerCase() === 'admin' || user?.user_metadata?.role?.toLowerCase() === 'admin';
 
-  let navLinks = [];
+  let navLinks = [
+    { to: '/', label: 'Trang chß╗º' },
+    { to: '/interview', label: 'Phß╗Ång vß║Ñn' },
+    { to: '/cv-analysis', label: 'Ph├ón t├¡ch CV' },
+  ];
 
-  const isCandidate = !isMentor && !isAdmin && !isRecruiter;
-
-  if (isRecruiter) {
-    navLinks = [
-      { to: '/recruiter', label: 'Recruiter Portal' },
-      { to: '/blogs', label: 'Blog' },
-      { to: '/jobs', label: 'Việc làm' }
-    ];
-  } else if (isCandidate) {
-    navLinks = [
-      { to: '/interview', label: 'Phỏng vấn' },
-      { to: '/cv-analysis', label: 'Phân tích CV' },
-      { to: '/dashboard', label: 'Thử thách' },
-      {
-        label: 'Khám phá',
-        dropdown: [
-          { to: '/mentors', label: 'Tìm Mentors' },
-          { to: '/blogs', label: 'Blog' },
-          { to: '/jobs', label: 'Việc làm' },
-          { to: '/mentor-register', label: 'Đăng ký Mentor' },
-          { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' }
-        ]
-      },
-      { to: '/pricing', label: 'Gói dịch vụ' }
-    ];
-  } else {
-    navLinks = [
-      { to: '/interview', label: 'Phỏng vấn' },
-      { to: '/cv-analysis', label: 'Phân tích CV' }
-    ];
-
-    if (!isAdmin) {
-      navLinks.push({ to: '/mentors', label: 'Mentors' });
+  if (!isMentor && !isAdmin) {
+    if (isRecruiter) {
+      navLinks.push({ to: '/question-bank', label: 'Ng├ón h├áng c├óu hß╗Åi' });
+    } else {
+      navLinks.push({ to: '/dashboard', label: 'Thß╗¡ th├ích' });
     }
-    navLinks.push({ to: '/jobs', label: 'Việc làm' });
+  }
 
-    if (!isMentor) {
-      navLinks.push({ to: '/pricing', label: 'Gói dịch vụ' });
-    }
+  if (!isRecruiter) {
+    navLinks.push({ to: '/pricing', label: 'G├│i dß╗ïch vß╗Ñ' });
+  }
 
-    navLinks.push({ to: '/blogs', label: 'Blog' });
+  navLinks.push({ to: '/blogs', label: 'Blog' });
 
-    if (isAdmin) {
-      navLinks.push({ to: '/admin', label: 'Quản trị' });
-    }
+  if (!isMentor && !isAdmin) {
+    navLinks.push({
+      label: 'Tuyß╗ân dß╗Ñng',
+      dropdown: [
+        { to: '/recruiter-register', label: 'D├ánh cho doanh nghiß╗çp' },
+        { to: '/mentor-register', label: '─É─âng k├╜ Mentor' },
+        { to: '/jobs', label: 'Viß╗çc l├ám' },
+      ]
+    });
+  }
 
-    if (isMentor) {
-      navLinks.push({ to: '/mentor', label: 'Mentor Portal' });
-    }
+  if (isAdmin) {
+    navLinks.push({ to: '/admin', label: 'Quß║ún trß╗ï' });
+  }
+
+  if (isMentor) {
+    navLinks.push({ to: '/mentor', label: 'Mentor Portal' });
   }
 
   return (
@@ -147,8 +132,9 @@ const Header = () => {
         {/* Desktop Nav */}
         <nav style={{
           display: 'flex',
-          gap: '2.2rem',
+          gap: '1.5rem',
           alignItems: 'center',
+          flexWrap: 'nowrap',
         }} className="desktop-nav">
           {navLinks.map((link, idx) => (
             link.dropdown ? (
@@ -159,9 +145,10 @@ const Header = () => {
                   fontSize: '0.85rem',
                   fontWeight: 500,
                   transition: 'color 0.3s ease',
-                  padding: '0.5rem 0'
+                  padding: '0.5rem 0',
+                  whiteSpace: 'nowrap',
                 }} className="nav-link-item">
-                  {link.label} ▾
+                  {link.label} Γû╛
                 </span>
                 <div className="nav-dropdown-menu" style={{
                   position: 'absolute',
@@ -213,6 +200,7 @@ const Header = () => {
                   letterSpacing: '0',
                   transition: 'color 0.3s ease',
                   position: 'relative',
+                  whiteSpace: 'nowrap',
                 }}
                 className="nav-link-item"
               >
@@ -222,16 +210,9 @@ const Header = () => {
           ))}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <NotificationDropdown user={user} />
-              <Link 
-                to={
-                  profile?.role === 'mentor' || user?.user_metadata?.role === 'mentor' 
-                    ? '/mentor/profile' 
-                    : '/profile'
-                } 
-                style={{
-                  textDecoration: 'none',
-                  color: 'var(--color-charcoal)',
+              <Link to="/profile" style={{
+                textDecoration: 'none',
+                color: 'var(--color-charcoal)',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 display: 'flex',
@@ -264,7 +245,20 @@ const Header = () => {
                   }}>
                     ADMIN
                   </span>
-                ) : isMentor ? (
+                ) : profile?.role === 'recruiter' ? (
+                  <span style={{
+                    background: '#0ea5e9',
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold',
+                    marginLeft: '4px'
+                  }}>
+                    COMPANY
+                  </span>
+                ) : null}
+                {(profile?.role === 'mentor' || profile?.role === 'Mentor') && (
                   <span style={{
                     background: 'var(--color-moss, #6B7F5C)',
                     color: 'white',
@@ -276,19 +270,8 @@ const Header = () => {
                   }}>
                     MENTOR
                   </span>
-                ) : profile?.role === 'recruiter' ? (
-                  <span style={{
-                    background: '#0ea5e9', // Premium Ocean/Sky Blue color for company
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '12px',
-                    fontSize: '0.65rem',
-                    fontWeight: 'bold',
-                    marginLeft: '4px'
-                  }}>
-                    COMPANY
-                  </span>
-                ) : profile?.plan && profile.plan !== 'Free' && (
+                )}
+                {profile?.role?.toLowerCase() === 'candidate' && profile?.plan && profile.plan !== 'Free' && (
                   <span style={{
                     background: profile.plan === 'Premium' ? '#ff9632' : (profile.plan === 'Pro' ? '#32c864' : '#e2e8f0'),
                     color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
@@ -311,7 +294,7 @@ const Header = () => {
                 cursor: 'pointer',
                 transition: 'all 0.3s'
               }}>
-                Đăng xuất
+                ─É─âng xuß║Ñt
               </button>
             </div>
           ) : (
@@ -319,7 +302,7 @@ const Header = () => {
               padding: '0.6rem 1.5rem',
               fontSize: '0.75rem',
             }}>
-              Bắt đầu
+              Bß║»t ─æß║ºu
             </Link>
           )}
         </nav>
@@ -436,7 +419,7 @@ const Header = () => {
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              Xin chào, <span>
+              Xin ch├áo, <span>
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
                 {profile?.role?.toLowerCase() === 'admin' && (
@@ -452,19 +435,6 @@ const Header = () => {
                     ADMIN
                   </span>
                 )}
-                {isMentor && (
-                  <span style={{
-                    background: 'var(--color-moss, #6B7F5C)',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    marginLeft: '4px'
-                  }}>
-                    MENTOR
-                  </span>
-                )}
             </Link>
             <button onClick={handleLogout} className="btn btn--outline" style={{
               padding: '0.6rem 2rem',
@@ -476,12 +446,12 @@ const Header = () => {
               cursor: 'pointer',
               marginTop: '1rem'
             }}>
-              Đăng xuất
+              ─É─âng xuß║Ñt
             </button>
           </>
         ) : (
           <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
-            Bắt đầu
+            Bß║»t ─æß║ºu
           </Link>
         )}
       </div>

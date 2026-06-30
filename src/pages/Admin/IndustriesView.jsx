@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const IndustriesView = () => {
   const [items, setItems] = useState([]);
@@ -27,8 +28,11 @@ const IndustriesView = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa ngành nghề này?')) {
       const { error } = await supabase.from('industries').delete().eq('id', id);
-      if (error) alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
-      else setItems(items.filter(item => item.id !== id));
+      if (error) toast.error('Lỗi khi xóa: ' + error.message);
+      else {
+        toast.success('Xóa ngành nghề thành công');
+        setItems(items.filter(item => item.id !== id));
+      }
     }
   };
 
@@ -48,10 +52,12 @@ const IndustriesView = () => {
 
     if (currentItem.id) {
       const { error } = await supabase.from('industries').update(payload).eq('id', currentItem.id);
-      if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi cập nhật: ' + error.message);
+      toast.success('Cập nhật ngành nghề thành công');
     } else {
       const { error } = await supabase.from('industries').insert([payload]);
-      if (error) return alert('Lỗi thêm mới: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi thêm mới: ' + error.message);
+      toast.success('Thêm ngành nghề mới thành công');
     }
     
     setIsEditing(false);

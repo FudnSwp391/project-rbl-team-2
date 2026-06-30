@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X, ExternalLink } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../utils/AuthContext';
 
 const BlogsView = () => {
@@ -31,10 +32,11 @@ const BlogsView = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
       const { data, error } = await supabase.from('blogs').delete().eq('id', id).select();
       if (error) {
-        alert('Lỗi khi xóa: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+        toast.error('Lỗi khi xóa: ' + error.message);
       } else if (!data || data.length === 0) {
-        alert('Không thể xóa bài viết. Bạn không có quyền (Lỗi RLS) hoặc bài đã bị xóa.');
+        toast.error('Không thể xóa bài viết. Bạn không có quyền hoặc bài đã bị xóa.');
       } else {
+        toast.success('Xóa bài viết thành công');
         setItems(items.filter(item => item.id !== id));
       }
     }
@@ -60,11 +62,13 @@ const BlogsView = () => {
 
     if (currentItem.id) {
       const { error } = await supabase.from('blogs').update(payload).eq('id', currentItem.id);
-      if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi cập nhật: ' + error.message);
+      toast.success('Cập nhật bài viết thành công');
     } else {
       payload.author_id = user?.id; // Tác giả là người đang đăng nhập
       const { error } = await supabase.from('blogs').insert([payload]);
-      if (error) return alert('Lỗi thêm mới: ' + error.message + '\n(Cần kiểm tra RLS trên Supabase)');
+      if (error) return toast.error('Lỗi thêm mới: ' + error.message);
+      toast.success('Thêm bài viết mới thành công');
     }
     
     setIsEditing(false);

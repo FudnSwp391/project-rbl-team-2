@@ -56,6 +56,16 @@ const QuestionPractice = () => {
       if (error) throw error;
       
       setSaveSuccess(true);
+      
+      // Gửi thông báo
+      await supabase.from('notifications').insert([{
+        user_id: user.id,
+        title: 'Nộp bài thành công',
+        content: 'Bạn đã hoàn thành bài luyện tập. Chờ đánh giá hoặc xem lại phần làm bài của mình.',
+        type: 'success',
+        action_link: '/question-bank/history'
+      }]);
+      
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error('Error saving answer:', err);

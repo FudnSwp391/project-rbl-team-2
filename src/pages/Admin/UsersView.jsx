@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const UsersView = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,22 +10,39 @@ const UsersView = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [page, searchTerm]);
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    
+    let query = supabase.from('profiles').select('*', { count: 'exact' });
+    
+    if (searchTerm) {
+      query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+    }
+    
+    const from = (page - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
+
+    const { data, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
       
     if (error) {
-      alert('Lỗi khi tải users: ' + error.message);
+      toast.error('Lỗi khi tải users: ' + error.message);
       console.error('Error fetching users:', error);
     } else {
       setUsers(data || []);
+      setTotalPages(Math.ceil((count || 0) / itemsPerPage) || 1);
     }
     setLoading(false);
   };
@@ -33,15 +51,25 @@ const UsersView = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
       const { error } = await supabase.from('profiles').delete().eq('id', id);
       if (error) {
-        alert('Lỗi khi xóa: ' + error.message + '\n(Lưu ý: Cần kiểm tra quyền RLS trên Supabase)');
+        toast.error('Lỗi khi xóa: ' + error.message);
       } else {
-        setUsers(users.filter(u => u.id !== id));
+        toast.success('Xóa người dùng thành công');
+        if (users.length === 1 && page > 1) {
+          setPage(page - 1);
+        } else {
+          fetchUsers();
+        }
       }
     }
   };
 
   const handleEdit = (u) => {
-    setCurrentUser(u);
+    // Tự động sửa lỗi dữ liệu cũ nếu role là mentor/recruiter nhưng plan không phải Premium
+    let currentPlan = u.plan;
+    if (u.role === 'mentor' || u.role === 'recruiter' || u.role === 'Admin' || u.role === 'admin') {
+      currentPlan = 'Premium';
+    }
+    setCurrentUser({ ...u, plan: currentPlan });
     setIsEditing(true);
   };
 
@@ -63,7 +91,7 @@ const UsersView = () => {
       full_name: currentUser.full_name,
       email: currentUser.email,
       role: currentUser.role,
-      plan: currentUser.plan,
+      plan: (currentUser.role === 'mentor' || currentUser.role === 'recruiter' || currentUser.role === 'admin' || currentUser.role === 'Admin') ? 'Premium' : currentUser.plan,
       status: currentUser.status,
       points: Math.max(0, parseInt(currentUser.points || 0, 10))
     };
@@ -86,11 +114,58 @@ const UsersView = () => {
       }
 
       const { error } = await supabase.from('profiles').update(payload).eq('id', currentUser.id);
-      if (error) return alert('Lỗi cập nhật: ' + error.message + '\n(Lưu ý: Cần kiểm tra quyền RLS trên Supabase)');
+      if (error) return toast.error('Lỗi cập nhật: ' + error.message);
+      
+      // Đồng bộ trạng thái duyệt sang bảng mentors/companies và gửi thông báo nếu Admin thay đổi role
+      if (originalUser && originalUser.role !== currentUser.role) {
+        const oldRole = originalUser.role.toLowerCase();
+        const newRole = currentUser.role.toLowerCase();
+        
+        let notifTitle = '';
+        let notifContent = '';
+        let notifType = 'info';
+
+        if (newRole === 'mentor') {
+          await supabase.from('mentors').update({ status: 'approved' }).eq('mentor_id', currentUser.id);
+          notifTitle = 'Hồ sơ Mentor đã được duyệt!';
+          notifContent = 'Admin đã nâng cấp tài khoản của bạn lên Mentor. Bây giờ bạn có thể truy cập trang quản lý Mentor.';
+          notifType = 'success';
+        } else if (newRole === 'recruiter') {
+          await supabase.from('companies').update({ status: 'approved' }).eq('recruiter_id', currentUser.id);
+          notifTitle = 'Hồ sơ Nhà tuyển dụng đã được duyệt!';
+          notifContent = 'Admin đã nâng cấp tài khoản của bạn lên Nhà tuyển dụng. Hãy vào cập nhật công ty ngay!';
+          notifType = 'success';
+        } else if (newRole === 'candidate') {
+          if (oldRole === 'mentor') {
+            await supabase.from('mentors').update({ status: 'rejected' }).eq('mentor_id', currentUser.id);
+            notifTitle = 'Thay đổi quyền truy cập';
+            notifContent = 'Tài khoản của bạn đã bị chuyển về Ứng viên. Bạn không còn quyền truy cập chức năng Mentor.';
+            notifType = 'warning';
+          } else if (oldRole === 'recruiter') {
+            await supabase.from('companies').update({ status: 'rejected' }).eq('recruiter_id', currentUser.id);
+            notifTitle = 'Thay đổi quyền truy cập';
+            notifContent = 'Tài khoản của bạn đã bị chuyển về Ứng viên. Bạn không còn quyền Nhà tuyển dụng.';
+            notifType = 'warning';
+          }
+        }
+        
+        if (notifContent) {
+          await supabase.from('notifications').insert([{
+            user_id: currentUser.id,
+            title: notifTitle,
+            content: notifContent,
+            type: notifType,
+            action_link: '/profile'
+          }]);
+        }
+      }
+
+      toast.success('Cập nhật người dùng thành công');
     } else {
       // Insert
       const { error } = await supabase.from('profiles').insert([payload]);
-      if (error) return alert('Lỗi thêm mới: ' + error.message + '\n(Lưu ý: Cần kiểm tra quyền RLS trên Supabase)');
+      if (error) return toast.error('Lỗi thêm mới: ' + error.message);
+      toast.success('Thêm người dùng mới thành công');
     }
     
     setIsEditing(false);
@@ -140,7 +215,7 @@ const UsersView = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.length > 0 ? filteredUsers.map(user => (
+            {users.length > 0 ? users.map(user => (
               <tr key={user.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                 <td style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>#{user.id ? user.id.toString().substring(0, 8) : ''}...</td>
                 <td style={{ padding: '1rem', fontWeight: '600', color: '#1e293b' }}>{user.full_name || 'Người dùng ẩn danh'}</td>
@@ -192,6 +267,26 @@ const UsersView = () => {
         </table>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: 'var(--spacing-md)' }}>
+        <button
+          disabled={page === 1}
+          onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          style={{ ...pageBtnStyle, opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+        >
+          &larr; Prev
+        </button>
+        <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontWeight: '600', color: '#334155' }}>
+          {page} / {totalPages}
+        </span>
+        <button
+          disabled={page === totalPages || totalPages === 0}
+          onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          style={{ ...pageBtnStyle, opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
+        >
+          Next &rarr;
+        </button>
+      </div>
+
       {isEditing && (
         <div style={modalOverlayStyle}>
           <div className="animate-fade" style={modalContentStyle}>
@@ -234,7 +329,17 @@ const UsersView = () => {
                   <label style={labelStyle}>Vai trò</label>
                   <select
                     value={currentUser.role || 'candidate'}
-                    onChange={e => setCurrentUser({ ...currentUser, role: e.target.value })}
+                    onChange={e => {
+                      const newRole = e.target.value;
+                      let newPlan = currentUser.plan;
+                      if (newRole === 'mentor' || newRole === 'recruiter') {
+                        newPlan = 'Premium';
+                      } else if (newRole === 'candidate' && currentUser.id) {
+                        const originalUser = users.find(u => u.id === currentUser.id);
+                        newPlan = originalUser ? originalUser.plan : 'Free';
+                      }
+                      setCurrentUser({ ...currentUser, role: newRole, plan: newPlan });
+                    }}
                     style={inputStyle}
                   >
                     <option value="candidate">Candidate (Ứng viên)</option>
@@ -248,7 +353,13 @@ const UsersView = () => {
                   <select
                     value={currentUser.plan || 'Free'}
                     onChange={e => setCurrentUser({ ...currentUser, plan: e.target.value })}
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      backgroundColor: (currentUser.role === 'mentor' || currentUser.role === 'recruiter') ? '#f1f5f9' : '#ffffff',
+                      cursor: (currentUser.role === 'mentor' || currentUser.role === 'recruiter') ? 'not-allowed' : 'auto'
+                    }}
+                    disabled={currentUser.role === 'mentor' || currentUser.role === 'recruiter'}
+                    title={(currentUser.role === 'mentor' || currentUser.role === 'recruiter') ? 'Tài khoản Mentor và Recruiter mặc định sử dụng gói Premium' : ''}
                   >
                     <option value="Free">Gói Free</option>
                     <option value="Pro">Gói Pro</option>
@@ -331,6 +442,16 @@ const modalContentStyle = {
   width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto', 
   padding: '2.5rem', background: '#ffffff', borderRadius: '24px',
   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+};
+
+const pageBtnStyle = {
+  padding: '0.5rem 1rem',
+  background: 'var(--primary)',
+  color: 'white',
+  border: 'none',
+  borderRadius: '8px',
+  fontWeight: 'bold',
+  transition: 'transform 0.2s'
 };
 
 export default UsersView;
