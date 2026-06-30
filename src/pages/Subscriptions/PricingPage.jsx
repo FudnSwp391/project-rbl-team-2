@@ -4,9 +4,11 @@ import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import PaymentModal from '../../components/PaymentModal';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const PricingPage = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [currentPlan, setCurrentPlan] = useState(profile?.plan || 'Free');
   const [usageCount, setUsageCount] = useState(profile?.question_bank_usage_count || 0);
   const [planDaysLeft, setPlanDaysLeft] = useState(null);
@@ -15,6 +17,7 @@ const PricingPage = () => {
   const [orderCode, setOrderCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [dbPlans, setDbPlans] = useState([]);
+  const confirm = useConfirm();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,7 +83,7 @@ const PricingPage = () => {
 
   const handleUpgrade = async (planName) => {
     if (!user) {
-      alert('Vui lòng đăng nhập để nâng cấp gói dịch vụ!');
+      toast.error('Vui lòng đăng nhập để nâng cấp gói dịch vụ!');
       return;
     }
 
@@ -101,7 +104,7 @@ const PricingPage = () => {
     setIsProcessing(false);
 
     if (error) {
-      alert('Lỗi khi tạo đơn hàng: ' + error.message + '\n(Hãy chắc chắn bạn đã chạy file sepay_orders_schema.sql)');
+      toast.error('Lỗi khi tạo đơn hàng: ' + error.message);
     } else {
       setSelectedPlan({ name: planName, price: price });
       setOrderCode(code);
@@ -111,48 +114,62 @@ const PricingPage = () => {
 
   const handleExchange = async (planName) => {
     if (!user) {
-      alert('Vui lòng đăng nhập!');
+      toast.error('Vui lòng đăng nhập!');
       return;
     }
     
     const cost = planName === 'Pro' ? 300 : 500;
     if (currentPoints < cost) {
-      alert(`Bạn không có đủ điểm để đổi gói ${planName}. Cần ${cost} điểm, bạn đang có ${currentPoints} điểm.`);
+      toast.error(`Bạn không đủ điểm! Cần ${cost} điểm, bạn đang có ${currentPoints} điểm.`);
       return;
     }
     
-    if (!window.confirm(`Xác nhận dùng ${cost} điểm để đổi gói ${planName}?`)) return;
-    
-    setIsProcessing(true);
-    const planLimits = getPlanLimits(planName);
-    const durationDays = planLimits.duration_days;
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + durationDays);
-    
-    try {
-      const { error } = await supabase.from('profiles').update({
-        plan: planName,
-        plan_expires_at: expiresAt.toISOString(),
-        points: Math.max(0, currentPoints - cost)
-      }).eq('id', user.id);
-      
-      if (error) throw error;
-      
-      const storageKey = `ita_user_data_${user.id}`;
-      let savedData = JSON.parse(localStorage.getItem(storageKey));
-      if (savedData) {
-        savedData.points = Math.max(0, savedData.points - cost);
-        localStorage.setItem(storageKey, JSON.stringify(savedData));
+    confirm({
+      title: 'Xác nhận đổi gói',
+      message: `Bạn có chắc chắn muốn dùng <strong style="color: #f59e0b; font-size: 1.1rem">${cost} điểm</strong> để đổi lấy gói <strong style="color: var(--primary)">${planName}</strong> không?`,
+      confirmText: 'Xác nhận đổi',
+      onConfirm: async () => {
+        setIsProcessing(true);
+        const planLimits = getPlanLimits(planName);
+        const durationDays = planLimits.duration_days;
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + durationDays);
+        
+        try {
+          const { error } = await supabase.from('profiles').update({
+            plan: planName,
+            plan_expires_at: expiresAt.toISOString(),
+            points: Math.max(0, currentPoints - cost)
+          }).eq('id', user.id);
+          
+          if (error) throw error;
+          
+          const storageKey = `ita_user_data_${user.id}`;
+          let savedData = JSON.parse(localStorage.getItem(storageKey));
+          if (savedData) {
+            savedData.points = Math.max(0, savedData.points - cost);
+            localStorage.setItem(storageKey, JSON.stringify(savedData));
+          }
+          
+          await supabase.from('notifications').insert([{
+            user_id: user.id,
+            title: 'Nâng cấp thành công 🎉',
+            content: `Chúc mừng bạn đã dùng điểm đổi thành công gói ${planName}. Cảm ơn bạn đã tin tưởng dịch vụ!`,
+            type: 'system',
+            is_read: false
+          }]);
+          
+          toast.success(`Đổi gói thành công! Bạn đã được cấp gói ${planName}.`);
+          await refreshProfile();
+          navigate('/dashboard');
+        } catch (err) {
+          console.error('Lỗi khi đổi gói:', err);
+          toast.error('Có lỗi xảy ra: ' + err.message);
+        } finally {
+          setIsProcessing(false);
+        }
       }
-      
-      alert(`Đổi gói thành công! Bạn đã được cấp gói ${planName}.`);
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Lỗi khi đổi gói:', err);
-      alert('Có lỗi xảy ra: ' + err.message);
-    } finally {
-      setIsProcessing(false);
-    }
+    });
   };
 
   return (
@@ -301,9 +318,10 @@ const PricingPage = () => {
               console.error('Lỗi khi nâng cấp DB:', err);
             }
 
-            alert(`Thanh toán thành công! Hạng thành viên của bạn đã được nâng cấp lên ${selectedPlan.name}.`);
+            toast.success(`Thanh toán thành công! Hạng thành viên của bạn đã được nâng cấp lên ${selectedPlan.name}.`);
+            await refreshProfile();
             setShowPayment(false);
-            window.location.href = '/dashboard';
+            navigate('/dashboard');
           }}
         />
       )}

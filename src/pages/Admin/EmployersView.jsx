@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const EmployersView = () => {
+  const confirm = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,8 @@ const EmployersView = () => {
   };
 
   const handleApprove = async (company) => {
-    if (window.confirm(`Bạn có chắc chắn muốn DUYỆT nhà tuyển dụng ${company.company_name}?`)) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: `Bạn có chắc chắn muốn DUYỆT nhà tuyển dụng ${company.company_name}?`, isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       // 1. Cập nhật trạng thái company
       const { error: updateCompanyError } = await supabase
         .from('companies')
@@ -80,7 +83,8 @@ const EmployersView = () => {
   };
 
   const handleReject = async (company) => {
-    if (window.confirm(`Bạn có chắc chắn muốn TỪ CHỐI nhà tuyển dụng ${company.company_name}?`)) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: `Bạn có chắc chắn muốn TỪ CHỐI nhà tuyển dụng ${company.company_name}?`, isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error: updateCompanyError } = await supabase
         .from('companies')
         .update({ status: 'rejected' })
@@ -396,8 +400,8 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
   width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', 

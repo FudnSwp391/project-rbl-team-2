@@ -1,14 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../utils/AuthContext';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const BlogsView = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditing]);
+
   const [currentItem, setCurrentItem] = useState(null);
   const [tagsInput, setTagsInput] = useState('');
 
@@ -29,7 +42,8 @@ const BlogsView = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa bài viết này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { data, error } = await supabase.from('blogs').delete().eq('id', id).select();
       if (error) {
         toast.error('Lỗi khi xóa: ' + error.message);
@@ -122,7 +136,7 @@ const BlogsView = () => {
         </table>
       </div>
 
-      {isEditing && (
+      {isEditing && createPortal(
         <div style={modalOverlayStyle}>
           <div className="animate-fade glass-card" style={modalContentStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -165,7 +179,8 @@ const BlogsView = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

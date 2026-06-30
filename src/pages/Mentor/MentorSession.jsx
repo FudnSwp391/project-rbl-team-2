@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Video, VideoOff, Mic, MicOff, Monitor, Phone, MessageSquare, Clock, User } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const MentorSession = () => {
+  const confirm = useConfirm();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -67,7 +69,8 @@ const MentorSession = () => {
   };
 
   const handleEndSession = async () => {
-    if (window.confirm('Bạn có chắc chắn muốn kết thúc phiên mentoring?')) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn kết thúc phiên mentoring?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       setIsSessionActive(false);
 
       // Update booking status to completed

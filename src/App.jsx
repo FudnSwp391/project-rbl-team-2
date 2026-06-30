@@ -5,6 +5,7 @@ import Lenis from 'lenis';
 import Header from './components/layout/Header';
 import AppRoutes from './routes/AppRoutes';
 import BookingReminder from './components/BookingReminder';
+import { ConfirmProvider } from './utils/ConfirmContext';
 import './index.css';
 
 function AppContent() {
@@ -68,8 +69,10 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <BookingReminder />
-      <AppContent />
+      <ConfirmProvider>
+        <BookingReminder />
+        <AppContent />
+      </ConfirmProvider>
     </Router>
   );
 }

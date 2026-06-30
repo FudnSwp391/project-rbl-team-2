@@ -56,6 +56,17 @@ Deno.serve(async (req: Request) => {
     // 2. Cập nhật gói dịch vụ (plan) cho user và reset lượt sử dụng ngân hàng câu hỏi
     await supabaseAdmin.from('profiles').update({ plan: order.plan_name, question_bank_usage_count: 0 }).eq('id', order.user_id);
     
+    // 3. Tạo thông báo cho user
+    await supabaseAdmin.from('notifications').insert([
+      {
+        user_id: order.user_id,
+        title: 'Thanh toán thành công 🎉',
+        content: `Chúc mừng bạn đã nâng cấp thành công lên gói ${order.plan_name}. Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!`,
+        type: 'system',
+        is_read: false
+      }
+    ]);
+    
     return new Response(
       JSON.stringify({ success: true, message: 'Payment processed successfully', order_code: orderCode }),
       { headers: { "Content-Type": "application/json" } },

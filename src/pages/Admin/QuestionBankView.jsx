@@ -3,12 +3,23 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const QuestionBankView = () => {
+  const confirm = useConfirm();
   const [questions, setQuestions] = useState([]);
   const [industries, setIndustries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditing]);
   const [currentQ, setCurrentQ] = useState(null);
 
   const [page, setPage] = useState(1);
@@ -62,7 +73,8 @@ const QuestionBankView = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa câu hỏi này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error } = await supabase.from('questions').delete().eq('id', id);
       if (error) {
         toast.error('Lỗi khi xóa: ' + error.message);
@@ -354,8 +366,8 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
   width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', 

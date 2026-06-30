@@ -1,12 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const ChallengesView = () => {
+  const confirm = useConfirm();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditing]);
+
   const [currentItem, setCurrentItem] = useState(null);
 
   useEffect(() => {
@@ -26,7 +39,8 @@ const ChallengesView = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa thử thách này?')) {
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa thử thách này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (isConfirmed) {
       const { error } = await supabase.from('challenges').delete().eq('id', id);
       if (error) toast.error('Lỗi khi xóa: ' + error.message);
       else {
@@ -122,7 +136,7 @@ const ChallengesView = () => {
         </table>
       </div>
 
-      {isEditing && (
+      {isEditing && createPortal(
         <div style={modalOverlayStyle}>
           <div className="animate-fade glass-card" style={modalContentStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -154,7 +168,8 @@ const ChallengesView = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

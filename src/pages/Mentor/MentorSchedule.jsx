@@ -4,8 +4,10 @@ import { Calendar, Clock, CheckCircle, XCircle, Video, MessageSquare } from 'luc
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const MentorSchedule = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [filter, setFilter] = useState('all');
   const [bookings, setBookings] = useState([]);
@@ -84,7 +86,8 @@ const MentorSchedule = () => {
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn từ chối lịch hẹn này?')) return;
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn từ chối lịch hẹn này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (!isConfirmed) return;
     const { error } = await supabase
       .from('mentor_bookings')
       .update({ status: 'rejected' })

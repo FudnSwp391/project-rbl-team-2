@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const UsersView = () => {
+  const confirm = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isEditing]);
+
   const [currentUser, setCurrentUser] = useState(null);
 
   const [page, setPage] = useState(1);
@@ -48,19 +61,25 @@ const UsersView = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-      const { error } = await supabase.from('profiles').delete().eq('id', id);
-      if (error) {
-        toast.error('Lỗi khi xóa: ' + error.message);
-      } else {
-        toast.success('Xóa người dùng thành công');
-        if (users.length === 1 && page > 1) {
-          setPage(page - 1);
+    confirm({
+      title: 'Xóa người dùng',
+      message: 'Bạn có chắc chắn muốn xóa người dùng này?',
+      isDanger: true,
+      confirmText: 'Xóa',
+      onConfirm: async () => {
+        const { error } = await supabase.from('profiles').delete().eq('id', id);
+        if (error) {
+          toast.error('Lỗi khi xóa: ' + error.message);
         } else {
-          fetchUsers();
+          toast.success('Xóa người dùng thành công');
+          if (users.length === 1 && page > 1) {
+            setPage(page - 1);
+          } else {
+            fetchUsers();
+          }
         }
       }
-    }
+    });
   };
 
   const handleEdit = (u) => {
@@ -287,7 +306,7 @@ const UsersView = () => {
         </button>
       </div>
 
-      {isEditing && (
+      {isEditing && createPortal(
         <div style={modalOverlayStyle}>
           <div className="animate-fade" style={modalContentStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -399,7 +418,8 @@ const UsersView = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -435,11 +455,11 @@ const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3
 const modalOverlayStyle = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-  padding: '1rem'
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999,
+  padding: '5rem 1rem 2rem', overflowY: 'auto'
 };
 const modalContentStyle = { 
-  width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto', 
+  width: '100%', maxWidth: '550px', margin: 'auto', 
   padding: '2.5rem', background: '#ffffff', borderRadius: '24px',
   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
 };

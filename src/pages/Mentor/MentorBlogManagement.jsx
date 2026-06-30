@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Edit2, Eye, Trash2, FileText, Play, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 // Helper: extract YouTube embed URL
 const getYouTubeEmbedUrl = (url) => {
@@ -19,6 +20,7 @@ const extractVideoFromContent = (content) => {
 };
 
 const MentorBlogManagement = () => {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,8 @@ const MentorBlogManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) return;
+    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa bài viết này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    if (!isConfirmed) return;
     const { error } = await supabase.from('blogs').delete().eq('id', id);
     if (error) {
       alert('Lỗi khi xóa bài viết: ' + error.message);
