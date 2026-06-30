@@ -55,7 +55,7 @@ const PracticeHistory = () => {
         <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
           <BookMarked color="var(--color-earth)" size={32} /> Lịch sử Luyện tập
         </h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Xem lại các câu hỏi bạn đã trả lời và nhận xét từ Mentor (nếu có).</p>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Xem lại các câu hỏi bạn đã trả lời và đánh giá từ AI.</p>
       </header>
 
       {loading ? (
@@ -78,12 +78,12 @@ const PracticeHistory = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                     <span style={{ 
                       fontSize: '0.8rem', fontWeight: 600, padding: '0.25rem 0.75rem', borderRadius: '50px',
-                      background: item.status === 'reviewed' ? '#dcfce7' : '#fef3c7',
-                      color: item.status === 'reviewed' ? '#16a34a' : '#d97706',
+                      background: item.ai_feedback ? '#dcfce7' : '#f3f4f6',
+                      color: item.ai_feedback ? '#16a34a' : '#4b5563',
                       display: 'flex', alignItems: 'center', gap: '0.25rem'
                     }}>
-                      {item.status === 'reviewed' ? <CheckCircle size={14} /> : <Clock size={14} />}
-                      {item.status === 'reviewed' ? 'Đã nhận xét' : 'Chờ nhận xét'}
+                      <CheckCircle size={14} />
+                      {item.ai_feedback ? 'Đã đánh giá AI' : 'Đã nộp'}
                     </span>
                     <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
                       {new Date(item.created_at).toLocaleString('vi-VN')}
@@ -109,7 +109,39 @@ const PracticeHistory = () => {
                 </div>
               </div>
 
-              {/* Nhận xét của Mentor (nếu có) */}
+              {/* Nhận xét của AI */}
+              {item.ai_feedback && (
+                <div style={{ 
+                  background: 'var(--color-cream-dark)', padding: '1.5rem', borderRadius: '12px', 
+                  borderLeft: '4px solid var(--color-moss)', marginTop: '0.5rem'
+                }}>
+                  <h4 style={{ 
+                    fontSize: '0.95rem', color: '#16a34a', marginBottom: '0.75rem', 
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 
+                  }}>
+                    <MessageSquare size={18} /> Kết quả Đánh giá từ AI:
+                  </h4>
+                  <div style={{ color: 'var(--color-charcoal)', lineHeight: 1.6 }}>
+                    {typeof item.ai_feedback === 'object' && item.ai_feedback !== null ? (
+                      <>
+                        <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>
+                          <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', background: '#e0f2fe', color: '#0284c7', borderRadius: '4px' }}>
+                            Điểm: {item.ai_feedback.score}/100
+                          </span>
+                        </div>
+                        <div style={{ whiteSpace: 'pre-wrap' }}>
+                          <strong>Nhận xét tổng quan:</strong><br />
+                          {item.ai_feedback.general_feedback || item.ai_feedback.progress_analysis || 'Không có nhận xét chi tiết'}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{item.ai_feedback}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Nhận xét của Mentor (giữ lại nếu có dữ liệu cũ) */}
               {item.feedback && (
                 <div style={{ 
                   background: 'var(--color-cream-dark)', padding: '1.5rem', borderRadius: '12px', 
