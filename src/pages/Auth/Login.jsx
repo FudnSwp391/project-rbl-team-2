@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
+import { Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { user, login, loginWithOAuth } = useAuth();
@@ -84,15 +86,25 @@ const Login = () => {
 
           <div className="auth-form-group">
             <label htmlFor="password">Mật khẩu</label>
-            <input
-              type="password"
-              id="password"
-              className="auth-input"
-              placeholder="Nhập mật khẩu"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                className="auth-input"
+                placeholder="Nhập mật khẩu"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
             <Link to="/forgot-password" className="auth-forgot-password">
               Quên mật khẩu?
             </Link>

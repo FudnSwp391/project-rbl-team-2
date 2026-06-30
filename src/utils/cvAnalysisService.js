@@ -6,6 +6,8 @@
 
 import * as pdfjsLib from 'pdfjs-dist'
 import mammoth from 'mammoth'
+import IT_JOB_POSITIONS from '../constants/itJobPositions';
+import { GoogleGenAI } from '@google/genai';
 
 // Configure pdf.js worker — use the bundled worker from node_modules
 // This avoids CDN version mismatch issues
@@ -14,16 +16,39 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString()
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
+// ─── Load API Keys ───────────────────────────────────────────────────────────
+const GEMINI_KEYS = [
+  import.meta.env.VITE_GEMINI_API_KEY_1,
+  import.meta.env.VITE_GEMINI_API_KEY_2,
+  import.meta.env.VITE_GEMINI_API_KEY_3,
+  import.meta.env.VITE_GEMINI_API_KEY_4,
+  import.meta.env.VITE_GEMINI_API_KEY_5,
+  import.meta.env.VITE_GEMINI_API_KEY || ''
+].map(k => (k || '').trim()).filter(k => k.length > 10);
+
+const GROQ_KEYS = [
+  import.meta.env.VITE_GROQ_API_KEY_1,
+  import.meta.env.VITE_GROQ_API_KEY_2,
+  import.meta.env.VITE_GROQ_API_KEY_3,
+  import.meta.env.VITE_GROQ_API_KEY_4,
+  import.meta.env.VITE_GROQ_API_KEY_5,
+  import.meta.env.VITE_GROQ_API_KEY || ''
+].map(k => (k || '').trim()).filter(k => k.length > 10);
+
+// Track which key index to start from (round-robin rotation)
+let _geminiKeyIndex = 0;
+let _groqKeyIndex = 0;
+
+console.log(`[CV Analysis] Loaded ${GEMINI_KEYS.length} Gemini key(s), ${GROQ_KEYS.length} Groq key(s)`);
 
 /**
  * Analyze a CV file using Groq AI (Llama 3.3) or Gemini AI
  * @param {File} file - The CV file to analyze
  * @param {function} onProgress - Callback for progress updates (0-100)
+ * @param {object|null} targetPosition - Selected IT job position for suitability assessment
  * @returns {Promise<object>} Analysis results
  */
-export async function analyzeCV(file, onProgress = () => {}) {
+export async function analyzeCV(file, onProgress = () => {}, targetPosition = null) {
   // Phase 1: Reading file
   onProgress(10, 'Đang đọc file CV...')
   await delay(400)
@@ -37,7 +62,10 @@ export async function analyzeCV(file, onProgress = () => {}) {
   onProgress(35, 'Đang kiểm tra nội dung...')
   const validation = validateCVContent(extraction.text)
 
-  if (validation.isEmpty) {
+  // Nếu dùng Gemini và file là PDF, bỏ qua check text trống vì Gemini đọc ảnh
+  const isPdfWithGemini = file.type === 'application/pdf' && GEMINI_KEYS.length > 0;
+  
+  if (validation.isEmpty && !isPdfWithGemini) {
     onProgress(100, 'Hoàn tất!')
     return createEmptyCVResult(file.name, validation.reason)
   }
@@ -46,39 +74,43 @@ export async function analyzeCV(file, onProgress = () => {}) {
   onProgress(45, 'Đang phân tích bằng AI...')
 
   let result
-  if (GROQ_API_KEY && GROQ_API_KEY !== 'your_groq_api_key_here') {
+  if (GEMINI_KEYS.length > 0) {
     try {
-      result = await callGroqAnalysis(extraction.text, file.name)
-      onProgress(85, 'Đang tạo báo cáo bằng Groq Llama 3.3...')
+      result = await callGeminiAnalysis(file, targetPosition)
+      onProgress(85, 'Đang tạo báo cáo bằng Gemini 1.5 Flash...')
     } catch (error) {
-      console.warn('Groq API error, trying Gemini fallback:', error)
-      if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+      console.warn('Gemini API error, trying Groq fallback:', error)
+      if (GROQ_KEYS.length > 0 && !validation.isEmpty) {
         try {
-          result = await callGeminiAnalysis(extraction.text, file.name)
-          onProgress(85, 'Đang tạo báo cáo bằng Gemini...')
-        } catch (geminiError) {
-          console.warn('Gemini fallback failed, falling back to local analysis:', geminiError)
-          result = localAnalysis(extraction.text, file.name)
-          onProgress(85, 'Đang tạo báo cáo (phân tích cục bộ)...')
+          result = await callGroqAnalysis(extraction.text, file.name, targetPosition)
+          onProgress(85, 'Đang tạo báo cáo bằng Groq Llama...')
+        } catch (groqError) {
+          result = localAnalysis(extraction.text, file.name, targetPosition)
         }
       } else {
-        result = localAnalysis(extraction.text, file.name)
-        onProgress(85, 'Đang tạo báo cáo (phân tích cục bộ)...')
+        result = localAnalysis(extraction.text, file.name, targetPosition)
       }
     }
-  } else if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+  } else if (GROQ_KEYS.length > 0 && !validation.isEmpty) {
     try {
-      result = await callGeminiAnalysis(extraction.text, file.name)
-      onProgress(85, 'Đang tạo báo cáo bằng Gemini...')
+      result = await callGroqAnalysis(extraction.text, file.name, targetPosition)
+      onProgress(85, 'Đang tạo báo cáo bằng Groq Llama...')
     } catch (error) {
-      console.warn('Gemini API error, falling back to local analysis:', error)
-      result = localAnalysis(extraction.text, file.name)
-      onProgress(85, 'Đang tạo báo cáo (phân tích cục bộ)...')
+      result = localAnalysis(extraction.text, file.name, targetPosition)
     }
   } else {
     await delay(800)
-    result = localAnalysis(extraction.text, file.name)
+    result = localAnalysis(extraction.text, file.name, targetPosition)
     onProgress(85, 'Đang tạo báo cáo (phân tích cục bộ)...')
+  }
+
+  // Add evaluatedPositionId to the result so the UI knows what this CV was matched against
+  if (result) {
+    if (targetPosition) {
+      result.evaluatedPositionId = targetPosition.id;
+    } else if (result.suggestedPositionId) {
+      result.evaluatedPositionId = result.suggestedPositionId;
+    }
   }
 
   // Phase 5: Finalizing
@@ -302,251 +334,353 @@ async function extractDocxText(file) {
 //  5 Criteria: JD Relevance, Experience, Skills, Achievements, Presentation
 // ─────────────────────────────────────────────
 
-function getAnalysisSystemPrompt() {
-  return `CRITICAL TRUTH & FACTUALITY RULE (MUST OBEY):
-You are an elite, brutally honest Senior Technical Recruiter and ATS scanner. You MUST evaluate the candidate based EXCLUSIVELY on the actual, literal text provided in their CV.
-- NEVER invent, assume, or hallucinate any company (e.g. DO NOT invent "FPT Software" experience), project (e.g. DO NOT invent a "Smart Home System" or "chatbot"), or technology (e.g. DO NOT invent "Python", "React Hooks", "Redux") that is NOT explicitly written in their CV text!
-- You must review the candidate's actual projects (e.g. "E-commerce Website using Java Servlet/JSP/JDBC/SQL Server", "Line Following Robot using Arduino/C++", and "LUMIÈRE - Cinema Streaming Platform using HTML5/CSS3/Vanilla JS/RESTful API") and actual work history.
-- If they have no professional work experience, evaluate them honestly as a student/fresher based on their academic and personal projects. Do NOT invent corporate jobs.
-- Strictly critique the real details. Hallucinating false information will result in immediate failure. Strictly stick to the absolute truth of the provided CV text.
+function getAnalysisSystemPrompt(targetPosition = null) {
+  let jobAssessmentJsonStructure = '';
+  let jobAssessmentInstruction = '';
 
-You must think like:
-- FAANG recruiter
-- Senior HR manager
-- Tech lead
-- ATS screening system
-- Engineering manager
+  if (targetPosition) {
+    jobAssessmentInstruction = `
+- Bạn cần đánh giá CV dựa trên vị trí mục tiêu: "${targetPosition.name}".
+- Mô tả công việc (JD): ${targetPosition.description}.
+- Kỹ năng bắt buộc: ${targetPosition.requiredSkills.join(', ')}.
+- Kỹ năng nâng cao: ${targetPosition.bonusSkills.join(', ')}.`;
 
-You are STRICT. You DO NOT give fake compliments. You evaluate based on real-world hiring standards from 2025+.
+    jobAssessmentJsonStructure = `
+    "jobMatch": {
+      "score": "number (0-100)",
+      "matchedRequiredSkills": ["string"],
+      "missingRequiredSkills": ["string"],
+      "matchedBonusSkills": ["string"],
+      "readiness": "Sẵn sàng ứng tuyển | Cần cải thiện thêm | Chưa phù hợp",
+      "marketInsight": "string (Nhận định thị trường việc làm cho ứng viên ở vị trí này)"
+    }`;
+  } else {
+    const positionOptions = IT_JOB_POSITIONS.map(p => `- ID: "${p.id}" | Name: "${p.name}"`).join('\n');
+    jobAssessmentInstruction = `
+- Ứng viên không chọn vị trí cụ thể. Bạn PHẢI TỰ ĐỘNG CHỌN 1 ID vị trí IT phù hợp nhất từ danh sách sau dựa vào tiêu đề hoặc kinh nghiệm trong CV:
+${positionOptions}`;
 
-## THE 5 CORE EVALUATION CRITERIA (For sectionScores):
-1. jdRelevance (20%): IT keywords, career goals alignment.
-2. experience (30%): Project size, role, tech stack, real companies, GitHub/demo links.
-3. skills (20%): Categorized skills, certs (AWS, GCP, Cisco), evidence of proficiency.
-4. achievements (20%): STAR model, specific metrics (response time, users, coverage).
-5. presentation (10%): 1-2 pages, professional tone, ATS-friendly layout.
+    jobAssessmentJsonStructure = `
+    "jobMatch": {
+      "suggestedPositionId": "string (Bắt buộc phải là ID chính xác từ danh sách được cung cấp)",
+      "suggestedPositionName": "string (Tên hiển thị)",
+      "score": "number (0-100)",
+      "reason": "string (Tại sao lại đề xuất vị trí này)"
+    }`;
+  }
 
-You are a strict JSON generator. Your output must be a single, valid JSON object containing the CV analysis. DO NOT wrap the output in markdown code blocks (like \`\`\`json ... \`\`\`) under any circumstances. Start directly with the opening curly brace { and end with the closing curly brace }.
+  return `CRITICAL TRUTH & FACTUALITY RULE:
+You are an elite, brutally honest Senior Technical Recruiter and ATS scanner. Evaluate the candidate EXCLUSIVELY on the actual text provided. 
+- ZERO HALLUCINATION: DO NOT invent, assume, or hallucinate any company, project, internship, certification, or technology that is NOT explicitly written in their CV.
+- If a skill or company is not mentioned, it DOES NOT exist.
+- Evaluate basic/outdated tech stack strictly. If they only know basic HTML/CSS/JS or Java without modern frameworks, give low scores (under 60).
 
-The JSON structure must exactly match:
+${jobAssessmentInstruction}
+
+OUTPUT FORMAT:
+You must respond with a single, valid JSON object. DO NOT wrap the output in markdown code blocks. Start directly with { and end with }. 
+All text fields MUST be written in Vietnamese.
+
+The JSON structure MUST exactly match this template:
 {
   "isNonIT": boolean,
-  "atsScore": number,
+  "atsScore": 0,
   "sectionScores": {
-    "jdRelevance": number,
-    "experience": number,
-    "skills": number,
-    "achievements": number,
-    "presentation": number
+    "jdRelevance": 0,
+    "experience": 0,
+    "skills": 0,
+    "achievements": 0,
+    "presentation": 0
   },
-  "detailedReport": "string (The COMPLETE 12-section markdown report in Vietnamese. Use markdown headers # and ##, bold **text**, lists -, etc. Follow the EXACT structure below. MUST BE A VALID JSON ESCAPED STRING.)"
-}
-
-(Note on isNonIT: Only set isNonIT to true if the CV is 100% unrelated to software, engineering, programming, or tech, such as nursing or marketing with absolutely no coding/technical skills. For IT students, Software Engineering candidates, or anyone with technical/coding skills, isNonIT must be false.)
-
-CRITICAL WARNING: In the "detailedReport" field, you MUST write actual, deep, rich, custom, and highly-detailed evaluations for this specific candidate in Vietnamese. DO NOT copy-paste any description bullets or placeholder sentences. You must write 2-3 custom, deep, and highly-detailed analytical paragraphs for each of the 12 sections below, replacing the instructional guides entirely with actual recruiter comments.
-DO NOT use placeholder scores like 1 or 0 for the ratings. Evaluate the candidate's CV honestly, strictly, and realistically, providing real scores between 0 and 100.
-
-## DETAILED REPORT STRUCTURE (Must be exactly these 12 sections in Vietnamese):
-
-# 1. Executive Summary
-(Viết nhận định chi tiết và sắc sảo về thế mạnh, điểm yếu lớn nhất của ứng viên. Đánh giá rõ ràng cấp độ năng lực hiện tại: Beginner, Junior, Mid-level, hay Senior-ready. Tuyệt đối không viết chung chung, không copy câu lệnh.)
-
-# 2. Phân tích độ tương thích ATS
-(Phân tích chi tiết khả năng đọc hiểu của hệ thống ATS đối với bố cục CV này, đánh giá mật độ từ khóa chuyên ngành IT, phát hiện lỗi cấu trúc file và giải thích rõ ràng cơ sở chấm điểm ATS của bạn.)
-
-# 3. Đánh giá bố cục và thiết kế
-(Đánh giá chi tiết về mặt thị giác: cấu trúc phân bổ thông tin, khoảng trắng, tính trực quan, mức độ chuyên nghiệp của font chữ/màu sắc, và đưa ra các gợi ý chỉnh sửa cụ thể để đạt chuẩn chuyên nghiệp.)
-
-# 4. Phân tích Kỹ năng Chuyên môn
-(Phân tích sâu độ rộng và độ sâu của tập hợp kỹ năng cứng. Đánh giá xem tech stack của ứng viên có bắt kịp xu hướng thị trường năm 2025+ hay không. Cảnh báo nếu có hiện tượng "nhồi nhét từ khóa" (buzzword stuffing) và liệt kê 3 kỹ năng ứng viên cần bổ sung gấp.)
-
-# 5. Phân tích Dự án Thực tế (CỰC KỲ QUAN TRỌNG)
-(Mổ xẻ từng dự án trong CV: phân tích độ phức tạp thuật toán, kiến trúc hệ thống, vai trò thực tế và tech stack sử dụng. Phân loại rõ ràng dự án của ứng viên là đồ án sinh viên/CRUD cơ bản sơ sài hay là dự án chuẩn production thực tế. Chỉ ra điểm yếu trong cách thiết kế dự án.)
-
-# 6. Phân tích Kinh nghiệm làm việc
-(Đánh giá chất lượng công việc thông qua các mô tả. Phân tích mức độ đóng góp, khả năng giải quyết bài toán khó và kỹ năng teamwork. Chọn ra các gạch đầu dòng yếu, thiếu sức nặng trong CV và viết lại chúng thành các câu mô tả hành động chuyên nghiệp, đầy trọng lượng.)
-
-# 7. Đánh giá Thành tích & Mức độ ảnh hưởng (STAR)
-(Kiểm tra nghiêm ngặt xem các thành tích có được viết theo mô hình STAR và có số liệu đo lường cụ thể (ví dụ: % tối ưu, số lượng user, response time) hay không. Nếu thiếu số liệu, hãy phê bình nghiêm khắc và hướng dẫn cách bổ sung số liệu giả định phù hợp.)
-
-# 8. Cờ Đỏ & Điểm Yếu (Red Flags)
-(Chỉ ra các điểm yếu chí mạng có thể khiến CV bị loại ngay từ vòng gửi xe: ví dụ thiếu link deploy/GitHub, khoảng trống sự nghiệp, ôm đồm quá nhiều công nghệ không liên quan, hoặc thiếu định hướng chuyên sâu.)
-
-# 9. Khả năng được tuyển dụng (Hiring Probability)
-(Đưa ra ước lượng thực tế bằng phần trăm cơ hội nhận cuộc gọi phỏng vấn của CV này. Đánh giá độ sẵn sàng và độ phù hợp của ứng viên đối với 4 nhóm doanh nghiệp: Startup, Outsourcing, Product Company, và tập đoàn công nghệ lớn/FAANG.)
-
-# 10. Lộ trình Cải thiện (Roadmap)
-(Thiết lập một lộ trình hành động cụ thể, chia rõ thành 3 mức độ ưu tiên: HIGH PRIORITY (cần sửa ngay trong 24h), MEDIUM PRIORITY (cần bổ sung trong 1 tuần), và LOW PRIORITY (kế hoạch dài hạn).)
-
-# 11. Các Mục Còn Thiếu Nên Bổ Sung
-(Gợi ý chi tiết các mục cần thêm để CV nổi bật vượt trội như: chứng chỉ quốc tế uy tín, link Portfolio cá nhân, trang blog chia sẻ kiến thức IT, hoặc các đóng góp cho dự án mã nguồn mở.)
-
-# 12. Tổng Kết (Final Verdict)
-(Đưa ra kết luận cuối cùng: Đâu là ưu điểm lớn nhất? Đâu là rào cản lớn nhất ngăn CV này nhận được lời mời phỏng vấn? Đưa ra 3 hành động cụ thể ứng viên phải làm ngay lập tức sau khi đọc báo cáo này.)
-
-==================================================
-SPECIAL RULES FOR IT CVs
-==================================================
-- If Frontend: Focus on React ecosystem, State management, UI/UX, Performance.
-- If Backend: Focus on API design, DB design, Scalability, Security, Architecture.
-- If Fullstack: Evaluate balance between frontend/backend depth.
-- If AI/ML: Focus on Model understanding, MLOps, dataset, deployment.
-
-RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN FENCES. NO EXTRA TEXT.
-MUST FORMAT THE detailedReport FIELD AS A PROPER JSON ESCAPED STRING.`
-}
-
-async function callGroqAnalysis(cvText, fileName) {
-  const systemPrompt = getAnalysisSystemPrompt()
-  const userPrompt = `CV CONTENT FROM FILE "${fileName}":\n---\n${cvText.substring(0, 12000)}\n---`
-
-  const response = await fetch(
-    'https://api.groq.com/openai/v1/chat/completions',
+  "executiveSummary": {
+    "strengths": "string (Phân tích sâu sắc về các điểm mạnh lớn nhất, viết 2-3 câu chi tiết)",
+    "weaknesses": "string (Phân tích sâu sắc về các điểm yếu lớn nhất, viết 2-3 câu chi tiết)",
+    "level": "Beginner | Junior | Mid-level | Senior-ready"
+  },
+  "atsAnalysis": "string (Đánh giá mật độ từ khóa IT, lỗi cấu trúc bố cục dưới góc nhìn ATS)",
+  "layoutEvaluation": "string (Nhận xét về font chữ, khoảng trắng, tính trực quan kèm gợi ý sửa đổi)",
+  "technicalSkills": {
+    "extractedSkills": ["string (Liệt kê CHÍNH XÁC các công nghệ đọc được từ CV, KHÔNG BỊA)"],
+    "marketRelevance": "string (Đánh giá xem tech stack này có đáp ứng xu hướng năm 2025+ không)",
+    "urgentSkillsToLearn": ["string (3 kỹ năng ứng viên cần bổ sung gấp)"]
+  },
+  "projectsEvaluation": [
     {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        temperature: 0.1
-      })
+      "name": "string (Tên dự án đọc được từ CV)",
+      "type": "Đồ án sinh viên / CRUD cơ bản | Dự án chuẩn Production / Thực tế",
+      "architectureAndStack": "string (Nhận xét về tech stack và kiến trúc sử dụng trong dự án)",
+      "critique": "string (Chỉ ra điểm yếu trong cách thiết kế hoặc mô tả dự án này)"
     }
-  )
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Groq API returned status ${response.status}: ${errorText}`)
-  }
-
-  const data = await response.json()
-  const responseText = data.choices?.[0]?.message?.content || ''
-
-  // Extract and parse JSON
-  const cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '')
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('Invalid JSON response from Groq')
-
-  const result = JSON.parse(jsonMatch[0])
-
-  // Handle non-IT CV
-  if (result.isNonIT) {
-    return {
-      atsScore: 0,
-      sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
-      detailedReport: "# 1. Executive Summary\n\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống này chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ."
-    }
-  }
-
-  // Clamp scores
-  result.atsScore = Math.max(0, Math.min(100, Math.round(result.atsScore)))
-  if (result.sectionScores) {
-    for (const key of Object.keys(result.sectionScores)) {
-      result.sectionScores[key] = Math.max(0, Math.min(100, Math.round(result.sectionScores[key])))
-    }
-  }
-
-  // Ensure detailedReport exists
-  if (!result.detailedReport) {
-    result.detailedReport = "# Lỗi phân tích\n\nKhông thể tạo báo cáo chi tiết từ Groq. Vui lòng thử lại.";
-  }
-
-  return result
+  ],
+  "workExperience": {
+    "isNoExperience": boolean,
+    "evaluation": "string (Phân tích chất lượng kinh nghiệm, mức độ đóng góp, giải quyết bài toán khó. Nếu không có kinh nghiệm chuyên nghiệp, phân tích hoạt động học tập)",
+    "improvedBulletPoints": ["string (Chọn các mô tả yếu trong CV và viết lại chúng thành câu hành động chuyên nghiệp, chuẩn STAR)"]
+  },
+  "achievementsAndStar": {
+    "evaluation": "string (Kiểm tra xem các thành tích có số liệu đo lường cụ thể không. Phê bình nghiêm khắc nếu thiếu số liệu)",
+    "suggestions": "string (Cách bổ sung số liệu thực tế)"
+  },
+  "redFlags": ["string (Các cờ đỏ chí mạng khiến CV bị loại: thiếu link deploy, khoảng trống sự nghiệp, ôm đồm...)"],
+  "hiringProbability": {
+    "overallPercentage": 0,
+    "startup": "string (Khả năng và nhận định)",
+    "outsourcing": "string (Khả năng và nhận định)",
+    "productCompany": "string (Khả năng và nhận định)",
+    "enterprise": "string (Khả năng và nhận định)"
+  },
+  "improvementRoadmap": {
+    "highPriority": ["string (Cần sửa ngay trong 24h)"],
+    "mediumPriority": ["string (Cần bổ sung trong 1 tuần)"],
+    "lowPriority": ["string (Kế hoạch dài hạn)"]
+  },
+  "missingSections": ["string (Gợi ý chứng chỉ quốc tế, Portfolio, Tech Blog, Open Source nên có)"],
+  "finalVerdict": {
+    "summary": "string (Kết luận cuối cùng về rào cản lớn nhất ngăn CV nhận lời mời phỏng vấn)",
+    "immediateActions": ["string (3 hành động cụ thể ứng viên phải làm ngay lập tức)"]
+  },
+${jobAssessmentJsonStructure}
+}
+`;
 }
 
-async function callGeminiAnalysis(cvText, fileName) {
-  const systemPrompt = getAnalysisSystemPrompt()
+/**
+ * Chuyển đổi đối tượng File thành chuỗi Base64 sạch (loại bỏ data URL prefix)
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64String = reader.result.split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+async function callGroqAnalysis(cvText, fileName, targetPosition = null) {
+  const systemPrompt = getAnalysisSystemPrompt(targetPosition)
   const userPrompt = `CV CONTENT FROM FILE "${fileName}":\n---\n${cvText.substring(0, 12000)}\n---`
 
-  // Retry logic for 429 (rate limit) errors — wait and try again up to 3 times
-  // Using gemini-2.0-flash-lite for higher free-tier rate limits
-  const MODEL = 'gemini-2.0-flash-lite'
-  const MAX_RETRIES = 3
-  let response
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: userPrompt }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 8192,
+  // Round-robin: try each Groq key starting from the current index
+  for (let i = 0; i < GROQ_KEYS.length; i++) {
+    const keyIdx = (_groqKeyIndex + i) % GROQ_KEYS.length;
+    const apiKey = GROQ_KEYS[keyIdx];
+    try {
+      console.log(`[CV Analysis] Gọi Groq API (key ${keyIdx + 1}/${GROQ_KEYS.length})...`);
+      const response = await fetch(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
           },
-        }),
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.1
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.warn(`[CV Analysis] Groq key ${keyIdx + 1} thất bại (${response.status}): ${errText.substring(0, 200)}`);
+        continue; // thử key tiếp theo
       }
-    )
 
-    if (response.ok) break // Success — exit retry loop
+      // Thành công — xoay key cho lần gọi tiếp theo
+      _groqKeyIndex = (keyIdx + 1) % GROQ_KEYS.length;
 
-    if (response.status === 429 && attempt < MAX_RETRIES) {
-      // Rate limited — wait longer before retrying (15s, then 30s)
-      const waitSeconds = 15 * attempt
-      console.warn(`[CV Analysis] Rate limited (429). Retrying in ${waitSeconds}s... (attempt ${attempt}/${MAX_RETRIES})`)
-      await delay(waitSeconds * 1000)
-      continue
+      const data = await response.json();
+      const responseText = data.choices?.[0]?.message?.content || '';
+
+      // Parse JSON response
+      const cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Groq trả về nội dung không phải JSON');
+
+      const result = JSON.parse(jsonMatch[0]);
+
+      if (result.isNonIT) {
+        return {
+          atsScore: 0,
+          sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
+          executiveSummary: { strengths: "Không có", weaknesses: "CV không thuộc ngành IT.", level: "Beginner" },
+          finalVerdict: { summary: "CV không thuộc ngành IT.", immediateActions: ["Tải lên CV ngành IT."] }
+        };
+      }
+
+      // Clamp scores
+      result.atsScore = Math.max(0, Math.min(100, Math.round(result.atsScore || 0)));
+      if (result.sectionScores) {
+        for (const k of Object.keys(result.sectionScores)) {
+          result.sectionScores[k] = Math.max(0, Math.min(100, Math.round(result.sectionScores[k])));
+        }
+      }
+      if (result.jobMatch?.score !== undefined) {
+        result.jobMatchScore = Math.max(0, Math.min(100, Math.round(Number(result.jobMatch.score))));
+      }
+      if (result.jobMatch?.suggestedPositionId) {
+        result.suggestedPositionId = result.jobMatch.suggestedPositionId;
+        result.suggestedPosition = result.jobMatch.suggestedPositionName || result.jobMatch.suggestedPositionId;
+      }
+      return result;
+
+    } catch (err) {
+      console.error(`[CV Analysis] Groq key ${keyIdx + 1} lỗi:`, err.message);
+      continue;
     }
+  }
+  throw new Error('Tất cả Groq API key đều thất bại.');
+}
 
-    // Non-429 error or final retry exhausted
-    throw new Error(`Gemini API returned ${response.status}`)
+async function callGeminiAnalysis(file, targetPosition = null) {
+  const systemPrompt = getAnalysisSystemPrompt(targetPosition);
+
+  let base64Data;
+  let mimeType = file.type || "application/pdf";
+  try {
+    base64Data = await fileToBase64(file);
+  } catch (err) {
+    throw new Error(`Không thể chuyển đổi file sang Base64: ${err.message}`);
   }
 
-  const data = await response.json()
-  const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const userPrompt = `Hãy phân tích kỹ lưỡng file CV đính kèm này dựa theo các chỉ dẫn nghiêm ngặt trong hệ thống.`;
 
-  // Extract JSON from response
-  const cleaned = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '')
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('Invalid JSON response from Gemini')
+  // Models to try in order of preference
+  const MODELS = [
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+  ];
 
-  const result = JSON.parse(jsonMatch[0])
+  let lastError = '';
 
-  // Handle non-IT CV
+  // Round-robin across all keys
+  for (let ki = 0; ki < GEMINI_KEYS.length; ki++) {
+    const keyIdx = (_geminiKeyIndex + ki) % GEMINI_KEYS.length;
+    const apiKey = GEMINI_KEYS[keyIdx];
+
+    // Initialize SDK with current key
+    const ai = new GoogleGenAI({ apiKey });
+
+    for (const modelName of MODELS) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          console.log(`[CV Analysis] Gemini SDK: key ${keyIdx + 1}/${GEMINI_KEYS.length}, model=${modelName}, attempt=${attempt}`);
+
+          const result = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { inlineData: { mimeType, data: base64Data } },
+                  { text: userPrompt }
+                ]
+              }
+            ],
+            config: {
+              systemInstruction: systemPrompt,
+              temperature: 0.1,
+              responseMimeType: "application/json",
+            }
+          });
+
+          const responseText = result.text;
+          console.log(`[CV Analysis] ✅ Thành công! Model: ${modelName}, Response length: ${responseText.length}`);
+
+          // Xoay key cho lần gọi sau
+          _geminiKeyIndex = (keyIdx + 1) % GEMINI_KEYS.length;
+
+          return parseGeminiResult(responseText);
+
+        } catch (err) {
+          lastError = `${modelName}: ${err.message}`;
+          console.warn(`[CV Analysis] ❌ ${lastError}`);
+
+          // If model not found (404), try next model
+          if (err.message?.includes('not found') || err.message?.includes('404')) {
+            break; // next model
+          }
+
+          // If rate limited (429), retry with exponential backoff
+          if (err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('rate') || err.status === 429) {
+            if (attempt < 2) {
+              const waitMs = 5000 * attempt;
+              console.log(`[CV Analysis] ⏳ Rate limit trên key ${keyIdx + 1}, đợi ${waitMs / 1000}s rồi thử lại...`);
+              await new Promise(r => setTimeout(r, waitMs));
+              continue; // retry same model
+            }
+            console.log(`[CV Analysis] ⏳ Vẫn bị rate limit, chuyển sang key khác...`);
+            break; // break model loop, go to next key
+          }
+
+          // Other errors — try next model
+          break;
+        }
+      }
+    }
+  }
+
+  throw new Error(`Gemini API thất bại hoàn toàn. ${lastError}`);
+}
+
+/**
+ * Parse and validate the JSON result from Gemini
+ */
+function parseGeminiResult(responseText) {
+  const result = JSON.parse(responseText.trim());
+
   if (result.isNonIT) {
     return {
       atsScore: 0,
       sectionScores: { jdRelevance: 0, experience: 0, skills: 0, achievements: 0, presentation: 0 },
-      detailedReport: "# 1. Executive Summary\n\nCV của bạn không liên quan đến ngành IT, vì vậy tôi không thể đánh giá được. Hệ thống này chỉ phân tích CV cho các vị trí IT/Phần mềm/Công nghệ."
-    }
+      executiveSummary: {
+        strengths: "Không có",
+        weaknesses: "Hệ thống chỉ hỗ trợ phân tích CV thuộc khối ngành Công nghệ thông tin.",
+        level: "Beginner"
+      },
+      finalVerdict: {
+        summary: "CV không thuộc khối ngành Công nghệ thông tin.",
+        immediateActions: ["Vui lòng tải lên CV lập trình viên hoặc kỹ sư phần mềm."]
+      }
+    };
   }
 
   // Clamp scores
-  result.atsScore = Math.max(0, Math.min(100, Math.round(result.atsScore)))
+  result.atsScore = Math.max(0, Math.min(100, Math.round(result.atsScore || 0)));
   if (result.sectionScores) {
     for (const key of Object.keys(result.sectionScores)) {
-      result.sectionScores[key] = Math.max(0, Math.min(100, Math.round(result.sectionScores[key])))
+      result.sectionScores[key] = Math.max(0, Math.min(100, Math.round(result.sectionScores[key])));
     }
   }
 
-  // Ensure detailedReport exists
-  if (!result.detailedReport) {
-    result.detailedReport = "# Lỗi phân tích\n\nKhông thể tạo báo cáo chi tiết. Vui lòng thử lại.";
+  // Normalize jobMatch for UI
+  if (result.jobMatch?.score !== undefined) {
+    result.jobMatchScore = Math.max(0, Math.min(100, Math.round(Number(result.jobMatch.score))));
+  }
+  if (result.jobMatch?.suggestedPositionId) {
+    result.suggestedPositionId = result.jobMatch.suggestedPositionId;
+    result.suggestedPosition = result.jobMatch.suggestedPositionName || result.jobMatch.suggestedPositionId;
   }
 
-  return result
+  return result;
 }
+
 
 // ─────────────────────────────────────────────
 //  LOCAL ANALYSIS — rule-based fallback (no API)
 //  Uses same 5 criteria: JD Relevance, Experience, Skills, Achievements, Presentation
 // ─────────────────────────────────────────────
 
-function localAnalysis(text, fileName) {
+function localAnalysis(text, fileName, targetPosition = null) {
   const lower = text.toLowerCase()
   const len = text.trim().length
 
@@ -784,10 +918,56 @@ function localAnalysis(text, fileName) {
   detailedReport += `- **Điểm mạnh**: ${strengths.join('; ')}\n`;
   detailedReport += `- **Next Steps**: Dựa vào Lộ trình cải thiện (Mục 10) để chỉnh sửa CV, sau đó upload lại để kiểm tra.\n`;
 
+  // --- Section 13: Job-Specific Assessment (local fallback) ---
+  let jobMatchScore = null
+  let suggestedPosition = null
+  if (targetPosition) {
+    const matchedRequired = targetPosition.requiredSkills.filter(s => lower.includes(s.toLowerCase()))
+    const matchedBonus = targetPosition.bonusSkills.filter(s => lower.includes(s.toLowerCase()))
+    const missingRequired = targetPosition.requiredSkills.filter(s => !lower.includes(s.toLowerCase()))
+    const reqRatio = matchedRequired.length / targetPosition.requiredSkills.length
+    const bonusRatio = matchedBonus.length / targetPosition.bonusSkills.length
+    jobMatchScore = Math.round(reqRatio * 70 + bonusRatio * 30)
+
+    const readiness = jobMatchScore >= 70 ? 'Sẵn sàng ứng tuyển' : jobMatchScore >= 40 ? 'Cần cải thiện thêm' : 'Chưa phù hợp'
+
+    detailedReport += `\n\n# 13. Đánh giá Phù hợp Vị trí: ${targetPosition.name}\n`
+    detailedReport += `\n**Rating ngành:** ${targetPosition.rating} | **Nhu cầu & Lương:** ${targetPosition.demandSalary}\n`
+    detailedReport += `\n**Đặc điểm ngành:** ${targetPosition.characteristics}\n`
+    detailedReport += `\n## Job Match Score: ${jobMatchScore}/100\n`
+    detailedReport += `\n## Mức độ sẵn sàng: ${readiness}\n`
+    detailedReport += `\n### Kỹ năng bắt buộc đã có (✅):\n`
+    if (matchedRequired.length > 0) matchedRequired.forEach(s => detailedReport += `- ✅ ${s}\n`)
+    else detailedReport += `- Không tìm thấy kỹ năng bắt buộc nào trong CV\n`
+    detailedReport += `\n### Kỹ năng bắt buộc còn thiếu (❌):\n`
+    if (missingRequired.length > 0) missingRequired.forEach(s => detailedReport += `- ❌ ${s}\n`)
+    else detailedReport += `- Đã có đầy đủ kỹ năng bắt buộc!\n`
+    detailedReport += `\n### Kỹ năng nâng cao đã có (⭐):\n`
+    if (matchedBonus.length > 0) matchedBonus.forEach(s => detailedReport += `- ⭐ ${s}\n`)
+    else detailedReport += `- Chưa có kỹ năng nâng cao nào\n`
+    detailedReport += `\n### Lộ trình bổ sung:\n`
+    if (missingRequired.length > 0) detailedReport += `- **HIGH PRIORITY:** Bổ sung ngay: ${missingRequired.slice(0, 5).join(', ')}\n`
+    if (targetPosition.certifications.length > 0) detailedReport += `- **MEDIUM PRIORITY:** Lấy chứng chỉ: ${targetPosition.certifications.join(', ')}\n`
+    if (matchedBonus.length < targetPosition.bonusSkills.length) {
+      const missingBonus = targetPosition.bonusSkills.filter(s => !lower.includes(s.toLowerCase()))
+      detailedReport += `- **LOW PRIORITY:** Học thêm kỹ năng nâng cao: ${missingBonus.slice(0, 4).join(', ')}\n`
+    }
+  } else {
+    // If no target position is provided, local fallback will suggest Software Engineer automatically
+    jobMatchScore = 65
+    suggestedPosition = "Software Engineer / Kỹ sư Phần mềm"
+    detailedReport += `\n\n# 13. Đánh giá Phù hợp Vị trí (AI Đề xuất)\n`
+    detailedReport += `\n## Vị trí đề xuất: ${suggestedPosition}\n`
+    detailedReport += `\n## Job Match Score: ${jobMatchScore}/100\n`
+    detailedReport += `\n**Lý do:** Dựa trên phân tích từ khóa cơ bản, CV này có tiềm năng phù hợp với vị trí Kỹ sư phần mềm. (Local Fallback không hỗ trợ tự động matching chi tiết).\n`
+  }
+
   return {
     atsScore,
     sectionScores: { jdRelevance, experience, skills, achievements, presentation },
-    detailedReport
+    detailedReport,
+    jobMatchScore,
+    ...(suggestedPosition && { suggestedPosition, suggestedPositionId: 'software-engineer' })
   }
 }
 

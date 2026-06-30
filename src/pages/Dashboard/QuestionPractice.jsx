@@ -2,7 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { useAuth } from '../../utils/AuthContext';
-import { ArrowLeft, Lightbulb, PenTool, CheckCircle, Save, Loader2, AlertCircle } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Lightbulb, 
+  PenTool, 
+  CheckCircle, 
+  Save, 
+  Loader2, 
+  AlertCircle, 
+  Sparkles, 
+  TrendingUp, 
+  Copy, 
+  Check 
+} from 'lucide-react';
 
 const QuestionPractice = () => {
   const { id } = useParams();
@@ -13,8 +25,12 @@ const QuestionPractice = () => {
   const [loading, setLoading] = useState(true);
   const [answerText, setAnswerText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState(null);
+  const [copied, setCopied] = useState(false);
 
+  // Fetch question details
   useEffect(() => {
     const fetchQuestion = async () => {
       try {
@@ -37,6 +53,34 @@ const QuestionPractice = () => {
     if (id) fetchQuestion();
   }, [id]);
 
+  // Fetch user's latest answer and AI feedback for this question (if any)
+  useEffect(() => {
+    const fetchLatestAnswer = async () => {
+      if (!user || !id) return;
+      try {
+        const { data, error } = await supabase
+          .from('practice_answers')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('question_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setAnswerText(data[0].answer_text);
+          if (data[0].ai_feedback) {
+            setAiFeedback(data[0].ai_feedback);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching latest answer:', err);
+      }
+    };
+
+    fetchLatestAnswer();
+  }, [user, id]);
+
+  // Save as draft (does not invoke AI evaluation)
   const handleSave = async () => {
     if (!answerText.trim() || !user || !question) return;
     
@@ -52,7 +96,6 @@ const QuestionPractice = () => {
       };
       
       const { error } = await supabase.from('practice_answers').insert([payload]);
-      
       if (error) throw error;
       
       setSaveSuccess(true);
@@ -69,9 +112,56 @@ const QuestionPractice = () => {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error('Error saving answer:', err);
-      alert('Có lỗi xảy ra khi lưu bài. Vui lòng kiểm tra lại bạn đã chạy script tạo bảng practice_answers chưa.');
+      alert('Có lỗi xảy ra khi lưu bài nháp. Vui lòng kiểm tra lại kết nối hoặc cơ sở dữ liệu của bạn.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Submit and analyze using Edge Function (Approach 2)
+  const handleAnalyze = async () => {
+    if (!answerText.trim() || !user || !question) return;
+    
+    setIsAnalyzing(true);
+    setSaveSuccess(false);
+    
+    try {
+      // 1. Insert the answer into Supabase with 'analyzing' status
+      const payload = {
+        user_id: user.id,
+        question_id: question.id,
+        answer_text: answerText,
+        status: 'analyzing'
+      };
+      
+      const { data, error } = await supabase
+        .from('practice_answers')
+        .insert([payload])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error('Không nhận được bản ghi phản hồi sau khi lưu câu trả lời.');
+
+      // 2. Invoke the practice-eval Edge Function
+      const { data: responseData, error: evalError } = await supabase.functions.invoke('practice-eval', {
+        body: { answerId: data.id }
+      });
+      
+      if (evalError) throw evalError;
+      
+      if (responseData && responseData.success && responseData.data?.ai_feedback) {
+        setAiFeedback(responseData.data.ai_feedback);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        throw new Error(responseData?.error || 'Đánh giá AI thất bại.');
+      }
+    } catch (err) {
+      console.error('Error analyzing answer:', err);
+      alert(`Có lỗi xảy ra khi phân tích: ${err.message || 'Lỗi không xác định'}`);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -105,11 +195,7 @@ const QuestionPractice = () => {
       </button>
 
       <div className="glass-card" style={{ padding: '2.5rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          {/* Industry name omitted or fetched elsewhere if needed */}
-        </div>
-        
-        <h1 className="text-editorial" style={{ fontSize: '2rem', color: 'var(--color-charcoal)', lineHeight: 1.4 }}>
+        <h1 className="text-editorial" style={{ fontSize: '2rem', color: 'var(--color-charcoal)', lineHeight: 1.4, margin: 0 }}>
           {question.content}
         </h1>
       </div>
@@ -179,6 +265,7 @@ const QuestionPractice = () => {
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
             placeholder="Hãy viết câu trả lời hoàn chỉnh của bạn tại đây..."
+            disabled={isAnalyzing}
             style={{
               width: '100%',
               minHeight: '250px',
@@ -191,35 +278,168 @@ const QuestionPractice = () => {
               lineHeight: 1.6,
               resize: 'vertical',
               fontFamily: 'inherit',
-              transition: 'border-color 0.2s'
+              transition: 'border-color 0.2s',
+              outline: 'none'
             }}
             onFocus={(e) => e.target.style.borderColor = 'var(--color-earth)'}
             onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
           />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>
               {answerText.length} ký tự
             </p>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               {saveSuccess && (
                 <span style={{ color: 'var(--color-moss)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 500, animation: 'fadeIn 0.3s' }}>
-                  <CheckCircle size={18} /> Đã lưu thành công!
+                  <CheckCircle size={18} /> Lưu bài thành công!
                 </span>
               )}
+              
               <button 
-                className="btn btn--primary" 
-                style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                className="btn btn--outline" 
+                style={{ padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 onClick={handleSave}
-                disabled={isSaving || !answerText.trim()}
+                disabled={isSaving || isAnalyzing || !answerText.trim()}
               >
                 {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                Lưu bài làm
+                Lưu nháp
+              </button>
+
+              <button 
+                className="btn btn--primary" 
+                style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-earth-dark)' }}
+                onClick={handleAnalyze}
+                disabled={isSaving || isAnalyzing || !answerText.trim()}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    AI đang đánh giá...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={20} />
+                    Nộp bài & Phân tích AI
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
+
+        {/* AI Analysis Section */}
+        {isAnalyzing && (
+          <div className="glass-card" style={{ padding: '3.5rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', border: '1px dashed var(--color-earth)' }}>
+            <Loader2 className="animate-spin" size={48} color="var(--color-earth)" />
+            <div>
+              <h4 style={{ fontSize: '1.25rem', color: 'var(--color-charcoal)', fontWeight: 600, marginBottom: '0.5rem' }}>AI đang đánh giá bài làm của bạn</h4>
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', margin: 0 }}>
+                Hệ thống đang chấm điểm, tìm lỗi sai, tạo bài mẫu và đối chiếu sự tiến bộ...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!isAnalyzing && aiFeedback && (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '2.5rem', boxShadow: 'var(--shadow-md)', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            {/* Header / Score */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ background: 'var(--color-cream)', padding: '0.75rem', borderRadius: '12px' }}>
+                  <Sparkles size={28} color="var(--color-earth)" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-charcoal)' }}>Kết quả Đánh giá từ AI</h3>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Cập nhật tự động dựa trên lần nộp bài gần nhất</p>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', background: 'var(--color-cream-dark)', padding: '0.75rem 1.5rem', borderRadius: '50px' }}>
+                <span style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-earth-dark)', lineHeight: 1 }}>{aiFeedback.score}</span>
+                <span style={{ fontSize: '1.1rem', color: 'var(--color-earth)', fontWeight: 600 }}>/ 100</span>
+              </div>
+            </div>
+
+            {/* General Feedback */}
+            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', borderLeft: '4px solid var(--color-earth)' }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', color: 'var(--color-charcoal)', fontWeight: 600 }}>
+                <Lightbulb size={20} color="var(--color-earth)" /> Nhận xét tổng quan
+              </h4>
+              <p style={{ margin: 0, fontSize: '1rem', color: 'var(--color-text)', lineHeight: 1.6 }}>{aiFeedback.general_feedback}</p>
+            </div>
+
+            {/* Progress Analysis */}
+            {aiFeedback.progress_analysis && (
+              <div style={{ background: '#ecfdf5', padding: '1.5rem', borderRadius: '16px', borderLeft: '4px solid #059669' }}>
+                <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', color: '#047857', fontWeight: 600 }}>
+                  <TrendingUp size={20} /> Theo dõi sự tiến bộ
+                </h4>
+                <p style={{ margin: 0, fontSize: '1rem', color: '#065f46', lineHeight: 1.6 }}>{aiFeedback.progress_analysis}</p>
+              </div>
+            )}
+
+            {/* Errors & Weaknesses */}
+            <div>
+              <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', color: 'var(--color-charcoal)', fontWeight: 600 }}>Điểm cần cải thiện & Lỗi sai</h4>
+              {aiFeedback.errors && aiFeedback.errors.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {aiFeedback.errors.map((errorItem, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '0.75rem', background: '#fffaf0', padding: '1rem', borderRadius: '12px', border: '1px solid #feebc8' }}>
+                      <AlertCircle size={20} color="#dd6b20" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                      <div>
+                        <strong style={{ color: '#c05621', fontSize: '0.95rem' }}>[{errorItem.type}]</strong>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--color-text)', lineHeight: 1.5 }}>{errorItem.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, color: 'var(--color-moss)', fontStyle: 'italic', fontSize: '0.95rem' }}>Tuyệt vời! Không phát hiện lỗi sai đáng tiếc nào.</p>
+              )}
+            </div>
+
+            {/* Sample Answer */}
+            {aiFeedback.sample_answer && (
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-charcoal)', fontWeight: 600 }}>Câu trả lời mẫu tham khảo</h4>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(aiFeedback.sample_answer);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      background: 'none', border: 'none', color: 'var(--color-earth)',
+                      fontSize: '0.95rem', cursor: 'pointer', fontWeight: 500,
+                      outline: 'none'
+                    }}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={16} color="var(--color-moss)" />
+                        <span style={{ color: 'var(--color-moss)' }}>Đã sao chép!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} />
+                        <span>Sao chép</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', whiteSpace: 'pre-line', fontSize: '1rem', color: 'var(--color-text)', lineHeight: 1.7 }}>
+                  {aiFeedback.sample_answer}
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
 
       </div>
     </div>
@@ -227,3 +447,4 @@ const QuestionPractice = () => {
 };
 
 export default QuestionPractice;
+
