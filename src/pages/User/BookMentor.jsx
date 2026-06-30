@@ -26,6 +26,27 @@ const BookMentor = () => {
 
   const currentPlan = profile?.plan || 'Free';
 
+  // Helper function to get correct local date string (YYYY-MM-DD)
+  const getLocalDateString = () => {
+    const now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  };
+
+  // Generate available time slots based on selected date
+  const getAvailableTimeSlots = () => {
+    const allSlots = ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '14:00 - 15:00', '15:00 - 16:00', '16:00 - 17:00', '19:00 - 20:00', '20:00 - 21:00'];
+    if (!formData.date) return allSlots;
+
+    if (formData.date === getLocalDateString()) {
+      const currentHour = new Date().getHours();
+      return allSlots.filter(slot => {
+        const startHour = parseInt(slot.split(':')[0], 10);
+        return startHour > currentHour; // Hide past slots
+      });
+    }
+    return allSlots;
+  };
+
   useEffect(() => {
     if (user && id) {
       fetchMentorAndQuota();
@@ -248,9 +269,12 @@ const BookMentor = () => {
                       type="date"
                       className="auth-input"
                       required
-                      min={new Date().toISOString().split('T')[0]}
+                      min={getLocalDateString()}
                       value={formData.date}
-                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                      onChange={e => {
+                        // Reset time if date changes to avoid keeping an invalid past time
+                        setFormData({ ...formData, date: e.target.value, time: '' });
+                      }}
                     />
                   </div>
 
@@ -262,9 +286,10 @@ const BookMentor = () => {
                       value={formData.time}
                       onChange={e => setFormData({ ...formData, time: e.target.value })}
                       style={{ appearance: 'auto' }}
+                      disabled={!formData.date}
                     >
                       <option value="">Chọn khung giờ</option>
-                      {['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '14:00 - 15:00', '15:00 - 16:00', '16:00 - 17:00', '19:00 - 20:00', '20:00 - 21:00'].map(timeSlot => (
+                      {getAvailableTimeSlots().map(timeSlot => (
                         <option
                           key={timeSlot}
                           value={timeSlot}

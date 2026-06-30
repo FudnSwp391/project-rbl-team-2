@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, FileText, CheckCircle, AlertCircle, X, Trash2,
   Eye, Search, Sparkles, Shield, Target, BookOpen, Wrench,
@@ -27,7 +28,11 @@ const CVManager = () => {
   const [docxHtml, setDocxHtml] = useState(null);
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [positionSearch, setPositionSearch] = useState('');
+  const [isPositionDropdownOpen, setIsPositionDropdownOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const folderToggleRef = useRef(null);
+  const positionSearchRef = useRef(null);
 
   // Load CV history from database on mount or when user changes
   useEffect(() => {
@@ -192,6 +197,7 @@ const CVManager = () => {
         const autoMatchedPos = IT_JOB_POSITIONS.find(p => p.id === result.suggestedPositionId);
         if (autoMatchedPos) {
           setSelectedPosition(autoMatchedPos);
+          setPositionSearch(autoMatchedPos.name);
           // Set the category filter to match the newly selected position
           setCategoryFilter(autoMatchedPos.category);
         }
@@ -381,26 +387,45 @@ const CVManager = () => {
 
   /* ---------- Render ---------- */
   return (
-    <div className="cv-manager container animate-fade">
-      <div className="cv-manager__header">
+    <div className="cv-manager container">
+      <motion.div 
+        className="cv-manager__header"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      >
         <h1 className="cv-manager__title gradient-text">Phân tích CV bằng AI</h1>
         <p className="cv-manager__subtitle">
           Tải lên CV và nhận đánh giá chi tiết từ trí tuệ nhân tạo
         </p>
-      </div>
+      </motion.div>
 
       <div className="cv-manager__grid">
         {/* ===== LEFT SIDEBAR ===== */}
         <div className="cv-sidebar">
           {/* Drop Zone */}
           <div className="glass-card">
-            <div
+            <motion.div
               className={`cv-dropzone ${isDragOver ? 'cv-dropzone--active' : ''}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
+              {/* Aceternity-style grid background */}
+              <div className="cv-dropzone__grid-bg">
+                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <pattern id="cv-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(196,149,106,0.08)" strokeWidth="1"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#cv-grid)" />
+                </svg>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -409,9 +434,13 @@ const CVManager = () => {
                 style={{ display: 'none' }}
                 id="cv-file-input"
               />
-              <div className="cv-dropzone__icon">
+              <motion.div 
+                className="cv-dropzone__icon"
+                animate={isDragOver ? { scale: 1.15, y: -8 } : { scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              >
                 <Upload size={28} color="var(--primary)" />
-              </div>
+              </motion.div>
               <p className="cv-dropzone__title">
                 {isDragOver ? 'Thả file vào đây!' : 'Kéo thả file CV vào đây'}
               </p>
@@ -422,7 +451,7 @@ const CVManager = () => {
                 <span className="cv-dropzone__badge">DOCX</span>
                 <span className="cv-dropzone__badge">≤ 10MB</span>
               </div>
-            </div>
+            </motion.div>
 
             {/* Selected file preview */}
             {pendingFile && (
@@ -444,22 +473,49 @@ const CVManager = () => {
               </div>
             )}
 
-            <button
-              className="btn-primary cv-upload-btn"
-              onClick={handleUploadAndAnalyze}
-              disabled={!pendingFile || isAnalyzing}
-              id="cv-upload-btn"
-            >
-              {isAnalyzing ? (
-                <><div className="cv-analysis-loading__spinner" /> Đang phân tích...</>
-              ) : (
-                <><Sparkles size={18} /> Tải lên & Phân tích CV</>
-              )}
-            </button>
+            {/* === SPARKLE BUTTON (Uiverse fat-bat-0) === */}
+            <div className="cv-sparkle-wrapper" style={{ marginTop: 'var(--spacing-md)' }}>
+              <button
+                className="cv-sparkle-btn"
+                onClick={handleUploadAndAnalyze}
+                disabled={!pendingFile || isAnalyzing}
+                id="cv-upload-btn"
+              >
+                <span className="cv-spark"></span>
+                <span className="cv-backdrop"></span>
+                <svg className="cv-sparkle-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14.187 8.096L15 5.25L15.813 8.096C16.0231 8.83114 16.4171 9.50062 16.9577 10.0413C17.4984 10.5819 18.1679 10.9759 18.903 11.186L21.75 12L18.904 12.813C18.1689 13.0231 17.4994 13.4171 16.9587 13.9577C16.4181 14.4984 16.0241 15.1679 15.814 15.903L15 18.75L14.187 15.904C13.9769 15.1689 13.5829 14.4994 13.0423 13.9587C12.5016 13.4181 11.8321 13.0241 11.097 12.814L8.25 12L11.096 11.187C11.8311 10.9769 12.5006 10.5829 13.0413 10.0423C13.5819 9.50162 13.9759 8.83214 14.186 8.097L14.187 8.096Z" fill="black" stroke="black" strokeLinecap="round" strokeLinejoin="round"></path>
+                  <path d="M6 14.25L5.741 15.285C5.59267 15.8785 5.28579 16.4206 4.85319 16.8532C4.42059 17.2858 3.87853 17.5927 3.285 17.741L2.25 18L3.285 18.259C3.87853 18.4073 4.42059 18.7142 4.85319 19.1468C5.28579 19.5794 5.59267 20.1215 5.741 20.715L6 21.75L6.259 20.715C6.40725 20.1216 6.71398 19.5796 7.14639 19.147C7.5788 18.7144 8.12065 18.4075 8.714 18.259L9.75 18L8.714 17.741C8.12065 17.5925 7.5788 17.2856 7.14639 16.853C6.71398 16.4204 6.40725 15.8784 6.259 15.285L6 14.25Z" fill="black" stroke="black" strokeLinecap="round" strokeLinejoin="round"></path>
+                  <path d="M6.5 4L6.303 4.5915C6.24777 4.75718 6.15472 4.90774 6.03123 5.03123C5.90774 5.15472 5.75718 5.24777 5.5915 5.303L5 5.5L5.5915 5.697C5.75718 5.75223 5.90774 5.84528 6.03123 5.96877C6.15472 6.09226 6.24777 6.24282 6.303 6.4085L6.5 7L6.697 6.4085C6.75223 6.24282 6.84528 6.09226 6.96877 5.96877C7.09226 5.84528 7.24282 5.75223 7.4085 5.697L8 5.5L7.4085 5.303C7.24282 5.24777 7.09226 5.15472 6.96877 5.03123C6.84528 4.90774 6.75223 4.75718 6.697 4.5915L6.5 4Z" fill="black" stroke="black" strokeLinecap="round" strokeLinejoin="round"></path>
+                </svg>
+                <span className="cv-sparkle-text">
+                  {isAnalyzing ? 'Đang phân tích...' : 'Tải lên & Phân tích CV'}
+                </span>
+              </button>
+              {/* Particle effects */}
+              <span aria-hidden="true" className="cv-particle-pen">
+                {[...Array(10)].map((_, i) => (
+                  <svg key={i} className="cv-particle" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    style={{
+                      '--x': `${10 + Math.random() * 80}`,
+                      '--y': `${10 + Math.random() * 80}`,
+                      '--duration': `${1 + Math.random() * 2}`,
+                      '--delay': `${Math.random() * 3}`,
+                      '--alpha': `${0.4 + Math.random() * 0.6}`,
+                      '--origin-x': `${Math.random() > 0.5 ? -500 : 500}%`,
+                      '--origin-y': `${Math.random() > 0.5 ? -500 : 500}%`,
+                      '--size': `${0.2 + Math.random() * 0.4}`,
+                    }}
+                  >
+                    <path d="M6.937 3.846L7.75 1L8.563 3.846C8.77313 4.58114 9.1671 5.25062 9.70774 5.79126C10.2484 6.3319 10.9179 6.72587 11.653 6.936L14.5 7.75L11.654 8.563C10.9189 8.77313 10.2494 9.1671 9.70874 9.70774C9.1681 10.2484 8.77413 10.9179 8.564 11.653L7.75 14.5L6.937 11.654C6.72687 10.9189 6.3329 10.2494 5.79226 9.70874C5.25162 9.1681 4.58214 8.77413 3.847 8.564L1 7.75L3.846 6.937C4.58114 6.72687 5.25062 6.3329 5.79126 5.79226C6.3319 5.25162 6.72587 4.58214 6.936 3.847L6.937 3.846Z" fill="black" stroke="black" strokeLinecap="round" strokeLinejoin="round"></path>
+                  </svg>
+                ))}
+              </span>
+            </div>
           </div>
 
-          {/* Position Selector */}
-          <div className="glass-card cv-position-selector">
+          {/* === POSITION SELECTOR WITH SEARCH (Uiverse-inspired) === */}
+          <div className="glass-card cv-position-selector" style={{ position: 'relative', zIndex: 50 }}>
             <div className="cv-position-selector__title">
               <Target size={18} />
               Chọn vị trí ứng tuyển mục tiêu
@@ -468,38 +524,95 @@ const CVManager = () => {
               Chọn vị trí IT để AI đánh giá mức độ phù hợp của CV với yêu cầu ngành
             </p>
 
-            <div className="cv-position-selector__categories">
-              {JOB_CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  className={`cv-position-selector__cat-btn ${categoryFilter === cat.id ? 'cv-position-selector__cat-btn--active' : ''}`}
-                  onClick={() => setCategoryFilter(cat.id)}
-                >
-                  {cat.label}
-                </button>
-              ))}
+            {/* Search bar with folder icon */}
+            <div className="cv-position-search" style={{ position: 'relative' }}>
+              <div className="cv-position-search__bar">
+                <div className="cv-position-search__icon-wrap">
+                  {/* Mini folder icon */}
+                  <svg width="20" height="18" viewBox="0 0 24 20" fill="none">
+                    <path d="M 0 4 Q 0 0 4 0 L 8 0 Q 10 0 11 2 L 12 4 Q 13 6 15 6 L 20 6 Q 24 6 24 10 L 24 16 Q 24 20 20 20 L 4 20 Q 0 20 0 16 Z" fill="var(--color-accent, #c4956a)" />
+                  </svg>
+                </div>
+                <Search size={14} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                <input
+                  ref={positionSearchRef}
+                  type="text"
+                  className="cv-position-search__input"
+                  placeholder="Tìm kiếm vị trí (VD: Frontend, Data...)"
+                  value={positionSearch}
+                  onChange={e => setPositionSearch(e.target.value)}
+                  onFocus={() => setIsPositionDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setIsPositionDropdownOpen(false), 200)}
+                />
+                {selectedPosition && (
+                  <button
+                    className="cv-position-search__clear"
+                    onClick={() => { setSelectedPosition(null); setPositionSearch(''); }}
+                    title="Xóa lựa chọn"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                {/* Counter badge */}
+                <div className="cv-position-search__badge">
+                  <span>{IT_JOB_POSITIONS.filter(p => categoryFilter === 'all' || p.category === categoryFilter).length}</span>
+                </div>
+              </div>
+
+              {/* Dropdown list */}
+              {isPositionDropdownOpen && (
+                <div className="cv-position-search__dropdown">
+                  {/* Category tabs inside dropdown */}
+                  <div className="cv-position-search__cats">
+                    {JOB_CATEGORIES.map(cat => (
+                      <button
+                        key={cat.id}
+                        className={`cv-position-search__cat ${categoryFilter === cat.id ? 'cv-position-search__cat--active' : ''}`}
+                        onMouseDown={(e) => { e.preventDefault(); setCategoryFilter(cat.id); }}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Scrollable position list */}
+                  <div className="cv-position-search__list">
+                    {IT_JOB_POSITIONS
+                      .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
+                      .filter(p => !positionSearch || p.name.toLowerCase().includes(positionSearch.toLowerCase()))
+                      .map(pos => (
+                        <div
+                          key={pos.id}
+                          className={`cv-position-search__item ${selectedPosition?.id === pos.id ? 'cv-position-search__item--active' : ''}`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setSelectedPosition(pos);
+                            setPositionSearch(pos.name);
+                            setIsPositionDropdownOpen(false);
+                          }}
+                        >
+                          <div className="cv-position-search__item-name">{pos.name}</div>
+                          <div className="cv-position-search__item-meta">
+                            <span className="cv-position-search__item-rating">{pos.rating}</span>
+                            <span className="cv-position-search__item-salary">{pos.demandSalary}</span>
+                          </div>
+                        </div>
+                      ))}
+                    {IT_JOB_POSITIONS
+                      .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
+                      .filter(p => !positionSearch || p.name.toLowerCase().includes(positionSearch.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                        Không tìm thấy vị trí phù hợp
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <select
-              className="cv-position-selector__select"
-              value={selectedPosition?.id || ''}
-              onChange={(e) => {
-                const pos = IT_JOB_POSITIONS.find(p => p.id === e.target.value);
-                setSelectedPosition(pos || null);
-              }}
-            >
-              <option value="">-- Không chỉ định (phân tích tổng quát) --</option>
-              {IT_JOB_POSITIONS
-                .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
-                .map(pos => (
-                  <option key={pos.id} value={pos.id}>
-                    {pos.name} ({pos.rating})
-                  </option>
-                ))}
-            </select>
-
+            {/* Selected position details */}
             {selectedPosition && (
-              <div className="cv-position-selector__info animate-fade">
+              <div className="cv-position-selector__info animate-fade" style={{ marginTop: '16px' }}>
                 <div className="cv-position-selector__info-row">
                   <span className="cv-position-selector__info-label">📊 Rating:</span>
                   <span className="cv-position-selector__info-value">{selectedPosition.rating}</span>
@@ -524,7 +637,7 @@ const CVManager = () => {
             )}
           </div>
 
-          {/* CV List */}
+          {/* === WALLET CV LIST (Uiverse rude-bat-50) === */}
           <div className="glass-card">
             <div className="cv-list__title">
               <FileText size={18} />
@@ -533,43 +646,70 @@ const CVManager = () => {
             </div>
 
             {files.length === 0 ? (
-              <div className="cv-list__empty">
-                <BookOpen size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
-                <p>Chưa có CV nào được tải lên</p>
+              <div className={`cv-wallet cv-wallet--empty`}>
+                <div className="cv-wallet__back"></div>
+                <div className="cv-wallet__pocket">
+                  <svg viewBox="0 0 280 110" fill="none">
+                    <path d="M 0 15 C 0 8 4 8 8 8 C 16 8 20 20 32 20 L 248 20 C 260 20 264 8 272 8 C 276 8 280 8 280 15 L 280 85 C 280 105 265 110 248 110 L 32 110 C 15 110 0 105 0 85 Z" fill="var(--color-charcoal, #3a3632)"></path>
+                    <path d="M 6 17 C 6 13 9 13 12 13 C 18 13 22 24 32 24 L 248 24 C 258 24 262 13 268 13 C 271 13 274 13 274 17 L 274 85 C 274 100 262 104 248 104 L 32 104 C 18 104 6 100 6 85 Z" stroke="rgba(196,149,106,0.3)" strokeWidth="1" strokeDasharray="5 3" fill="none"></path>
+                  </svg>
+                </div>
+                <div className="cv-wallet__empty-msg">
+                  <BookOpen size={32} style={{ opacity: 0.3 }} />
+                  <p>Chưa có CV nào được tải lên</p>
+                </div>
               </div>
             ) : (
-              <div className="cv-list__items">
-                {files.map((file) => (
-                  <div
-                    key={file.id}
-                    className={`cv-list-item ${selectedFile?.id === file.id ? 'cv-list-item--active' : ''}`}
-                    onClick={() => handleSelectCV(file)}
-                  >
-                    <div className="cv-list-item__icon">
-                      <FileText size={16} color="#f87171" />
-                    </div>
-                    <div className="cv-list-item__info">
-                      <div className="cv-list-item__name">{file.name}</div>
-                      <div className="cv-list-item__meta">
-                        {formatFileSize(file.size)} • {file.uploadedAt.toLocaleDateString('vi-VN')}
+              <div className="cv-wallet">
+                <div className="cv-wallet__back"></div>
+
+                {/* Render up to 3 CV cards */}
+                {files.slice(0, 3).map((file, idx) => {
+                  const colorVariants = ['--1', '--2', '--3'];
+                  return (
+                    <div
+                      key={file.id}
+                      className={`cv-wallet__card cv-wallet__card${colorVariants[idx] || '--3'} ${selectedFile?.id === file.id ? 'cv-list-item--active' : ''}`}
+                      onClick={() => handleSelectCV(file)}
+                      style={{ animationDelay: `${0.1 * (idx + 1)}s` }}
+                    >
+                      <div className="cv-wallet__card-top">
+                        <span>{file.name.split('.').pop()?.toUpperCase()}</span>
+                        <div className="cv-wallet__card-chip"></div>
+                      </div>
+                      <div className="cv-wallet__card-bottom">
+                        <div>
+                          <span className="cv-wallet__card-label">File</span>
+                          <span className="cv-wallet__card-value">{file.name}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {file.score && (
+                            <span className="cv-wallet__card-score">{file.score}đ</span>
+                          )}
+                          <button
+                            onClick={(e) => handleDeleteCV(e, file.id)}
+                            title="Xóa CV"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.6, padding: 2 }}
+                          >
+                            <Trash2 size={12} color="currentColor" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    {file.score && (
-                      <span className={`cv-list-item__score cv-list-item__score--${getScoreClass(file.score)}`}>
-                        {file.score}
-                      </span>
-                    )}
-                    <div className="cv-list-item__actions">
-                      <button
-                        className="cv-list-item__action-btn cv-list-item__action-btn--delete"
-                        onClick={(e) => handleDeleteCV(e, file.id)}
-                        title="Xóa CV"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                  );
+                })}
+
+                {/* Pocket (front panel) */}
+                <div className="cv-wallet__pocket">
+                  <svg viewBox="0 0 280 110" fill="none">
+                    <path d="M 0 15 C 0 8 4 8 8 8 C 16 8 20 20 32 20 L 248 20 C 260 20 264 8 272 8 C 276 8 280 8 280 15 L 280 85 C 280 105 265 110 248 110 L 32 110 C 15 110 0 105 0 85 Z" fill="var(--color-charcoal, #3a3632)"></path>
+                    <path d="M 6 17 C 6 13 9 13 12 13 C 18 13 22 24 32 24 L 248 24 C 258 24 262 13 268 13 C 271 13 274 13 274 17 L 274 85 C 274 100 262 104 248 104 L 32 104 C 18 104 6 100 6 85 Z" stroke="rgba(196,149,106,0.3)" strokeWidth="1" strokeDasharray="5 3" fill="none"></path>
+                  </svg>
+                  <div className="cv-wallet__pocket-content">
+                    <span className="cv-wallet__pocket-count">{files.length.toString().padStart(2, '0')}</span>
+                    <span className="cv-wallet__pocket-label">CV đã tải lên</span>
                   </div>
-                ))}
+                </div>
               </div>
             )}
           </div>
@@ -579,26 +719,44 @@ const CVManager = () => {
         <div className="cv-main">
           {/* PDF Preview */}
           {previewUrl && (
-            <div className="glass-card cv-preview animate-fade">
+            <div className="glass-card cv-preview animate-fade" style={{ position: 'relative', overflow: 'hidden' }}>
               <iframe
                 className="cv-preview__iframe"
                 src={previewUrl}
                 title="PDF Preview"
+                style={{ opacity: isAnalyzing ? 0.7 : 1, transition: 'opacity 0.3s' }}
               />
+              {isAnalyzing && (
+                <motion.div 
+                  className="cv-laser-scan__beam"
+                  animate={{ top: ['0%', '100%', '0%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                  style={{ zIndex: 10, pointerEvents: 'none', height: '4px', opacity: 0.8 }}
+                />
+              )}
             </div>
           )}
 
           {/* DOCX Preview */}
           {!previewUrl && docxHtml && (
-            <div className="glass-card cv-preview animate-fade">
-              <div className="cv-preview__docx-header">
+            <div className="glass-card cv-preview animate-fade" style={{ position: 'relative', overflow: 'hidden' }}>
+              <div className="cv-preview__docx-header" style={{ opacity: isAnalyzing ? 0.7 : 1 }}>
                 <FileText size={16} color="var(--color-earth)" />
                 <span>Xem trước DOCX</span>
               </div>
               <div
                 className="cv-preview__docx-content"
                 dangerouslySetInnerHTML={{ __html: docxHtml }}
+                style={{ opacity: isAnalyzing ? 0.7 : 1, transition: 'opacity 0.3s' }}
               />
+              {isAnalyzing && (
+                <motion.div 
+                  className="cv-laser-scan__beam"
+                  animate={{ top: ['0%', '100%', '0%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                  style={{ zIndex: 10, pointerEvents: 'none', height: '4px', opacity: 0.8 }}
+                />
+              )}
             </div>
           )}
 
@@ -616,13 +774,37 @@ const CVManager = () => {
 
           {/* Analysis Loading State */}
           {isAnalyzing && (
-            <div className="glass-card cv-analysis-loading animate-fade">
+            <motion.div 
+              className="glass-card cv-analysis-loading"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Laser Scan Document Visual - Only show if no actual document preview is present */}
+              {(!previewUrl && !docxHtml) && (
+                <div className="cv-laser-scan">
+                  <div className="cv-laser-scan__doc">
+                    <FileText size={48} color="var(--color-text-secondary)" style={{ opacity: 0.3 }} />
+                    <motion.div 
+                      className="cv-laser-scan__beam"
+                      animate={{ top: ['0%', '100%', '0%'] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="cv-analysis-loading__title">
                 <div className="cv-analysis-loading__spinner" />
                 Đang phân tích CV của bạn...
               </div>
               <div className="cv-analysis-loading__bar-wrapper">
-                <div className="cv-analysis-loading__bar" style={{ width: `${analysisProgress}%` }} />
+                <motion.div 
+                  className="cv-analysis-loading__bar" 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${analysisProgress}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
               </div>
               <div className="cv-analysis-loading__status">
                 <span>{analysisStatus}</span>
@@ -634,25 +816,41 @@ const CVManager = () => {
                   if (analysisProgress >= step.threshold) cls = 'cv-analysis-step--done';
                   else if (i === 0 || analysisProgress >= analysisSteps[i - 1].threshold) cls = 'cv-analysis-step--active';
                   return (
-                    <div key={i} className={`cv-analysis-step ${cls}`}>
+                    <motion.div 
+                      key={i} 
+                      className={`cv-analysis-step ${cls}`}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1, duration: 0.3 }}
+                    >
                       {cls === 'cv-analysis-step--done'
                         ? <CheckCircle size={16} />
                         : cls === 'cv-analysis-step--active'
                           ? <div className="cv-analysis-loading__spinner" style={{ width: 16, height: 16 }} />
                           : <ChevronRight size={16} />}
                       {step.label}
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* ===== ANALYSIS DASHBOARD ===== */}
           {analysisResult && !isAnalyzing && (
-            <div className="cv-dashboard">
+            <motion.div 
+              className="cv-dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
               {/* ATS Score */}
-              <div className="glass-card cv-ats">
+              <motion.div 
+                className="glass-card cv-ats"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1, type: 'spring', stiffness: 100 }}
+              >
                 <ATSScoreRing score={analysisResult.atsScore} />
                 <p className="cv-ats__summary">{analysisResult.summary}</p>
 
@@ -672,10 +870,16 @@ const CVManager = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
 
               {/* 12-Section Detailed Report - JSON Structured */}
-              <div className="glass-card" style={{ marginTop: 'var(--spacing-md)' }}>
+              <motion.div 
+                className="glass-card" 
+                style={{ marginTop: 'var(--spacing-md)' }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3, type: 'spring', stiffness: 100 }}
+              >
                 <div className="cv-analysis-card__title cv-analysis-card__title--purple" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                   <FileText size={20} /> Đánh giá chi tiết (Elite Technical Recruiter)
                 </div>
@@ -820,7 +1024,7 @@ const CVManager = () => {
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
 
               {/* Job Match Score Card */}
               {analysisResult.jobMatchScore !== undefined && analysisResult.jobMatchScore !== null && (
@@ -889,7 +1093,7 @@ const CVManager = () => {
                   );
                 })()
               )}
-            </div>
+            </motion.div>
           )}
         </div>
       </div>

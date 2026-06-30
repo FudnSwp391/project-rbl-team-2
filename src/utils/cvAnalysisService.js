@@ -76,7 +76,7 @@ export async function analyzeCV(file, onProgress = () => {}, targetPosition = nu
   let result
   if (GEMINI_KEYS.length > 0) {
     try {
-      result = await callGeminiAnalysis(file, targetPosition)
+      result = await callGeminiAnalysis(file, extraction.text, targetPosition)
       onProgress(85, 'Đang tạo báo cáo bằng Gemini 1.5 Flash...')
     } catch (error) {
       console.warn('Gemini API error, trying Groq fallback:', error)
@@ -540,18 +540,27 @@ async function callGroqAnalysis(cvText, fileName, targetPosition = null) {
   throw new Error('Tất cả Groq API key đều thất bại.');
 }
 
-async function callGeminiAnalysis(file, targetPosition = null) {
+async function callGeminiAnalysis(file, cvText, targetPosition = null) {
   const systemPrompt = getAnalysisSystemPrompt(targetPosition);
 
-  let base64Data;
-  let mimeType = file.type || "application/pdf";
-  try {
-    base64Data = await fileToBase64(file);
-  } catch (err) {
-    throw new Error(`Không thể chuyển đổi file sang Base64: ${err.message}`);
-  }
+  let parts = [];
 
-  const userPrompt = `Hãy phân tích kỹ lưỡng file CV đính kèm này dựa theo các chỉ dẫn nghiêm ngặt trong hệ thống.`;
+  // Gemini natively supports PDF. If it's a PDF, send the binary data.
+  if (file.type === 'application/pdf') {
+    let base64Data;
+    let mimeType = file.type;
+    try {
+      base64Data = await fileToBase64(file);
+      parts.push({ inlineData: { mimeType, data: base64Data } });
+      parts.push({ text: `Hãy phân tích kỹ lưỡng file CV đính kèm này dựa theo các chỉ dẫn nghiêm ngặt trong hệ thống.` });
+    } catch (err) {
+      throw new Error(`Không thể chuyển đổi file sang Base64: ${err.message}`);
+    }
+  } else {
+    // For DOCX/DOC, Gemini API throws "Unsupported MIME type" if sent directly.
+    // So we send the extracted text instead.
+    parts.push({ text: `CV CONTENT FROM FILE "${file.name}":\n---\n${(cvText || '').substring(0, 12000)}\n---\n\nHãy phân tích kỹ lưỡng nội dung CV trên dựa theo các chỉ dẫn nghiêm ngặt trong hệ thống.` });
+  }
 
   // Models to try in order of preference
   const MODELS = [
@@ -580,10 +589,7 @@ async function callGeminiAnalysis(file, targetPosition = null) {
             contents: [
               {
                 role: 'user',
-                parts: [
-                  { inlineData: { mimeType, data: base64Data } },
-                  { text: userPrompt }
-                ]
+                parts: parts
               }
             ],
             config: {
@@ -610,16 +616,23 @@ async function callGeminiAnalysis(file, targetPosition = null) {
             break; // next model
           }
 
-          // If rate limited (429), retry with exponential backoff
-          if (err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('rate') || err.status === 429) {
+          // If rate limited (429) or server overloaded (503/500/504), retry with exponential backoff
+          const isRateLimit = err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('rate') || err.status === 429;
+          const isOverloaded = err.message?.includes('503') || err.message?.includes('500') || err.message?.includes('504') || err.message?.toLowerCase().includes('high demand') || err.status === 503;
+
+          if (isRateLimit || isOverloaded) {
             if (attempt < 2) {
               const waitMs = 5000 * attempt;
-              console.log(`[CV Analysis] ⏳ Rate limit trên key ${keyIdx + 1}, đợi ${waitMs / 1000}s rồi thử lại...`);
+              console.log(`[CV Analysis] ⏳ ${isOverloaded ? 'Server quá tải (503)' : 'Rate limit (429)'} trên key ${keyIdx + 1}, đợi ${waitMs / 1000}s rồi thử lại...`);
               await new Promise(r => setTimeout(r, waitMs));
               continue; // retry same model
             }
-            console.log(`[CV Analysis] ⏳ Vẫn bị rate limit, chuyển sang key khác...`);
-            break; // break model loop, go to next key
+            console.log(`[CV Analysis] ⏳ Vẫn bị lỗi, chuyển sang ${isOverloaded ? 'model/key khác' : 'key khác'}...`);
+            if (isRateLimit) {
+              break; // break model loop, go to next key (for rate limits, changing model on same key doesn't help)
+            } else {
+              // for 503 overloaded, changing model on the same key might help! But we already do that when attempt loop finishes.
+            }
           }
 
           // Other errors — try next model
