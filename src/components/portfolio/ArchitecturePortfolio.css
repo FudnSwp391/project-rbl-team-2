@@ -1,0 +1,275 @@
+.portfolio-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.portfolio-sticky-container {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: #35a78c;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+
+.portfolio-track {
+  display: flex;
+  height: 100%;
+  width: max-content;
+  will-change: transform;
+}
+
+.portfolio-panel {
+  width: 90vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 5vh 5vw;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Text reveal: initially hidden */
+.portfolio-panel .portfolio-left > * {
+  opacity: 0;
+  transform: translateY(60px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stagger delays for each child */
+.portfolio-panel .portfolio-left > *:nth-child(1) { transition-delay: 0s; }
+.portfolio-panel .portfolio-left > *:nth-child(2) { transition-delay: 0.12s; }
+.portfolio-panel .portfolio-left > *:nth-child(3) { transition-delay: 0.24s; }
+.portfolio-panel .portfolio-left > *:nth-child(4) { transition-delay: 0.36s; }
+
+/* When panel is revealed, show all children */
+.portfolio-panel.panel-revealed .portfolio-left > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.intro-panel {
+  width: 50vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5vh 8vw 5vh 5vw;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.intro-eyebrow {
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
+}
+
+.intro-title {
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  line-height: 1.2;
+  font-weight: 500;
+  margin: 0;
+  color: #ffffff;
+  background-color: #FF4F00;
+  padding: 2rem 5rem 2rem 2.5rem;
+  display: inline-block;
+  clip-path: polygon(0% 0%, calc(100% - 4rem) 0%, 100% 50%, calc(100% - 4rem) 100%, 0% 100%);
+}
+
+.portfolio-left {
+  width: 35%;
+  padding-right: 8vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Bungee+Outline&display=swap');
+
+.project-number {
+  font-family: 'Bungee Outline', cursive !important;
+  font-size: clamp(8rem, 15vw, 16rem);
+  font-weight: 400;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+  user-select: none;
+}
+
+.project-title {
+  font-size: clamp(2rem, 3.5vw, 3.5rem);
+  line-height: 1.1;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+}
+
+.project-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 3rem;
+  max-width: 400px;
+}
+
+.read-more-btn {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #ffffff !important;
+  color: #ffffff !important;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  transition: all 0.3s ease;
+  padding-bottom: 5px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.read-more-btn:hover {
+  color: rgba(255, 255, 255, 0.7) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.portfolio-center {
+  flex: 1;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.project-metadata {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.project-metadata span {
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+}
+
+.project-image-wrapper {
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  border-radius: 4px;
+}
+
+.project-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.15); 
+  will-change: transform;
+}
+
+.project-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.05);
+  transition: background 0.3s ease;
+  pointer-events: none;
+}
+
+.portfolio-center:hover .project-image-overlay {
+  background: rgba(0, 0, 0, 0);
+}
+
+/* Progress Indicator */
+.portfolio-progress {
+  position: absolute;
+  bottom: 2rem;
+  left: 5vw;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 50;
+  color: #ffffff;
+}
+
+.progress-line {
+  width: 150px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+  position: relative;
+}
+
+.progress-line-fill {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 3px;
+  background: #ffffff;
+  transition: width 0.1s linear;
+}
+
+.progress-numbers {
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .portfolio-wrapper {
+    height: auto !important;
+  }
+  .portfolio-sticky-container {
+    position: relative;
+    height: auto;
+    overflow: visible;
+  }
+  .portfolio-track {
+    flex-direction: column;
+    width: 100%;
+  }
+  .portfolio-panel, .intro-panel {
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    padding: 3rem 1.5rem;
+  }
+  .portfolio-left {
+    width: 100%;
+    padding-right: 0;
+    margin-bottom: 2rem;
+  }
+  .portfolio-center {
+    width: 100%;
+    height: 60vh;
+  }
+  .project-metadata {
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .portfolio-progress {
+    display: none;
+  }
+}

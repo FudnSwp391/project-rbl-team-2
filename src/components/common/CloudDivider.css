@@ -1,0 +1,130 @@
+/* ════════════════════════════════════════
+   CLOUD DIVIDER — Koi.ai Puffy Cumulus Style
+   ════════════════════════════════════════ */
+
+.cloud-divider {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+  overflow: hidden;
+  z-index: 5;
+  margin-top: -1px;
+  margin-bottom: -1px;
+}
+
+/* Wave/bumpy variants use --divider-bottom as their bg */
+.cloud-divider--wave,
+.cloud-divider--bumpy {
+  background: var(--divider-bottom, var(--color-charcoal));
+}
+
+/* Cloud variant uses --cloud-bg */
+.cloud-divider--cloud {
+  background: linear-gradient(to bottom, var(--cloud-bg, var(--color-charcoal)) 0%, var(--cloud-bg, var(--color-charcoal)) 95%, transparent 100%);
+}
+
+/* ── SVG base ── */
+.cloud-divider__svg {
+  display: block;
+  width: 100%;
+  height: clamp(80px, 10vw, 150px);
+  transform: scale(1.02);
+}
+
+/* ── Flip (clouds hang from top = scaleY -1) ── */
+.cloud-divider--flip {
+  transform: scaleY(-1);
+}
+
+/* ══════════════════════════
+   WAVE VARIANT
+   ══════════════════════════ */
+.cloud-divider--wave .cloud-divider__svg {
+  height: clamp(60px, 8vw, 120px);
+}
+
+/* ══════════════════════════
+   BUMPY VARIANT
+   ══════════════════════════ */
+.cloud-divider--bumpy .cloud-divider__svg {
+  height: clamp(70px, 9vw, 130px);
+}
+
+/* ══════════════════════════
+   CLOUD VARIANT — Koi.ai Puffy
+   ══════════════════════════ */
+.cloud-divider--cloud .cloud-divider__svg {
+  height: clamp(50px, 7vw, 100px);
+}
+
+.cloud-koi__layer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Back layer — faintest, softest depth */
+.cloud-koi__layer--3 {
+  z-index: 1;
+  opacity: 0.18;
+  animation: cloudKoiDrift3 24s ease-in-out infinite;
+}
+
+/* Mid layer — medium opacity */
+.cloud-koi__layer--2 {
+  z-index: 2;
+  opacity: 0.35;
+  animation: cloudKoiDrift2 18s ease-in-out infinite;
+}
+
+/* Front layer — fully visible, main cloud shapes */
+.cloud-koi__layer--1 {
+  z-index: 3;
+  opacity: 1;
+  animation: cloudKoiDrift1 14s ease-in-out infinite;
+}
+
+/* ── Cloud drift animations (subtle left/right sway) ── */
+@keyframes cloudKoiDrift1 {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-10px); }
+}
+
+@keyframes cloudKoiDrift2 {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(14px); }
+}
+
+@keyframes cloudKoiDrift3 {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-7px); }
+}
+
+/* ══════════════════════════
+   RESPONSIVE
+   ══════════════════════════ */
+@media (max-width: 768px) {
+  .cloud-divider__svg {
+    height: clamp(50px, 12vw, 90px);
+  }
+
+  .cloud-koi {
+    height: clamp(70px, 16vw, 120px);
+  }
+
+  .cloud-divider--wave .cloud-divider__svg {
+    height: clamp(40px, 10vw, 70px);
+  }
+}
+
+@media (max-width: 480px) {
+  .cloud-divider__svg {
+    height: clamp(40px, 15vw, 70px);
+  }
+
+  .cloud-koi {
+    height: clamp(55px, 18vw, 90px);
+  }
+}

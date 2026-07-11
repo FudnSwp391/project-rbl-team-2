@@ -1,0 +1,260 @@
+/* ══════════════════════════════════════════
+   CARD STACK SECTION — Blueprint-style stacking
+   Uses CSS position:sticky for the pin effect.
+   GSAP drives scale/dim animations.
+   ══════════════════════════════════════════ */
+
+.card-stack-wrapper {
+  position: relative;
+  height: 200vh;
+}
+
+.card-stack-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden; /* Hide cards flying up */
+}
+
+.card-stack-section {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  padding-top: clamp(8rem, 15vh, 12rem); /* Increased to clear navbar */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Header ── */
+.card-stack-header {
+  text-align: center;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto clamp(1.5rem, 4vh, 3rem);
+  padding: 0 2rem;
+  position: relative;
+  z-index: 20;
+}
+
+.card-stack-label {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, #666);
+  border: 1.5px solid var(--color-sand, #ccc);
+  border-radius: 100px;
+  padding: 0.4rem 1rem;
+}
+
+.card-stack-title {
+  font-family: var(--font-heading, 'Inter', sans-serif);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #1a1a1a; /* Darker for better contrast */
+  margin-top: 1rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card-stack-title em {
+  font-style: italic;
+  font-family: var(--font-serif, 'Playfair Display', serif);
+  font-weight: 500;
+  color: var(--color-accent-vivid, #FF4F00);
+}
+
+/* ── Card Stack Container ── */
+.card-stack-container {
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  padding-bottom: clamp(3rem, 6vh, 5rem); /* Space for the stacked cards peeking */
+  flex-grow: 1;
+}
+
+/* ── Individual Card — Absolute Stacking ── */
+.card-stack-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 0 2rem; /* Keep padding from container */
+  will-change: transform, opacity, filter;
+  transform-origin: center top;
+}
+
+/* Make the first card position relative so the container takes its height */
+.card-stack-card:first-child {
+  position: relative;
+  left: auto;
+  padding: 0;
+}
+
+/* Remove padding from absolutely positioned cards so they align with the first */
+.card-stack-card:not(:first-child) {
+  padding: 0;
+  left: 2rem;
+  width: calc(100% - 4rem);
+}
+
+.card-stack-card__inner {
+  display: grid;
+  grid-template-columns: 1fr 450px 1fr;
+  gap: 4rem;
+  align-items: center;
+  width: 100%;
+  background: transparent !important;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  min-height: clamp(350px, 55vh, 550px);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Side Content ── */
+.card-stack-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-width: 250px; /* Prevent squishing */
+}
+
+.card-stack-side--left {
+  text-align: right;
+  align-items: flex-end;
+  padding-right: 2vw; /* Breathing room */
+}
+
+.card-stack-side--right {
+  text-align: left;
+  align-items: flex-start;
+  padding-left: 2vw;
+}
+
+.card-stack-number {
+  font-family: var(--font-heading, 'Inter', sans-serif);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.card-stack-title-side {
+  font-family: var(--font-heading, 'Inter', sans-serif);
+  font-size: clamp(2rem, 3vw, 3rem);
+  font-weight: 900;
+  color: #1a1a1a; /* Darker, punchy charcoal */
+  line-height: 1.1;
+  text-wrap: balance; /* Fixes dangling words like "THIỆN" */
+  max-width: 350px;
+}
+
+.card-stack-desc-side {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #4a453f;
+  max-width: 350px;
+}
+
+/* ── Center Tab ── */
+.card-stack-tab {
+  background-color: #1C1C1C;
+  border-radius: 32px;
+  height: clamp(350px, 55vh, 550px);
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.4s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-stack-tab:hover {
+  transform: translateY(-5px);
+}
+
+.card-stack-tab-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.card-stack-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-stack-tab:hover .card-stack-icon {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .card-stack-card__inner {
+    grid-template-columns: 1fr 350px 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-stack-section {
+    padding-top: 4rem;
+  }
+
+  .card-stack-container {
+    padding: 0 1rem;
+    padding-bottom: 4rem;
+  }
+
+  .card-stack-card:not(:first-child) {
+    left: 1rem;
+    width: calc(100% - 2rem);
+  }
+
+  .card-stack-card__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    min-height: auto;
+  }
+
+  .card-stack-side--left,
+  .card-stack-side--right {
+    align-items: center;
+    text-align: center;
+  }
+
+  .card-stack-title-side {
+    font-size: 2rem;
+  }
+
+  .card-stack-desc-side {
+    max-width: 100%;
+  }
+
+  .card-stack-tab {
+    height: 400px;
+  }
+}
