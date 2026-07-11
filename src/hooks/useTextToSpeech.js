@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { getElevenLabsTtsUrl } from '../utils/elevenLabsTtsService';
 import { getTtsAudioUrl } from '../utils/iteraTtsService';
 import { getGoogleTtsAudioUrl } from '../utils/googleTtsService';
+import { getGroqTtsAudioUrl } from '../utils/groqTtsService';
+import { getGoogleCloudTtsAudioUrl } from '../utils/googleCloudTtsService';
 
 export function useTextToSpeech(initialLang = 'vi') {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -55,25 +57,38 @@ export function useTextToSpeech(initialLang = 'vi') {
       let audioUrl;
       let useFallback = false;
 
-      try {
-        // 1. Itera TTS API (Primary)
-        console.log('[useTextToSpeech] Trying Itera TTS...');
-        audioUrl = await getTtsAudioUrl(text, lang);
-        console.log('[useTextToSpeech] ✓ Itera audio loaded!');
-      } catch (iteraError) {
-        console.warn('[useTextToSpeech] Itera failed. Trying ElevenLabs fallback...', iteraError);
+      // Build a prioritized list of TTS providers based on language
+      const providers = [];
+
+      if (lang === 'vi') {
+        // Vietnamese: Google Cloud TTS (WaveNet) → Itera → Google Translate → ElevenLabs
+        providers.push({ name: 'Google Cloud TTS', fn: () => getGoogleCloudTtsAudioUrl(text, lang) });
+        providers.push({ name: 'Itera TTS', fn: () => getTtsAudioUrl(text, lang) });
+        providers.push({ name: 'Google Translate TTS', fn: () => getGoogleTtsAudioUrl(text, lang) });
+        providers.push({ name: 'ElevenLabs TTS', fn: () => getElevenLabsTtsUrl(text, lang) });
+      } else {
+        // English: Groq Orpheus → Google Cloud TTS → ElevenLabs → Itera → Google Translate
+        providers.push({ name: 'Groq TTS', fn: () => getGroqTtsAudioUrl(text, lang) });
+        providers.push({ name: 'Google Cloud TTS', fn: () => getGoogleCloudTtsAudioUrl(text, lang) });
+        providers.push({ name: 'ElevenLabs TTS', fn: () => getElevenLabsTtsUrl(text, lang) });
+        providers.push({ name: 'Itera TTS', fn: () => getTtsAudioUrl(text, lang) });
+        providers.push({ name: 'Google Translate TTS', fn: () => getGoogleTtsAudioUrl(text, lang) });
+      }
+
+      // Try each provider in order until one succeeds
+      for (let i = 0; i < providers.length; i++) {
+        const provider = providers[i];
         try {
-          // 2. ElevenLabs Direct Streaming API (Fallback)
-          audioUrl = await getElevenLabsTtsUrl(text, lang);
-          console.log('[useTextToSpeech] ✓ ElevenLabs streaming audio loaded!');
-        } catch (elevenLabsError) {
-          console.warn('[useTextToSpeech] ElevenLabs failed. Trying Google TTS...', elevenLabsError);
-          try {
-            // 3. Google Translate TTS (Free fallback)
-            audioUrl = await getGoogleTtsAudioUrl(text, lang);
-            console.log('[useTextToSpeech] ✓ Google TTS audio loaded!');
-          } catch (googleError) {
-            console.warn('[useTextToSpeech] All TTS APIs failed. Using native SpeechSynthesis...', googleError);
+          console.log(`[useTextToSpeech] Trying ${provider.name}...`);
+          audioUrl = await provider.fn();
+          console.log(`[useTextToSpeech] ✓ ${provider.name} audio loaded!`);
+          break; // Success — stop trying
+        } catch (err) {
+          const nextProvider = providers[i + 1];
+          if (nextProvider) {
+            console.warn(`[useTextToSpeech] ${provider.name} failed. Trying ${nextProvider.name}...`, err.message);
+          } else {
+            console.warn(`[useTextToSpeech] ${provider.name} failed. All TTS APIs exhausted.`, err.message);
             useFallback = true;
           }
         }
@@ -150,13 +165,36 @@ export function useTextToSpeech(initialLang = 'vi') {
           stop();
         };
 
-        // Simulate volume level for 2D/3D mouth animation (human voice fluctuates between 35 and 85)
+        // Simulate volume level for 2D/3D mouth animation
+        let hasStartedSpeaking = false;
+        let ticksWithoutSpeaking = 0;
+        
         simIntervalRef.current = setInterval(() => {
-          if (!window.speechSynthesis.speaking) {
+          if (window.speechSynthesis.speaking) {
+            hasStartedSpeaking = true;
+          } else {
+            ticksWithoutSpeaking++;
+          }
+
+          // If it started and then stopped, clear it
+          if (hasStartedSpeaking && !window.speechSynthesis.speaking) {
             clearInterval(simIntervalRef.current);
             setVolume(0);
+            stop(); // Fix for Chrome bug where onend never fires
             return;
           }
+          
+          // If it never started after 3 seconds (25 ticks), it was probably blocked by the browser
+          if (!hasStartedSpeaking && ticksWithoutSpeaking > 25) {
+            console.warn('[useTextToSpeech] SpeechSynthesis blocked or hung. Auto-skipping...');
+            clearInterval(simIntervalRef.current);
+            setVolume(0);
+            stop();
+            return;
+          }
+          
+          if (!window.speechSynthesis.speaking) return;
+
           // Simulate dynamic voice modulation
           const simulatedVol = Math.round(30 + Math.random() * 50);
           setVolume(simulatedVol);

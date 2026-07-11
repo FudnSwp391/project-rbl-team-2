@@ -55,11 +55,11 @@ const Header = () => {
       {
         label: 'Khám phá',
         dropdown: [
-          { to: '/mentors', label: 'Tìm Mentors' },
-          { to: '/blogs', label: 'Blog' },
-          { to: '/jobs', label: 'Việc làm' },
-          { to: '/mentor-register', label: 'Đăng ký Mentor' },
-          { to: '/recruiter-register', label: 'Dành cho doanh nghiệp' }
+          { to: '/mentors', label: '🧑‍🏫 Tìm Mentors', desc: 'Kết nối với mentor chuyên nghiệp' },
+          { to: '/blogs', label: '📝 Blog', desc: 'Chia sẻ kinh nghiệm phỏng vấn' },
+          { to: '/jobs', label: '💼 Việc làm', desc: 'Tìm kiếm cơ hội nghề nghiệp' },
+          { to: '/mentor-register', label: '🎓 Đăng ký Mentor', desc: 'Chia sẻ kiến thức của bạn' },
+          { to: '/recruiter-register', label: '🏢 Dành cho doanh nghiệp', desc: 'Đăng tin tuyển dụng' }
         ]
       },
       { to: '/pricing', label: 'Gói dịch vụ' }
@@ -93,20 +93,22 @@ const Header = () => {
   return (
     <header id="main-header" style={{
       position: 'fixed',
-      top: '1.5rem',
+      top: '1.2rem',
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'calc(100% - 3rem)',
       maxWidth: '1200px',
       zIndex: 1000,
-      padding: '0.6rem 2.5rem',
-      background: scrolled ? 'rgba(250, 248, 245, 0.65)' : 'rgba(250, 248, 245, 0.45)',
-      backdropFilter: 'blur(25px)',
-      WebkitBackdropFilter: 'blur(25px)',
-      border: '1px solid rgba(255, 255, 255, 0.55)',
+      padding: '0.55rem 2rem',
+      background: scrolled ? 'rgba(250, 248, 245, 0.75)' : 'rgba(250, 248, 245, 0.5)',
+      backdropFilter: 'blur(30px)',
+      WebkitBackdropFilter: 'blur(30px)',
+      border: scrolled ? '1px solid rgba(255, 255, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.35)',
       borderRadius: '9999px',
-      boxShadow: scrolled ? '0 25px 50px rgba(44, 40, 36, 0.08)' : '0 15px 35px rgba(44, 40, 36, 0.04)',
-      transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+      boxShadow: scrolled
+        ? '0 20px 50px rgba(44, 40, 36, 0.1), 0 0 0 1px rgba(44, 40, 36, 0.03)'
+        : '0 10px 30px rgba(44, 40, 36, 0.04)',
+      transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
       <div style={{
         display: 'flex',
@@ -118,27 +120,31 @@ const Header = () => {
         <Link to="/" style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '10px',
           textDecoration: 'none',
           color: 'var(--color-charcoal)',
         }}>
           <span style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '1.45rem',
-            fontWeight: 500,
-            letterSpacing: '-0.03em',
+            fontFamily: 'var(--font-heading, var(--font-serif))',
+            fontSize: '1.4rem',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            background: 'linear-gradient(135deg, var(--color-charcoal), var(--color-earth-dark))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
           }}>
             ita.
           </span>
           <span style={{
-            fontSize: '0.55rem',
-            fontWeight: 500,
-            letterSpacing: '0.05em',
+            fontSize: '0.52rem',
+            fontWeight: 600,
+            letterSpacing: '0.06em',
             textTransform: 'uppercase',
             color: 'var(--color-text-secondary)',
-            borderLeft: '1px solid rgba(44, 40, 36, 0.15)',
-            paddingLeft: '12px',
-            lineHeight: '1.2'
+            borderLeft: '1.5px solid rgba(44, 40, 36, 0.12)',
+            paddingLeft: '10px',
+            lineHeight: '1.3'
           }} className="logo-subtitle">
             Interview<br />Technology AI
           </span>
@@ -147,7 +153,7 @@ const Header = () => {
         {/* Desktop Nav */}
         <nav style={{
           display: 'flex',
-          gap: '2.2rem',
+          gap: '1.8rem',
           alignItems: 'center',
         }} className="desktop-nav">
           {navLinks.map((link, idx) => (
@@ -156,27 +162,33 @@ const Header = () => {
                 <span style={{
                   cursor: 'pointer',
                   color: 'var(--color-text-muted)',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 500,
                   transition: 'color 0.3s ease',
-                  padding: '0.5rem 0'
+                  padding: '0.5rem 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }} className="nav-link-item">
-                  {link.label} ▾
+                  {link.label}
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.5 }}>
+                    <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </span>
                 <div className="nav-dropdown-menu" style={{
                   position: 'absolute',
                   top: '100%',
                   left: '50%',
-                  transform: 'translateX(-50%) translateY(10px)',
-                  background: 'var(--color-cream)',
+                  transform: 'translateX(-50%) translateY(12px)',
+                  background: 'var(--color-warm-white)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  boxShadow: 'var(--shadow-md)',
-                  padding: '0.5rem',
-                  minWidth: '200px',
+                  borderRadius: '20px',
+                  boxShadow: '0 20px 60px rgba(44, 40, 36, 0.12), 0 0 0 1px rgba(44, 40, 36, 0.03)',
+                  padding: '0.75rem',
+                  minWidth: '260px',
                   opacity: 0,
                   visibility: 'hidden',
-                  transition: 'all 0.3s ease',
+                  transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.2rem'
@@ -186,17 +198,27 @@ const Header = () => {
                       key={subItem.to}
                       to={subItem.to}
                       style={{
-                        padding: '0.6rem 1rem',
+                        padding: '0.7rem 1rem',
                         textDecoration: 'none',
                         color: 'var(--color-charcoal)',
                         fontSize: '0.85rem',
-                        borderRadius: '8px',
-                        transition: 'background 0.2s',
-                        whiteSpace: 'nowrap'
+                        fontWeight: 500,
+                        borderRadius: '12px',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
                       }}
                       className="dropdown-link-item"
                     >
-                      {subItem.label}
+                      <span>{subItem.label}</span>
+                      {subItem.desc && (
+                        <span style={{
+                          fontSize: '0.7rem',
+                          color: 'var(--color-text-muted)',
+                          fontWeight: 400,
+                        }}>{subItem.desc}</span>
+                      )}
                     </Link>
                   ))}
                 </div>
@@ -208,10 +230,10 @@ const Header = () => {
                 style={{
                   textDecoration: 'none',
                   color: location.pathname === link.to ? 'var(--color-charcoal)' : 'var(--color-text-muted)',
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
+                  fontSize: '0.82rem',
+                  fontWeight: location.pathname === link.to ? 600 : 500,
                   letterSpacing: '0',
-                  transition: 'color 0.3s ease',
+                  transition: 'all 0.3s ease',
                   position: 'relative',
                 }}
                 className="nav-link-item"
@@ -232,17 +254,19 @@ const Header = () => {
                 style={{
                   textDecoration: 'none',
                   color: 'var(--color-charcoal)',
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.4rem'
               }} className="nav-link-item">
                 <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'var(--color-earth, #c4956a)', color: 'white',
+                  width: '30px', height: '30px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--color-accent-vivid), var(--color-accent))',
+                  color: 'white',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 'bold', fontSize: '14px'
+                  fontWeight: 'bold', fontSize: '13px',
+                  boxShadow: '0 2px 8px rgba(224, 122, 75, 0.3)',
                 }}>
                   {user.user_metadata?.full_name
                     ? user.user_metadata.full_name.charAt(0).toUpperCase()
@@ -257,10 +281,10 @@ const Header = () => {
                     color: 'white',
                     padding: '2px 6px',
                     borderRadius: '12px',
-                    fontSize: '0.65rem',
+                    fontSize: '0.6rem',
                     fontWeight: 'bold',
-                    marginLeft: '4px',
-                    boxShadow: '0 0 8px rgba(217, 119, 6, 0.6), 0 0 16px rgba(251, 191, 36, 0.4)'
+                    marginLeft: '2px',
+                    boxShadow: '0 0 8px rgba(217, 119, 6, 0.4)'
                   }}>
                     ADMIN
                   </span>
@@ -270,21 +294,21 @@ const Header = () => {
                     color: 'white',
                     padding: '2px 6px',
                     borderRadius: '12px',
-                    fontSize: '0.65rem',
+                    fontSize: '0.6rem',
                     fontWeight: 'bold',
-                    marginLeft: '4px'
+                    marginLeft: '2px'
                   }}>
                     MENTOR
                   </span>
                 ) : profile?.role === 'recruiter' ? (
                   <span style={{
-                    background: '#0ea5e9', // Premium Ocean/Sky Blue color for company
+                    background: '#0ea5e9',
                     color: 'white',
                     padding: '2px 6px',
                     borderRadius: '12px',
-                    fontSize: '0.65rem',
+                    fontSize: '0.6rem',
                     fontWeight: 'bold',
-                    marginLeft: '4px'
+                    marginLeft: '2px'
                   }}>
                     COMPANY
                   </span>
@@ -294,32 +318,40 @@ const Header = () => {
                     color: profile.plan === 'Premium' ? 'white' : (profile.plan === 'Pro' ? 'white' : '#64748b'),
                     padding: '2px 6px',
                     borderRadius: '12px',
-                    fontSize: '0.65rem',
+                    fontSize: '0.6rem',
                     fontWeight: 'bold',
-                    marginLeft: '4px'
+                    marginLeft: '2px'
                   }}>
                     {profile.plan}
                   </span>
                 )}
               </Link>
-              <button onClick={handleLogout} className="btn btn--outline" style={{
-                padding: '0.4rem 1rem',
+              <button onClick={handleLogout} style={{
+                padding: '0.4rem 1.1rem',
                 fontSize: '0.75rem',
+                fontWeight: 500,
                 borderRadius: '9999px',
                 border: '1px solid var(--border-color, #e0d5c1)',
                 background: 'transparent',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
-              }}>
+                transition: 'all 0.3s ease',
+                color: 'var(--color-text-secondary)',
+                fontFamily: 'var(--font-sans)',
+              }} className="btn-logout-nav">
                 Đăng xuất
               </button>
             </div>
           ) : (
-            <Link to="/login" className="btn btn--primary" style={{
-              padding: '0.6rem 1.5rem',
-              fontSize: '0.75rem',
+            <Link to="/login" className="btn btn--vivid" style={{
+              padding: '0.55rem 1.5rem',
+              fontSize: '0.8rem',
+              borderRadius: '9999px',
+              fontWeight: 600,
             }}>
               Bắt đầu
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </Link>
           )}
         </nav>
@@ -402,7 +434,7 @@ const Header = () => {
                   }}
                   className="mobile-nav-link"
                 >
-                  {subItem.label}
+                  {typeof subItem.label === 'string' ? subItem.label.replace(/^[^\s]+\s/, '') : subItem.label}
                 </Link>
               ))}
             </div>
@@ -428,7 +460,7 @@ const Header = () => {
           <>
             <Link to="/profile" onClick={() => setMenuOpen(false)} style={{
               textDecoration: 'none',
-              color: 'var(--color-earth, #c4956a)',
+              color: 'var(--color-accent-vivid)',
               fontFamily: 'var(--font-serif)',
               fontSize: '1.5rem',
               fontWeight: 600,
@@ -469,9 +501,9 @@ const Header = () => {
             <button onClick={handleLogout} className="btn btn--outline" style={{
               padding: '0.6rem 2rem',
               borderRadius: '9999px',
-              border: '1px solid var(--color-earth, #c4956a)',
+              border: '1px solid var(--color-accent-vivid)',
               background: 'transparent',
-              color: 'var(--color-earth, #c4956a)',
+              color: 'var(--color-accent-vivid)',
               fontSize: '1rem',
               cursor: 'pointer',
               marginTop: '1rem'
@@ -480,7 +512,10 @@ const Header = () => {
             </button>
           </>
         ) : (
-          <Link to="/login" className="btn btn--primary" onClick={() => setMenuOpen(false)}>
+          <Link to="/login" className="btn btn--vivid" onClick={() => setMenuOpen(false)} style={{
+            padding: '0.8rem 2.5rem',
+            fontSize: '1rem',
+          }}>
             Bắt đầu
           </Link>
         )}
@@ -493,24 +528,55 @@ const Header = () => {
           .mobile-menu { display: flex !important; }
           .logo-subtitle { display: none !important; }
         }
+        .nav-link-item {
+          position: relative;
+        }
+        .nav-link-item::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          width: 0;
+          height: 1.5px;
+          background: var(--color-accent-vivid);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          transform: translateX(-50%);
+          border-radius: 1px;
+        }
+        .nav-link-item:hover::after {
+          width: 100%;
+        }
         .nav-link-item:hover {
           color: var(--color-charcoal) !important;
-          transform: translateY(-1px);
         }
         .mobile-nav-link:hover {
-          color: var(--color-accent) !important;
+          color: var(--color-accent-vivid) !important;
         }
-        .btn-start-nav:hover {
-          transform: translateY(-2px) scale(1.03);
-          box-shadow: 0 10px 20px rgba(44, 40, 36, 0.15) !important;
+        .btn-logout-nav:hover {
+          background: var(--color-charcoal) !important;
+          color: var(--color-cream) !important;
+          border-color: var(--color-charcoal) !important;
         }
         .nav-dropdown:hover .nav-dropdown-menu {
           opacity: 1 !important;
           visibility: visible !important;
-          transform: translateX(-50%) translateY(5px) !important;
+          transform: translateX(-50%) translateY(6px) !important;
         }
         .dropdown-link-item:hover {
-          background: var(--color-warm-white);
+          background: var(--color-cream) !important;
+        }
+        .btn--vivid {
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .btn--vivid:hover {
+          box-shadow: 0 4px 15px rgba(224, 122, 75, 0.4) !important;
+          transform: translateY(-1px);
+        }
+        .btn--vivid svg {
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .btn--vivid:hover svg {
+          transform: translateX(4px);
         }
       `}</style>
     </header>

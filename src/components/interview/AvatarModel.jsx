@@ -25,17 +25,28 @@ export function AvatarModel({
       });
       isVroidRef.current = isVroid;
 
-      if (isVroid) {
-        // VRoid model positioning (fits nicely on chest and head view)
-        scene.position.set(0, -1.35, 0);
-        scene.scale.set(1.0, 1.0, 1.0);
-        console.log('[AvatarModel] Detected VRoid/VRM model structure. Applied VRoid positioning.');
-      } else {
-        // Ready Player Me model positioning
-        scene.position.set(0, -3.2, 0);
-        scene.scale.set(2.2, 2.2, 2.2);
-        console.log('[AvatarModel] Detected Ready Player Me model structure. Applied RPM positioning.');
-      }
+      isVroidRef.current = isVroid;
+
+      // Auto-position and scale based on bounding box
+      const box = new THREE.Box3().setFromObject(scene);
+      const size = box.getSize(new THREE.Vector3());
+      
+      // Normalize scale so the model is approx 1.7 units tall
+      const targetHeight = 1.7;
+      const scaleFactor = targetHeight / (size.y || 1);
+      scene.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      
+      // Recompute bounding box after scale
+      const newBox = new THREE.Box3().setFromObject(scene);
+      const newSize = newBox.getSize(new THREE.Vector3());
+      const newCenter = newBox.getCenter(new THREE.Vector3());
+      
+      // Position the face (approx 85% of height from bottom) at Y = 0.22 (camera Y level)
+      // Top of bounding box is newCenter.y + newSize.y / 2. Face is slightly below top.
+      const faceY = newCenter.y + newSize.y * 0.35; 
+      scene.position.set(-newCenter.x, 0.22 - faceY, -newCenter.z);
+
+      console.log(`[AvatarModel] Auto-positioned avatar. Scale: ${scaleFactor.toFixed(2)}, ShiftY: ${(0.22 - faceY).toFixed(2)}`);
       
       // Enable shadow casting and optimize textures for maximum sharpness
       scene.traverse((child) => {
