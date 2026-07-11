@@ -549,3 +549,90 @@
     max-width: 180px;
   }
 }
+
+/* ── Print Styles ── */
+.qa-item__details--collapsed {
+  display: none;
+}
+
+@media print {
+  :root, body, .interview-theme, .result-container {
+    --iv-bg-main: #ffffff !important;
+    --iv-bg-surface: #ffffff !important;
+    --iv-bg-elevated: #f8fafc !important;
+    --iv-text-primary: #0f172a !important;
+    --iv-text-secondary: #334155 !important;
+    --iv-text-muted: #64748b !important;
+    --iv-border: #e2e8f0 !important;
+    background: white !important;
+    color: #0f172a !important;
+  }
+  
+  .iv-grid-bg, .iv-orb, .result-header, .result-bottom {
+    display: none !important;
+  }
+  
+  .result-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  .qa-item__details--collapsed {
+    display: flex !important;
+  }
+  
+  .result-card, .qa-item, .summary-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .qa-item__header svg {
+    display: none !important;
+  }
+}
+
+/* ── HTML2PDF Export Mode ── */
+.pdf-export-mode {
+  --iv-bg-main: #0a0f1c !important;
+  --iv-bg-surface: #1e2433 !important;
+  --iv-bg-elevated: #2a3143 !important;
+  --iv-text-primary: #ffffff !important;
+  --iv-text-secondary: #94a3b8 !important;
+  --iv-text-muted: #64748b !important;
+  --iv-border: #334155 !important;
+  
+  background-color: var(--iv-bg-main) !important;
+  color: var(--iv-text-primary) !important;
+  width: 800px !important; /* Standard width for PDF */
+  max-width: 800px !important;
+  padding: 30px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.pdf-export-mode * {
+  color: var(--iv-text-primary);
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+.pdf-export-mode .qa-item__details--collapsed {
+  display: flex !important;
+}
+
+.pdf-export-mode .result-card,
+.pdf-export-mode .qa-item {
+  background-color: var(--iv-bg-surface) !important;
+  border-color: var(--iv-border) !important;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.pdf-export-mode .result-hero {
+  background-color: var(--iv-bg-surface) !important;
+  border-color: var(--iv-border) !important;
+}

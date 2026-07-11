@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Download, RotateCcw, Share2, Star,
   TrendingUp, TrendingDown, ChevronDown, ChevronUp,
@@ -7,6 +7,8 @@ import {
   MessageSquare, Shield, Zap, ExternalLink, Clock,
   CheckCircle2, AlertCircle, Info, Loader2, AlertTriangle
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { MOCK_RESULT, getScoreColor, getScoreLabel } from '../../constants/interviewConstants';
 import { evaluateInterviewAnswers } from '../../utils/interviewAiService';
 import { supabase } from '../../utils/supabaseClient';
@@ -151,14 +153,18 @@ const SkillBar = ({ label, score, icon: Icon }) => (
 export default function InterviewResult() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { config, totalQuestions, answeredQuestions, questionAnswerPairs } = location.state || {};
+  const { id } = useParams();
+  const { config, totalQuestions, answeredQuestions, questionAnswerPairs, autoPrint } = location.state || {};
 
   const [resultData, setResultData] = useState(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalError, setEvalError] = useState(null);
   const [expandedQuestion, setExpandedQuestion] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const evalAttemptedRef = useRef(false);
 
   const toggleQuestion = (id) => {
+    if (expandedQuestion === 'ALL') return;
     setExpandedQuestion(expandedQuestion === id ? null : id);
   };
 
@@ -181,6 +187,21 @@ export default function InterviewResult() {
         if (indData) dbIndustryId = indData.id;
       }
 
+      // Prepare extended metadata
+      const extendedMeta = {
+        difficulty: config?.difficulty?.id || 'medium',
+        difficultyName: config?.difficulty?.nameVi || config?.difficulty?.name || 'Trung bình',
+        industryId: config?.industry?.id || 'frontend',
+        industryName: config?.industry?.nameVi || config?.industry?.name || 'Lập trình Frontend',
+        skills: finalizedResult.skills,
+        detailedTechnical: finalizedResult.detailedTechnical,
+        strengths: finalizedResult.strengths,
+        weaknesses: finalizedResult.weaknesses,
+        improvements: finalizedResult.improvements,
+        careerAdvice: finalizedResult.careerAdvice,
+        resources: finalizedResult.resources,
+      };
+
       // Insert interviews record
       const { data: interviewRecord, error: interviewErr } = await supabase
         .from('interviews')
@@ -189,7 +210,7 @@ export default function InterviewResult() {
           industry_id: dbIndustryId,
           status: 'completed',
           overall_score: finalizedResult.overallScore,
-          overall_feedback: finalizedResult.aiFeedback,
+          overall_feedback: finalizedResult.aiFeedback + `<!--META:${JSON.stringify(extendedMeta)}-->`,
           completed_at: finalizedResult.completedAt
         })
         .select()
@@ -199,13 +220,19 @@ export default function InterviewResult() {
 
       // Insert interview_answers records
       if (interviewRecord && finalizedResult.questionReviews) {
-        const answersToInsert = finalizedResult.questionReviews.map((qr) => ({
+        const answersToInsert = finalizedResult.questionReviews.map((qr, idx) => ({
           interview_id: interviewRecord.id,
           user_answer_text: qr.userAnswer || '',
           score: qr.score || 0,
           ai_evaluation: {
             question: qr.question,
-            evaluation: qr.aiEvaluation
+            evaluation: qr.aiEvaluation,
+            _metadata: idx === 0 ? {
+              difficulty: config?.difficulty?.id || 'medium',
+              difficultyName: config?.difficulty?.nameVi || config?.difficulty?.name || 'Trung bình',
+              industryId: config?.industry?.id || 'frontend',
+              industryName: config?.industry?.nameVi || config?.industry?.name || 'Lập trình Frontend'
+            } : undefined
           }
         }));
 
@@ -223,6 +250,9 @@ export default function InterviewResult() {
 
   useEffect(() => {
     if (questionAnswerPairs && questionAnswerPairs.length > 0) {
+      if (evalAttemptedRef.current) return;
+      evalAttemptedRef.current = true;
+      
       const runEvaluation = async () => {
         setIsEvaluating(true);
         setEvalError(null);
@@ -329,11 +359,201 @@ export default function InterviewResult() {
         }
       };
       runEvaluation();
+    } else if (id) {
+      // Fetch result from Supabase if accessing via URL with ID
+      const fetchResult = async () => {
+        setIsEvaluating(true);
+        setEvalError(null);
+        try {
+          const { data: interview, error: intErr } = await supabase
+            .from('interviews')
+            .select('*, industries(name)')
+            .eq('id', id)
+            .single();
+
+          if (intErr) throw intErr;
+
+          const { data: answers, error: ansErr } = await supabase
+            .from('interview_answers')
+            .select('*')
+            .eq('interview_id', id);
+
+          if (ansErr) throw ansErr;
+
+          // Reconstruct the resultData
+          let grade = 'C+';
+          const score = interview.overall_score || 0;
+          if (score >= 90) grade = 'A+';
+          else if (score >= 85) grade = 'A';
+          else if (score >= 80) grade = 'B+';
+          else if (score >= 75) grade = 'B';
+          else if (score >= 70) grade = 'C+';
+          else if (score >= 60) grade = 'C';
+          else grade = 'D';
+
+          // Generate realistic fallback metrics based on the score since they aren't in DB
+          const isSilent = score < 30;
+          const fallbackSkills = {
+            pronunciation: Math.min(100, score + 5),
+            vocabulary: score,
+            communication: score,
+            confidence: Math.min(100, score + 10),
+            technicalAccuracy: Math.max(0, score - 5)
+          };
+          
+          const fallbackStrengths = isSilent 
+            ? ['Ứng viên có tham gia và hoàn thành phiên phỏng vấn']
+            : (score >= 70 ? ['Trình bày khá rõ ràng', 'Có hiểu biết về chuyên môn'] : ['Cố gắng hoàn thành bài phỏng vấn']);
+            
+          const fallbackWeaknesses = isSilent
+            ? ['Không có hoặc có rất ít tương tác giọng nói', 'Chưa trả lời được các câu hỏi chuyên môn']
+            : ['Cần bổ sung thêm kiến thức chuyên sâu', 'Nên luyện tập trả lời tự tin và mạch lạc hơn'];
+
+          const fallbackImprovements = isSilent
+            ? [{ priority: 'high', text: 'Cần kiểm tra lại micro và đảm bảo có tương tác trả lời câu hỏi' }]
+            : [{ priority: 'high', text: 'Luyện tập trả lời theo phương pháp STAR' }];
+
+          // Extract metadata from the first answer or overall_feedback
+          let meta = {};
+          if (answers && answers.length > 0) {
+            const firstAns = answers.find(a => a.ai_evaluation?._metadata) || answers[0];
+            if (firstAns?.ai_evaluation?._metadata) {
+              meta = firstAns.ai_evaluation._metadata;
+            }
+          }
+          
+          let cleanFeedback = interview.overall_feedback || '';
+          if (cleanFeedback.includes('<!--META:')) {
+            try {
+              const metaStr = cleanFeedback.split('<!--META:')[1].split('-->')[0];
+              const parsedMeta = JSON.parse(metaStr);
+              meta = { ...meta, ...parsedMeta };
+              cleanFeedback = cleanFeedback.split('<!--META:')[0];
+            } catch (e) { console.warn('Failed to parse metadata from feedback', e); }
+          }
+
+          const mappedResult = {
+            id: interview.id,
+            overallScore: score,
+            grade: grade,
+            aiFeedback: cleanFeedback || (isSilent ? 'Ứng viên không cung cấp đủ thông tin để AI có thể đưa ra đánh giá chuyên sâu.' : 'Cần cố gắng nhiều hơn.'),
+            industry: meta.industryName || interview.industries?.name || 'Lập trình',
+            completedAt: interview.completed_at,
+            questionReviews: (answers || []).map((ans, idx) => ({
+              id: ans.id || idx + 1,
+              question: ans.ai_evaluation?.question || 'Câu hỏi',
+              userAnswer: ans.user_answer_text || '',
+              aiEvaluation: ans.ai_evaluation?.evaluation || '',
+              score: ans.score || 0,
+            })),
+            totalQuestions: answers?.length || 0,
+            answeredQuestions: answers?.length || 0,
+            skills: meta.skills || fallbackSkills,
+            detailedTechnical: meta.detailedTechnical || {
+              accuracy: fallbackSkills.technicalAccuracy,
+              completeness: score,
+              examples: Math.max(0, score - 10)
+            },
+            strengths: meta.strengths || fallbackStrengths,
+            weaknesses: meta.weaknesses || fallbackWeaknesses,
+            improvements: meta.improvements || fallbackImprovements,
+            careerAdvice: meta.careerAdvice || 'Hãy tiếp tục thực hành phỏng vấn để nhận được những lời khuyên chi tiết và cá nhân hóa hơn.',
+            resources: meta.resources || [],
+            difficulty: meta.difficultyName || 'Đã lưu', // From metadata
+            questionType: 'Câu hỏi' // fallback
+          };
+
+          setResultData(mappedResult);
+        } catch (err) {
+          console.error('Error fetching interview result:', err);
+          setEvalError('Không thể tải kết quả phỏng vấn. Vui lòng thử lại.');
+          // Don't fallback to MOCK_RESULT here, let the error screen show
+        } finally {
+          setIsEvaluating(false);
+        }
+      };
+      fetchResult();
     } else {
-      // Fallback to mock data if accessed directly without session state
+      // Fallback to mock data if accessed directly without session state and no ID
       setResultData(MOCK_RESULT);
     }
-  }, [questionAnswerPairs, config, totalQuestions, answeredQuestions]);
+  }, [questionAnswerPairs, config, totalQuestions, answeredQuestions, id]);
+
+  // Handle auto-print if navigated from history
+  useEffect(() => {
+    if (resultData && autoPrint && !isEvaluating) {
+      const timer = setTimeout(() => {
+        handleDownloadPDF();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [resultData, autoPrint, isEvaluating]);
+
+  const handleDownloadPDF = () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    
+    // Force expand all questions to include them in PDF
+    const prevExpanded = expandedQuestion;
+    setExpandedQuestion('ALL');
+    
+    // Wait for React to render all details
+    setTimeout(() => {
+      const element = document.getElementById('pdf-content');
+      if (!element) {
+        setIsDownloading(false);
+        return;
+      }
+      
+      // Apply export class to force width and background
+      element.classList.add('pdf-export-mode');
+
+      html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        windowWidth: 800,
+        backgroundColor: '#0a0f1c',
+        logging: false
+      }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = pdfWidth / imgWidth;
+        const totalImgHeightInMm = imgHeight * ratio;
+        
+        let heightLeft = totalImgHeightInMm;
+        let position = 0;
+        
+        // Add first page
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, totalImgHeightInMm);
+        heightLeft -= pdfHeight;
+        
+        // Add subsequent pages if content is taller than 1 page
+        while (heightLeft > 0) {
+          position = heightLeft - totalImgHeightInMm; 
+          pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, totalImgHeightInMm);
+          heightLeft -= pdfHeight;
+        }
+        
+        pdf.save(`Ket-qua-phong-van-${id || 'moi'}.pdf`);
+        
+        element.classList.remove('pdf-export-mode');
+        setExpandedQuestion(prevExpanded);
+        setIsDownloading(false);
+      }).catch(err => {
+        console.error('PDF Generation error:', err);
+        element.classList.remove('pdf-export-mode');
+        setExpandedQuestion(prevExpanded);
+        setIsDownloading(false);
+      });
+    }, 800);
+  };
 
   if (isEvaluating) {
     return (
@@ -390,9 +610,9 @@ export default function InterviewResult() {
             Lịch sử phỏng vấn
           </button>
           <div className="result-header__actions">
-            <button className="iv-btn iv-btn--secondary iv-btn--sm">
+            <button className="iv-btn iv-btn--secondary iv-btn--sm" onClick={handleDownloadPDF} disabled={isDownloading}>
               <Download size={14} />
-              Tải PDF
+              {isDownloading ? 'Đang tạo PDF...' : 'Tải PDF'}
             </button>
             <button className="iv-btn iv-btn--secondary iv-btn--sm">
               <Share2 size={14} />
@@ -405,8 +625,10 @@ export default function InterviewResult() {
           </div>
         </div>
 
-        {/* ── Hero Score Section ── */}
-        <div className="result-hero iv-animate-slide-up">
+        {/* WRAP CONTENT TO BE PRINTED */}
+        <div id="pdf-content" style={{ padding: '10px 0' }}>
+          {/* ── Hero Score Section ── */}
+          <div className="result-hero iv-animate-slide-up">
           <div className="result-hero__score">
             <ScoreRing score={result.overallScore} />
             <div className="result-hero__grade">
@@ -632,25 +854,25 @@ export default function InterviewResult() {
               <h2>Chi tiết từng câu hỏi</h2>
             </div>
             <div className="result-qa-list">
-              {result.questionReviews.map((qr) => (
+              {result.questionReviews.map((qr, index) => (
                 <div key={qr.id} className={`qa-item ${expandedQuestion === qr.id ? 'qa-item--expanded' : ''}`}>
                   <button className="qa-item__header" onClick={() => toggleQuestion(qr.id)}>
                     <div className="qa-item__left">
-                      <span className="qa-item__number">#{qr.id}</span>
+                      <span className="qa-item__number">#{index + 1}</span>
                       <span className="qa-item__question">{qr.question}</span>
                     </div>
                     <div className="qa-item__right">
                       <span className="qa-item__score" style={{ color: getScoreColor(qr.score) }}>
                         {qr.score}%
                       </span>
-                      {expandedQuestion === qr.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {expandedQuestion === qr.id || expandedQuestion === 'ALL' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   </button>
-                  {expandedQuestion === qr.id && (() => {
+                  {(() => {
                     const pair = questionAnswerPairs && questionAnswerPairs[qr.id - 1];
                     const m = pair?.metrics;
                     return (
-                      <div className="qa-item__details">
+                      <div className={`qa-item__details ${expandedQuestion === qr.id || expandedQuestion === 'ALL' ? '' : 'qa-item__details--collapsed'}`}>
                         <div className="qa-detail">
                           <h4><MessageSquare size={14} /> Câu trả lời của bạn</h4>
                           <p>
@@ -766,6 +988,8 @@ export default function InterviewResult() {
             </div>
           </div>
         </div>
+        </div>
+        {/* END WRAP CONTENT TO BE PRINTED */}
 
         {/* ── Bottom Actions ── */}
         <div className="result-bottom iv-animate-fade iv-delay-8">

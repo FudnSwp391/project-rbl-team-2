@@ -1,16 +1,21 @@
-import React, { useEffect, useRef } from 'react';
-import { BrowserRouter as Router, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { BrowserRouter as Router, useLocation, Link } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Lenis from 'lenis';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Header from './components/layout/Header';
 import AppRoutes from './routes/AppRoutes';
 import BookingReminder from './components/BookingReminder';
 import { ConfirmProvider } from './utils/ConfirmContext';
 import './index.css';
 
+gsap.registerPlugin(ScrollTrigger);
+
 function AppContent() {
   const location = useLocation();
   const lenisRef = useRef(null);
+  const [footerHeight, setFooterHeight] = useState(0);
 
   // Hide Header/Footer on interview routes for immersive experience
   const isInterviewRoute = location.pathname === '/interview' || location.pathname.startsWith('/interview/');
@@ -36,15 +41,19 @@ function AppContent() {
       infinite: false,
     });
     lenisRef.current = lenis;
+    window.lenis = lenis; // Expose globally for components that need to lock scroll
 
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
+    lenis.on('scroll', ScrollTrigger.update);
+
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+
+    gsap.ticker.lagSmoothing(0);
 
     return () => {
       lenis.destroy();
+      gsap.ticker.remove((time) => lenis.raf(time * 1000));
     };
   }, [isInterviewRoute]);
 
@@ -58,10 +67,20 @@ function AppContent() {
     <div className="app" data-lenis-prevent={false}>
       <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#333', color: '#fff' } }} />
       <Header />
-      <main style={{ flex: 1 }}>
+      <main style={{ 
+        flex: 1, 
+        position: 'relative', 
+        zIndex: 1, 
+        marginBottom: footerHeight,
+        background: 'var(--color-warm-white)',
+        borderBottomLeftRadius: '80px',
+        borderBottomRightRadius: '80px',
+        overflow: 'clip',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+      }}>
         <AppRoutes />
       </main>
-      <Footer />
+      <Footer setHeight={setFooterHeight} />
     </div>
   );
 }
@@ -77,89 +96,242 @@ function App() {
   );
 }
 
-function Footer() {
+function Footer({ setHeight }) {
+  const footerRef = useRef(null);
+
+  useEffect(() => {
+    if (!footerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        // Use offsetHeight to include padding and border, contentRect ignores them
+        setHeight(entry.target.offsetHeight);
+      }
+    });
+    observer.observe(footerRef.current);
+    return () => observer.disconnect();
+  }, [setHeight]);
+
   return (
-    <footer style={{
-      padding: '3rem 0',
-      borderTop: '1px solid var(--border-color)',
+    <footer ref={footerRef} style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      zIndex: 0,
+      padding: '5rem 0 2rem 0',
       background: 'var(--color-charcoal)',
       color: 'var(--color-cream)',
     }}>
+      {/* Background extension to fill the border-radius gap of main */}
+      <div style={{
+        position: 'absolute',
+        bottom: '100%',
+        left: 0,
+        width: '100%',
+        height: '100px',
+        background: 'var(--color-charcoal)',
+        zIndex: -1,
+      }} />
+
       <div className="container" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '2rem',
-        alignItems: 'start',
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: '4rem',
+        marginBottom: '4rem',
       }}>
-        <div>
-          <div style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '1.5rem',
-            marginBottom: '1rem',
-            color: 'var(--color-cream)',
+        {/* Brand Side */}
+        <div style={{ flex: '1 1 300px', maxWidth: '400px' }}>
+          <Link to="/" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '1.5rem',
+            textDecoration: 'none'
           }}>
-            ITA
-          </div>
+            <span style={{
+              fontFamily: 'var(--font-heading, var(--font-serif))',
+              fontSize: '2.5rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              color: 'var(--color-cream)',
+              lineHeight: 1
+            }}>
+              ita.
+            </span>
+            <span style={{
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              borderLeft: '2px solid rgba(255, 255, 255, 0.15)',
+              paddingLeft: '12px',
+              lineHeight: '1.4'
+            }}>
+              Interview<br />Technology AI
+            </span>
+          </Link>
           <p style={{
-            fontSize: '0.85rem',
-            color: 'var(--color-stone)',
-            lineHeight: '1.7',
-            maxWidth: '280px',
+            fontSize: '0.95rem',
+            color: 'var(--color-sand)',
+            lineHeight: '1.8',
+            fontWeight: 300
           }}>
-            Interview Technology AI — Nền tảng phỏng vấn giả lập thông minh, giúp bạn tự tin chinh phục mọi buổi phỏng vấn.
+            Nền tảng phỏng vấn giả lập thông minh, giúp bạn tự tin chinh phục mọi buổi phỏng vấn.
           </p>
         </div>
 
-        <div>
-          <h4 style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '0.7rem',
-            fontWeight: 600,
-            letterSpacing: '0.03em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            marginBottom: '1rem',
-          }}>
-            Tính năng
-          </h4>
-          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {['Phỏng vấn AI', 'Phân tích CV', 'Thử thách hàng ngày', 'Bảng xếp hạng'].map((item, i) => (
-              <li key={i} style={{ fontSize: '0.9rem', color: 'var(--color-sand)', cursor: 'pointer', transition: 'color 0.3s' }}>
-                {item}
+        {/* Links Side */}
+        <div style={{
+          flex: '2 1 500px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '2rem'
+        }}>
+          {/* Links Column 1 */}
+          <div>
+            <h4 style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              color: 'var(--color-cream)',
+              marginBottom: '1.5rem',
+            }}>
+              Sản phẩm
+            </h4>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { label: 'Phỏng vấn AI', path: '/interview' },
+                { label: 'Phân tích CV', path: '/cv-analysis' },
+                { label: 'Thử thách', path: '/dashboard' },
+                { label: 'Gói dịch vụ', path: '/pricing' }
+              ].map((item, i) => (
+                <li key={i}>
+                  <Link to={item.path} style={{ 
+                    fontSize: '0.9rem', 
+                    color: 'var(--color-stone)', 
+                    textDecoration: 'none',
+                    transition: 'color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-cream)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-stone)'; }}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Links Column 2 */}
+          <div>
+            <h4 style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              color: 'var(--color-cream)',
+              marginBottom: '1.5rem',
+            }}>
+              Khám phá
+            </h4>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { label: 'Tìm Mentors', path: '/mentors' },
+                { label: 'Việc làm', path: '/jobs' },
+                { label: 'Blog', path: '/blogs' },
+                { label: 'Đăng ký Mentor', path: '/mentor-register' },
+                { label: 'Doanh nghiệp', path: '/recruiter-register' }
+              ].map((item, i) => (
+                <li key={i}>
+                  <Link to={item.path} style={{ 
+                    fontSize: '0.9rem', 
+                    color: 'var(--color-stone)', 
+                    textDecoration: 'none',
+                    transition: 'color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-cream)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-stone)'; }}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Links Column 3 */}
+          <div>
+            <h4 style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              color: 'var(--color-cream)',
+              marginBottom: '1.5rem',
+            }}>
+              Hỗ trợ
+            </h4>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { label: 'Trung tâm trợ giúp', path: '#' },
+                { label: 'Điều khoản sử dụng', path: '#' },
+                { label: 'Chính sách bảo mật', path: '#' }
+              ].map((item, i) => (
+                <li key={i}>
+                  <Link to={item.path} style={{ 
+                    fontSize: '0.9rem', 
+                    color: 'var(--color-stone)', 
+                    textDecoration: 'none',
+                    transition: 'color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-cream)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-stone)'; }}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <a href="mailto:ita@team-rbl.com" style={{ 
+                    fontSize: '0.9rem', 
+                    color: 'var(--color-stone)', 
+                    textDecoration: 'none',
+                    transition: 'color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-cream)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-stone)'; }}>
+                  Liên hệ
+                </a>
               </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h4 style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '0.7rem',
-            fontWeight: 600,
-            letterSpacing: '0.03em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            marginBottom: '1rem',
-          }}>
-            Liên hệ
-          </h4>
-          <p style={{ fontSize: '0.9rem', color: 'var(--color-sand)', lineHeight: '2' }}>
-            Team RBL - Nhóm 2<br />
-            Interview Technology AI<br />
-            ita@team-rbl.com
-          </p>
+            </ul>
+          </div>
         </div>
       </div>
 
-      <div style={{
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        marginTop: '2rem',
-        paddingTop: '1.5rem',
-        textAlign: 'center',
-      }}>
-        <p style={{ fontSize: '0.75rem', color: 'var(--color-stone)' }}>
-          © 2026 Interview Technology AI — Team RBL Nhóm 2. All rights reserved.
-        </p>
+
+
+      {/* Bottom Bar */}
+      <div className="container">
+        <div style={{
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          paddingTop: '2rem',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem'
+        }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-stone)', letterSpacing: '0.02em' }}>
+            © 2026 Interview Technology AI. All rights reserved.
+          </p>
+          <div style={{ display: 'flex', gap: '2rem' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-stone)', cursor: 'pointer', transition: 'color 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-cream)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-stone)'}>Privacy Policy</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-stone)', cursor: 'pointer', transition: 'color 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-cream)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-stone)'}>Terms of Service</span>
+          </div>
+        </div>
       </div>
     </footer>
   );
