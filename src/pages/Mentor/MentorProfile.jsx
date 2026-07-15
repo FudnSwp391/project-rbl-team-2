@@ -2,8 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
-import { User, Shield, FileText, Upload, Link as LinkIcon, Phone, Mail, Award, BookOpen, Clock } from 'lucide-react';
-import '../Auth/Auth.css'; // Reuse profile/auth styling
+import { 
+  User, 
+  ShieldCheck, 
+  FileText, 
+  Upload, 
+  Link as LinkIcon, 
+  Phone, 
+  Mail, 
+  Award, 
+  BookOpen, 
+  Clock, 
+  Save, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowLeft,
+  CheckCircle2,
+  ExternalLink,
+  Sparkles
+} from 'lucide-react';
+import '../Auth/Auth.css';
 
 const MentorProfile = () => {
   const { user, updateProfile, updatePassword } = useAuth();
@@ -27,6 +46,8 @@ const MentorProfile = () => {
   // Security States
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Messages & Loading
   const [loading, setLoading] = useState(false);
@@ -36,7 +57,6 @@ const MentorProfile = () => {
   const [certMessage, setCertMessage] = useState({ type: '', text: '' });
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
 
-  // Parse major and yearsOfExperience from combined expertise string
   const parseExpertise = (expStr) => {
     if (!expStr) return { expertise: '', yearsOfExperience: '' };
     const regex = /^(.*?)\s*\((\d+)\s*năm kinh nghiệm\)$/;
@@ -47,7 +67,6 @@ const MentorProfile = () => {
         yearsOfExperience: match[2].trim()
       };
     }
-    // If it doesn't match standard template, try to find a number
     const numRegex = /(\d+)/;
     const numMatch = expStr.match(numRegex);
     return {
@@ -72,7 +91,7 @@ const MentorProfile = () => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching mentor profile:', error);
+        console.error('Lỗi tải dữ liệu Mentor:', error);
       }
 
       if (data) {
@@ -87,13 +106,12 @@ const MentorProfile = () => {
         setExpertise(parsed.expertise);
         setYearsOfExperience(parsed.yearsOfExperience);
       } else {
-        // Fallback to user metadata if mentor record not found
         setFullName(user.user_metadata?.full_name || '');
         setEmail(user.email || '');
         setPhone(user.user_metadata?.phone || '');
       }
     } catch (err) {
-      console.error('Failed to load mentor data:', err);
+      console.error('Không thể tải hồ sơ Mentor:', err);
     } finally {
       setLoadingData(false);
     }
@@ -107,7 +125,6 @@ const MentorProfile = () => {
     try {
       const combinedExpertise = `${expertise} (${yearsOfExperience} năm kinh nghiệm)`;
 
-      // 1. Update mentors table
       const { error: mentorError } = await supabase
         .from('mentors')
         .update({
@@ -122,7 +139,6 @@ const MentorProfile = () => {
 
       if (mentorError) throw mentorError;
 
-      // 2. Update profiles table
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -133,7 +149,6 @@ const MentorProfile = () => {
 
       if (profileError) throw profileError;
 
-      // 3. Update Auth Metadata
       const { error: authError } = await updateProfile({
         full_name: fullName,
         phone: phone
@@ -142,8 +157,6 @@ const MentorProfile = () => {
       if (authError) throw authError;
 
       setProfileMessage({ type: 'success', text: 'Cập nhật thông tin Mentor thành công!' });
-      
-      // Refresh local state
       fetchMentorData();
     } catch (err) {
       console.error(err);
@@ -173,14 +186,12 @@ const MentorProfile = () => {
       const fileName = `mentor-${user.id}-${Date.now()}.${fileExt}`;
       let uploadedUrl = null;
 
-      // Upload to mentor-documents bucket
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('mentor-documents')
         .upload(fileName, newFile);
 
       if (uploadError) {
         console.warn("Lỗi upload bucket mentor-documents, thử fallback...", uploadError);
-        // Fallback to company-documents
         const { data: fallbackData, error: fallbackError } = await supabase.storage
           .from('company-documents')
           .upload(fileName, newFile);
@@ -202,7 +213,6 @@ const MentorProfile = () => {
 
       if (!uploadedUrl) throw new Error("Không lấy được public URL của file.");
 
-      // Update in database
       const { error: dbError } = await supabase
         .from('mentors')
         .update({
@@ -250,85 +260,114 @@ const MentorProfile = () => {
     }
   };
 
-  const renderPersonalInfoTab = () => (
-    <div className="animate-fade">
-      <form onSubmit={handleUpdateProfile} className="glass-card" style={{ padding: 'var(--spacing-xl)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-          <User size={22} color="var(--color-earth)" />
-          Thông Tin Cá Nhân & Chuyên Môn
-        </h3>
+  const userInitial = (fullName || user?.email || 'M').charAt(0).toUpperCase();
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Full Name & Email */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div className="auth-form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="fullName">Họ và tên *</label>
+  const renderPersonalInfoTab = () => (
+    <div className="profile-section-card animate-fade">
+      <div className="profile-card-header">
+        <div className="profile-card-icon">
+          <User size={20} />
+        </div>
+        <div>
+          <h3>Thông tin cá nhân & Chuyên môn</h3>
+          <p>Cập nhật lĩnh vực giảng dạy, kinh nghiệm và thông tin liên hệ</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleUpdateProfile} className="profile-form">
+        <div className="profile-form-row">
+          <div className="auth-form-group">
+            <label htmlFor="fullName">Họ và tên *</label>
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <User size={18} />
+              </div>
+              <div className="input-divider"></div>
               <input
                 type="text"
                 id="fullName"
-                className="auth-input"
+                className="auth-input-no-border"
+                placeholder="Nhập họ và tên"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
               />
             </div>
-            <div className="auth-form-group" style={{ marginBottom: 0 }}>
-              <label>Email liên hệ (Không thể thay đổi)</label>
+          </div>
+
+          <div className="auth-form-group">
+            <label>Email liên hệ (Không thể thay đổi)</label>
+            <div className="input-with-icon-wrapper disabled">
+              <div className="input-icon-left">
+                <Mail size={18} />
+              </div>
+              <div className="input-divider"></div>
               <input
                 type="email"
-                className="auth-input"
+                className="auth-input-no-border"
                 value={email}
                 disabled
-                style={{ opacity: 0.7, cursor: 'not-allowed', background: 'rgba(0,0,0,0.05)' }}
               />
             </div>
           </div>
+        </div>
 
-          {/* Phone & LinkedIn */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div className="auth-form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="phone" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Phone size={14} /> Số điện thoại *
-              </label>
+        <div className="profile-form-row">
+          <div className="auth-form-group">
+            <label htmlFor="phone">Số điện thoại *</label>
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <Phone size={18} />
+              </div>
+              <div className="input-divider"></div>
               <input
                 type="tel"
                 id="phone"
-                className="auth-input"
+                className="auth-input-no-border"
+                placeholder="Nhập số điện thoại"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
               />
             </div>
-            <div className="auth-form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="linkedinUrl" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <LinkIcon size={14} /> LinkedIn Profile URL
-              </label>
+          </div>
+
+          <div className="auth-form-group">
+            <label htmlFor="linkedinUrl">LinkedIn Profile URL</label>
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <LinkIcon size={18} />
+              </div>
+              <div className="input-divider"></div>
               <input
                 type="url"
                 id="linkedinUrl"
-                className="auth-input"
+                className="auth-input-no-border"
                 value={linkedinUrl}
                 onChange={(e) => setLinkedinUrl(e.target.value)}
                 placeholder="https://linkedin.com/in/..."
               />
             </div>
           </div>
+        </div>
 
-          {/* Expertise & Experience */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div className="auth-form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="expertise" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <BookOpen size={14} /> Lĩnh vực chuyên môn (Major) *
-              </label>
+        <div className="profile-form-row">
+          <div className="auth-form-group">
+            <label htmlFor="expertise">Lĩnh vực chuyên môn (Major) *</label>
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <BookOpen size={18} />
+              </div>
+              <div className="input-divider"></div>
               <select
                 id="expertise"
-                className="auth-input"
+                className="auth-input-no-border"
                 value={expertise}
                 onChange={(e) => setExpertise(e.target.value)}
                 required
-                style={{ appearance: 'auto' }}
+                style={{ appearance: 'auto', background: 'transparent' }}
               >
-                <option value="">Chọn lĩnh vực...</option>
+                <option value="">Chọn lĩnh vực chuyên môn...</option>
                 <option value="Frontend Development">Frontend Development</option>
                 <option value="Backend Development">Backend Development</option>
                 <option value="Fullstack Development">Fullstack Development</option>
@@ -341,19 +380,24 @@ const MentorProfile = () => {
                 <option value="Khác">Khác</option>
               </select>
             </div>
-            <div className="auth-form-group" style={{ marginBottom: 0 }}>
-              <label htmlFor="yearsOfExperience" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Clock size={14} /> Số năm kinh nghiệm *
-              </label>
+          </div>
+
+          <div className="auth-form-group">
+            <label htmlFor="yearsOfExperience">Số năm kinh nghiệm *</label>
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <Clock size={18} />
+              </div>
+              <div className="input-divider"></div>
               <select
                 id="yearsOfExperience"
-                className="auth-input"
+                className="auth-input-no-border"
                 value={yearsOfExperience}
                 onChange={(e) => setYearsOfExperience(e.target.value)}
                 required
-                style={{ appearance: 'auto' }}
+                style={{ appearance: 'auto', background: 'transparent' }}
               >
-                <option value="">Chọn số năm...</option>
+                <option value="">Chọn số năm kinh nghiệm...</option>
                 <option value="1">1 - 2 năm</option>
                 <option value="3">3 - 5 năm</option>
                 <option value="5">5 - 10 năm</option>
@@ -361,275 +405,325 @@ const MentorProfile = () => {
               </select>
             </div>
           </div>
-
-          {/* Bio */}
-          <div className="auth-form-group" style={{ marginBottom: 0 }}>
-            <label htmlFor="bio">Giới thiệu bản thân & Động lực hướng dẫn *</label>
-            <textarea
-              id="bio"
-              className="auth-input"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              style={{ minHeight: '120px', resize: 'vertical', lineHeight: '1.6' }}
-              placeholder="Giới thiệu bản thân..."
-              required
-            />
-          </div>
-
-          {profileMessage.text && (
-            <div className={profileMessage.type === 'error' ? 'auth-error-msg' : 'auth-success-msg'}>
-              {profileMessage.text}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="btn btn--primary btn--pill"
-            style={{ width: '100%', marginTop: '0.5rem', padding: '1rem' }}
-            disabled={loading}
-          >
-            {loading ? 'Đang lưu...' : 'Lưu Thay Đổi'}
-          </button>
         </div>
+
+        <div className="auth-form-group">
+          <label htmlFor="bio">Giới thiệu bản thân & Động lực hướng dẫn *</label>
+          <textarea
+            id="bio"
+            className="auth-input-no-border"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            style={{ 
+              minHeight: '120px', 
+              resize: 'vertical', 
+              lineHeight: '1.6', 
+              padding: '0.75rem',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              width: '100%',
+              fontFamily: 'inherit'
+            }}
+            placeholder="Chia sẻ ngắn gọn về quá trình làm việc và lý do bạn muốn đồng hành cùng các ứng viên..."
+            required
+          />
+        </div>
+
+        {profileMessage.text && (
+          <div className={profileMessage.type === 'error' ? 'auth-error-msg' : 'auth-success-msg'}>
+            {profileMessage.text}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="btn-profile-save"
+          disabled={loading}
+        >
+          <Save size={18} />
+          {loading ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+        </button>
       </form>
     </div>
   );
 
   const renderCertificateTab = () => (
-    <div className="animate-fade">
-      <div className="glass-card" style={{ padding: 'var(--spacing-xl)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-          <FileText size={22} color="var(--color-earth)" />
-          Hồ Sơ & Chứng Chỉ Đính Kèm
-        </h3>
+    <div className="profile-section-card animate-fade">
+      <div className="profile-card-header">
+        <div className="profile-card-icon">
+          <FileText size={20} />
+        </div>
+        <div>
+          <h3>Hồ sơ & Chứng chỉ đính kèm</h3>
+          <p>Tải lên chứng chỉ hoặc CV để tăng độ tin cậy với ứng viên</p>
+        </div>
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Current Document View */}
-          <div>
-            <h4 style={{ fontSize: '1rem', color: 'var(--color-charcoal)', marginBottom: '0.75rem' }}>Tài liệu hiện tại</h4>
-            {documentUrl ? (
-              <div style={{
-                padding: '1.25rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                background: 'rgba(255,255,255,0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '40px', height: '40px', background: 'rgba(107,127,92,0.1)', color: 'var(--color-moss)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
-                    <Award size={20} />
-                  </div>
-                  <div>
-                    <span style={{ fontWeight: '600', fontSize: '0.95rem', color: 'var(--color-charcoal)' }}>Chứng chỉ / CV của bạn</span>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Đã được tải lên và xác minh</p>
-                  </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>Tài liệu hiện tại</h4>
+          {documentUrl ? (
+            <div className="profile-data-item">
+              <div className="profile-item-main">
+                <div className="profile-item-icon-box">
+                  <Award size={22} color="#f97316" />
                 </div>
-                <a
-                  href={documentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn--outline"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textDecoration: 'none' }}
-                >
-                  Xem Tài Liệu
-                </a>
+                <div>
+                  <h4 className="profile-item-title">Chứng chỉ / CV Mentor đã xác minh</h4>
+                  <p className="profile-item-sub">Đã được duyệt và lưu trữ an toàn trên hệ thống ITA</p>
+                </div>
               </div>
-            ) : (
-              <div style={{
-                padding: '2rem',
-                border: '1px dashed var(--border-color)',
-                borderRadius: '12px',
+              <a
+                href={documentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-item-view"
+              >
+                <ExternalLink size={14} /> Xem tài liệu
+              </a>
+            </div>
+          ) : (
+            <div className="profile-empty-box">
+              <Award size={36} className="empty-icon" />
+              <h4>Chưa có tài liệu đính kèm</h4>
+              <p>Hãy tải lên chứng chỉ chuyên môn để ứng viên dễ dàng lựa chọn bạn làm Mentor.</p>
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleUploadCertificate} style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>Tải lên tài liệu mới</h4>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div 
+              style={{
+                position: 'relative',
+                border: '2px dashed #cbd5e1',
+                borderRadius: '14px',
+                padding: '2.5rem 1.5rem',
                 textAlign: 'center',
-                color: 'var(--color-text-secondary)',
-                background: 'rgba(0,0,0,0.01)'
-              }}>
-                Chưa có tài liệu/chứng chỉ đính kèm.
+                background: '#f8fafc',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={e => e.currentTarget.style.borderColor = '#f97316'}
+              onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}
+            >
+              <input
+                type="file"
+                id="newFile"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={handleFileChange}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer'
+                }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                <Upload size={32} color="#f97316" />
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>
+                  {newFile ? newFile.name : 'Nhấp vào đây hoặc kéo thả file chứng chỉ vào'}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Hỗ trợ định dạng PDF, Word, PNG, JPG (Dung lượng tối đa 5MB)
+                </span>
+              </div>
+            </div>
+
+            {certMessage.text && (
+              <div className={certMessage.type === 'error' ? 'auth-error-msg' : 'auth-success-msg'}>
+                {certMessage.text}
               </div>
             )}
+
+            <button
+              type="submit"
+              className="btn-profile-action"
+              style={{ padding: '0.85rem', width: '100%', justifyContent: 'center' }}
+              disabled={uploadProgress || !newFile}
+            >
+              <Upload size={18} />
+              {uploadProgress ? 'Đang tải lên...' : 'Tải tài liệu mới lên'}
+            </button>
           </div>
-
-          {/* Upload New Document */}
-          <form onSubmit={handleUploadCertificate} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--color-charcoal)', marginBottom: '0.75rem' }}>Tải lên tài liệu mới</h4>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{
-                position: 'relative',
-                border: '2px dashed var(--border-color)',
-                borderRadius: '12px',
-                padding: '2rem 1.5rem',
-                textAlign: 'center',
-                background: 'rgba(255, 255, 255, 0.4)',
-                cursor: 'pointer',
-                transition: 'all 0.3s'
-              }} onMouseOver={e => e.currentTarget.style.borderColor = 'var(--color-earth)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
-                <input
-                  type="file"
-                  id="newFile"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                  onChange={handleFileChange}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer'
-                  }}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                  <Upload size={32} color="var(--color-text-muted)" />
-                  <span style={{ fontSize: '0.95rem', fontWeight: '500', color: 'var(--color-charcoal)' }}>
-                    {newFile ? newFile.name : 'Chọn file mới hoặc kéo thả tại đây'}
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                    Hỗ trợ định dạng PDF, Word, Ảnh (Tối đa 5MB)
-                  </span>
-                </div>
-              </div>
-
-              {certMessage.text && (
-                <div className={certMessage.type === 'error' ? 'auth-error-msg' : 'auth-success-msg'}>
-                  {certMessage.text}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="btn btn--primary btn--pill"
-                style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                disabled={uploadProgress || !newFile}
-              >
-                {uploadProgress ? 'Đang Tải Lên...' : 'Tải Tài Liệu Lên'}
-              </button>
-            </div>
-          </form>
-        </div>
+        </form>
       </div>
     </div>
   );
 
   const renderSecurityTab = () => (
-    <div className="animate-fade">
-      <form onSubmit={handleUpdatePassword} className="glass-card" style={{ padding: 'var(--spacing-xl)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-          <Shield size={22} color="var(--color-earth)" />
-          Đổi Mật Khẩu
-        </h3>
+    <div className="profile-section-card animate-fade">
+      <div className="profile-card-header">
+        <div className="profile-card-icon security">
+          <ShieldCheck size={20} />
+        </div>
+        <div>
+          <h3>Bảo mật tài khoản</h3>
+          <p>Cập nhật mật khẩu đăng nhập portal của bạn</p>
+        </div>
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div className="auth-form-group">
-            <label htmlFor="newPassword">Mật khẩu mới *</label>
+      <form onSubmit={handleUpdatePassword} className="profile-form">
+        <div className="auth-form-group">
+          <label htmlFor="newPassword">Mật khẩu mới *</label>
+          <div className="input-with-icon-wrapper">
+            <button
+              type="button"
+              className="input-icon-left password-toggle-btn"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+            <div className="input-divider"></div>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               id="newPassword"
-              className="auth-input"
-              placeholder="Nhập mật khẩu mới (Tối thiểu 8 ký tự)"
+              className="auth-input-no-border"
+              placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength="8"
             />
           </div>
+        </div>
 
-          <div className="auth-form-group">
-            <label htmlFor="confirmNewPassword">Xác nhận mật khẩu mới *</label>
+        <div className="auth-form-group">
+          <label htmlFor="confirmNewPassword">Xác nhận mật khẩu mới *</label>
+          <div className="input-with-icon-wrapper">
+            <button
+              type="button"
+              className="input-icon-left password-toggle-btn"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+            <div className="input-divider"></div>
             <input
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               id="confirmNewPassword"
-              className="auth-input"
+              className="auth-input-no-border"
               placeholder="Nhập lại mật khẩu mới"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              minLength="8"
             />
           </div>
-
-          {passwordMessage.text && (
-            <div className={passwordMessage.type === 'error' ? 'auth-error-msg' : 'auth-success-msg'}>
-              {passwordMessage.text}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="btn btn--outline"
-            style={{ width: '100%', marginTop: '0.5rem', padding: '1rem' }}
-            disabled={loading}
-          >
-            {loading ? 'Đang cập nhật...' : 'Đổi Mật Khẩu'}
-          </button>
         </div>
+
+        {passwordMessage.text && (
+          <div className={passwordMessage.type === 'error' ? 'auth-error-msg' : 'auth-success-msg'}>
+            {passwordMessage.text}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="btn-profile-secondary"
+          disabled={loading}
+        >
+          <Lock size={18} />
+          {loading ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
+        </button>
       </form>
     </div>
   );
 
   return (
-    <div className="auth-page animate-fade" style={{ alignItems: 'flex-start', paddingTop: 'var(--spacing-3xl)' }}>
-      <div className="container" style={{ maxWidth: '1000px', width: '100%' }}>
-        {/* Header */}
-        <div className="auth-header" style={{ textAlign: 'left', marginBottom: 'var(--spacing-lg)' }}>
-          <span className="label" style={{ marginBottom: '0.5rem', display: 'inline-block' }}>Mentor Profile</span>
-          <h1>Hồ sơ Mentor</h1>
-          <p>Cập nhật thông tin chuyên môn, kinh nghiệm và chứng chỉ của bạn để hiển thị cho ứng viên.</p>
+    <div className="profile-page-wrapper animate-fade">
+      <div className="profile-main-container">
+        
+        {/* User Hero Banner Header */}
+        <div className="profile-hero-card">
+          <div className="profile-hero-content">
+            <div className="profile-avatar-circle">
+              {userInitial}
+            </div>
+            <div className="profile-hero-text">
+              <div className="profile-name-row">
+                <h2>{fullName || 'Mentor ITA'}</h2>
+                <span className="profile-role-badge">
+                  Mentor Chuyên Nghiệp
+                </span>
+              </div>
+              <p className="profile-email">
+                <Mail size={14} /> {email}
+                {expertise && (
+                  <span style={{ marginLeft: '1rem', color: '#f97316', fontWeight: 600 }}>
+                    • {expertise} {yearsOfExperience ? `(${yearsOfExperience} năm exp)` : ''}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
         </div>
 
         {loadingData ? (
-          <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-            <p style={{ color: 'var(--color-text-secondary)' }}>Đang tải dữ liệu hồ sơ Mentor...</p>
+          <div className="profile-section-card profile-loading-box">
+            <Sparkles className="spinning-icon" size={28} />
+            <p>Đang tải dữ liệu hồ sơ Mentor...</p>
           </div>
         ) : (
-          <div className="profile-layout">
-            {/* Sidebar */}
-            <div className="profile-sidebar">
+          <div className="profile-layout-grid">
+            {/* Sidebar Navigation */}
+            <div className="profile-sidebar-v2">
               <button
-                className={`profile-tab-btn ${activeTab === 'personal' ? 'active' : ''}`}
+                className={`profile-nav-item ${activeTab === 'personal' ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab('personal');
                   setProfileMessage({ type: '', text: '' });
                 }}
               >
-                <span>👤</span> Thông tin chuyên môn
+                <User size={18} />
+                <span>Thông tin chuyên môn</span>
               </button>
               <button
-                className={`profile-tab-btn ${activeTab === 'certificate' ? 'active' : ''}`}
+                className={`profile-nav-item ${activeTab === 'certificate' ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab('certificate');
                   setCertMessage({ type: '', text: '' });
                 }}
               >
-                <span>📄</span> Chứng chỉ & Hồ sơ
+                <FileText size={18} />
+                <span>Chứng chỉ & Hồ sơ</span>
               </button>
               <button
-                className={`profile-tab-btn ${activeTab === 'security' ? 'active' : ''}`}
+                className={`profile-nav-item ${activeTab === 'security' ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab('security');
                   setPasswordMessage({ type: '', text: '' });
                 }}
               >
-                <span>🔒</span> Bảo mật tài khoản
+                <ShieldCheck size={18} />
+                <span>Bảo mật tài khoản</span>
               </button>
+              
               <button
-                className="profile-tab-btn"
+                className="profile-nav-item"
                 onClick={() => navigate('/mentor')}
-                style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', borderRadius: 0 }}
+                style={{ marginTop: '1rem', color: '#ea580c', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}
               >
-                <span>🚪</span> Quay lại Portal
+                <ArrowLeft size={18} />
+                <span>Quay về Portal Mentor</span>
               </button>
             </div>
 
             {/* Content Area */}
-            <div className="profile-content">
+            <div className="profile-content-area">
               {activeTab === 'personal' && renderPersonalInfoTab()}
               {activeTab === 'certificate' && renderCertificateTab()}
               {activeTab === 'security' && renderSecurityTab()}
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
