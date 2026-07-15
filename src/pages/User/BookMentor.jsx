@@ -2,9 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { useAuth } from '../../utils/AuthContext';
-import { Calendar, Clock, MessageSquare, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { Calendar, Clock, MessageSquare, AlertCircle, CheckCircle2, User, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 import emailjs from '@emailjs/browser';
 import toast from 'react-hot-toast';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { vi } from 'date-fns/locale';
+import './BookMentor.css';
+
+registerLocale('vi', vi);
 
 const BookMentor = () => {
   const { id } = useParams(); // mentor_id
@@ -49,6 +56,10 @@ const BookMentor = () => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (user && id) {
       fetchMentorAndQuota();
     }
@@ -80,7 +91,7 @@ const BookMentor = () => {
       // 1. Fetch Mentor Details
       const { data: mentorData } = await supabase
         .from('mentors')
-        .select('*')
+        .select('id, mentor_id, full_name, email, expertise, avatar_url')
         .eq('status', 'approved')
         // Lấy bằng id (PK) hoặc mentor_id (auth ID) tùy cấu trúc bảng
         .or(`id.eq.${id},mentor_id.eq.${id}`)
@@ -200,8 +211,21 @@ const BookMentor = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  };
+
   if (loading) {
-    return <div style={{ paddingTop: '150px', textAlign: 'center' }}>Đang tải thông tin...</div>;
+    return <div style={{ paddingTop: '150px', textAlign: 'center', minHeight: '100vh' }}>Đang tải thông tin...</div>;
   }
 
   if (!mentor) {
@@ -215,13 +239,53 @@ const BookMentor = () => {
 
   return (
     <div className="section animate-fade" style={{ background: 'var(--color-cream)', minHeight: '100vh', paddingTop: '120px' }}>
-      <div className="container" style={{ maxWidth: '800px' }}>
+      <motion.div 
+        className="container" 
+        style={{ maxWidth: '800px' }}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
 
-        <Link to="/mentors" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-secondary)', textDecoration: 'none', marginBottom: '2rem' }}>
-          ← Quay lại danh sách Mentor
+        <motion.div variants={itemVariants}>
+          <Link 
+            to="/mentors" 
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            color: 'var(--color-charcoal)', 
+            textDecoration: 'none', 
+            marginBottom: '2.5rem', 
+            fontWeight: 700, 
+            fontSize: '1rem',
+            padding: '0.6rem 1.25rem',
+            background: 'var(--color-surface)',
+            borderRadius: '50px',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+            border: '1px solid var(--border-color)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
+          }} 
+          onMouseOver={e => {
+            e.currentTarget.style.color = '#EA580C';
+            e.currentTarget.style.borderColor = 'rgba(234, 88, 12, 0.3)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(234, 88, 12, 0.1)';
+            e.currentTarget.querySelector('svg').style.transform = 'translateX(-4px)';
+          }} 
+          onMouseOut={e => {
+            e.currentTarget.style.color = 'var(--color-charcoal)';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.04)';
+            e.currentTarget.querySelector('svg').style.transform = 'translateX(0)';
+          }}
+        >
+          <ArrowLeft size={18} style={{ transition: 'transform 0.3s ease' }} /> Quay lại danh sách Mentor
         </Link>
+        </motion.div>
 
-        <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
+        <motion.div className="glass-card" style={{ padding: '0', overflow: 'hidden' }} variants={itemVariants}>
 
           {/* Mentor Summary Header */}
           <div style={{ padding: '2rem', background: 'var(--color-surface-alt)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
@@ -235,8 +299,8 @@ const BookMentor = () => {
               )}
             </div>
             <div>
-              <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', color: 'var(--color-charcoal)' }}>Đặt lịch với {mentor.full_name}</h1>
-              <p style={{ color: 'var(--color-moss)', fontWeight: 500, margin: 0 }}>{mentor.expertise}</p>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem', color: 'var(--color-charcoal)', letterSpacing: '-0.5px' }}>Đặt Lịch Với {mentor.full_name}</h1>
+              <p style={{ color: '#EA580C', fontWeight: 600, margin: 0 }}>{mentor.expertise}</p>
             </div>
           </div>
 
@@ -244,24 +308,52 @@ const BookMentor = () => {
 
             {/* Quota Notice */}
             {!quotaStatus.loading && (
-              <div style={{
-                padding: '1.25rem', borderRadius: '12px', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'flex-start',
-                background: currentPlan === 'Free' ? 'rgba(255,0,0,0.05)' : (quotaStatus.allowed ? 'rgba(50,200,100,0.05)' : 'rgba(255,150,0,0.05)'),
-                border: `1px solid ${currentPlan === 'Free' ? 'rgba(255,0,0,0.1)' : (quotaStatus.allowed ? 'rgba(50,200,100,0.2)' : 'rgba(255,150,0,0.2)')}`
+              <motion.div variants={itemVariants} style={{
+                padding: '1.5rem', 
+                borderRadius: '16px', 
+                marginBottom: '2.5rem', 
+                display: 'flex', 
+                gap: '1.25rem', 
+                alignItems: 'center',
+                background: currentPlan === 'Free' 
+                  ? 'linear-gradient(145deg, #fef2f2, #fee2e2)' 
+                  : (quotaStatus.allowed ? 'linear-gradient(145deg, #f0fdf4, #dcfce7)' : 'linear-gradient(145deg, #fffbeb, #fef3c7)'),
+                border: `1px solid ${currentPlan === 'Free' ? '#fca5a5' : (quotaStatus.allowed ? '#bbf7d0' : '#fde68a')}`,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.03)'
               }}>
-                {currentPlan === 'Free' ? (
-                  <AlertCircle size={24} color="#cc0000" style={{ flexShrink: 0 }} />
-                ) : quotaStatus.allowed ? (
-                  <CheckCircle2 size={24} color="#32c864" style={{ flexShrink: 0 }} />
-                ) : (
-                  <AlertCircle size={24} color="#f59e0b" style={{ flexShrink: 0 }} />
-                )}
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: currentPlan === 'Free' ? '#fecaca' : (quotaStatus.allowed ? '#bbf7d0' : '#fde68a'),
+                  color: currentPlan === 'Free' ? '#dc2626' : (quotaStatus.allowed ? '#16a34a' : '#d97706')
+                }}>
+                  {currentPlan === 'Free' ? (
+                    <AlertCircle size={24} />
+                  ) : quotaStatus.allowed ? (
+                    <CheckCircle2 size={24} />
+                  ) : (
+                    <AlertCircle size={24} />
+                  )}
+                </div>
 
                 <div>
-                  <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--color-charcoal)' }}>
+                  <h4 style={{ 
+                    margin: '0 0 0.35rem 0', 
+                    color: currentPlan === 'Free' ? '#991b1b' : (quotaStatus.allowed ? '#166534' : '#92400e'),
+                    fontSize: '1.1rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
                     {currentPlan === 'Free' ? 'Bạn cần nâng cấp gói' : `Gói hiện tại: ${currentPlan}`}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                  <p style={{ 
+                    margin: 0, 
+                    fontSize: '0.95rem', 
+                    color: currentPlan === 'Free' ? '#b91c1c' : (quotaStatus.allowed ? '#15803d' : '#b45309'),
+                    lineHeight: 1.5,
+                    fontWeight: 500
+                  }}>
                     {currentPlan === 'Free'
                       ? 'Tính năng đặt lịch hẹn 1-on-1 với Mentor chỉ dành cho thành viên có lượt đặt lịch trong gói.'
                       : `Bạn đã sử dụng ${quotaStatus.used}/${quotaStatus.limit} lượt đặt lịch trong chu kỳ này.`
@@ -269,87 +361,140 @@ const BookMentor = () => {
                   </p>
 
                   {currentPlan === 'Free' && (
-                    <Link to="/pricing" className="btn btn--primary" style={{ marginTop: '1rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                    <Link to="/pricing" style={{ 
+                      display: 'inline-block',
+                      marginTop: '1rem', 
+                      fontSize: '0.9rem', 
+                      padding: '0.6rem 1.25rem',
+                      background: '#dc2626',
+                      color: 'white',
+                      borderRadius: '50px',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      transition: 'all 0.2s',
+                      boxShadow: '0 4px 10px rgba(220, 38, 38, 0.3)'
+                    }}
+                    onMouseOver={e => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseOut={e => e.target.style.transform = 'translateY(0)'}
+                    >
                       Xem các gói dịch vụ
                     </Link>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Booking Form */}
             {currentPlan !== 'Free' && quotaStatus.allowed && (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <motion.form variants={itemVariants} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
 
                   <div className="auth-form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={16} /> Ngày muốn hẹn *</label>
-                    <input
-                      type="date"
-                      className="auth-input"
-                      required
-                      min={getLocalDateString()}
-                      value={formData.date}
-                      onChange={e => {
-                        // Reset time if date changes to avoid keeping an invalid past time
-                        setFormData({ ...formData, date: e.target.value, time: '' });
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-charcoal)' }}><Calendar size={18} color="#EA580C" /> Ngày muốn hẹn *</label>
+                    <DatePicker
+                      locale="vi"
+                      selected={formData.date ? new Date(formData.date) : null}
+                      onChange={date => {
+                        if (date) {
+                          const dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+                          setFormData({ ...formData, date: dateStr, time: '' });
+                        } else {
+                          setFormData({ ...formData, date: '', time: '' });
+                        }
                       }}
+                      minDate={new Date()}
+                      dateFormat="dd/MM/yyyy"
+                      className="custom-date-input"
+                      placeholderText="Chọn ngày"
+                      required
                     />
                   </div>
 
                   <div className="auth-form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Giờ muốn hẹn *</label>
-                    <select
-                      className="auth-input"
-                      required
-                      value={formData.time}
-                      onChange={e => setFormData({ ...formData, time: e.target.value })}
-                      style={{ appearance: 'auto' }}
-                      disabled={!formData.date}
-                    >
-                      <option value="">Chọn khung giờ</option>
-                      {getAvailableTimeSlots().map(timeSlot => (
-                        <option
-                          key={timeSlot}
-                          value={timeSlot}
-                          disabled={bookedTimes.includes(timeSlot)}
-                        >
-                          {timeSlot} {bookedTimes.includes(timeSlot) ? '(Đã có người đặt)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-charcoal)' }}><Clock size={18} color="#EA580C" /> Giờ muốn hẹn *</label>
+                    
+                    {!formData.date ? (
+                      <div style={{ padding: '0.9rem', textAlign: 'center', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
+                        Vui lòng chọn ngày trước
+                      </div>
+                    ) : getAvailableTimeSlots().length === 0 ? (
+                      <div style={{ padding: '0.9rem', textAlign: 'center', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed var(--border-color)', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
+                        Đã hết khung giờ trống
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.5rem' }}>
+                          {getAvailableTimeSlots().map(timeSlot => {
+                            const isBooked = bookedTimes.includes(timeSlot);
+                            const isSelected = formData.time === timeSlot;
+                            return (
+                              <div
+                                key={timeSlot}
+                                onClick={() => !isBooked && setFormData({ ...formData, time: timeSlot })}
+                                style={{
+                                  padding: '0.6rem 0.25rem',
+                                  textAlign: 'center',
+                                  borderRadius: '8px',
+                                  border: isSelected ? '2px solid #EA580C' : '1px solid var(--border-color)',
+                                  background: isSelected ? 'rgba(234, 88, 12, 0.1)' : (isBooked ? 'rgba(0,0,0,0.03)' : 'var(--color-surface)'),
+                                  color: isSelected ? '#EA580C' : (isBooked ? 'var(--color-text-muted)' : 'var(--color-charcoal)'),
+                                  fontWeight: isSelected ? 700 : 500,
+                                  cursor: isBooked ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.85rem',
+                                  transition: 'all 0.2s',
+                                  opacity: isBooked ? 0.6 : 1
+                                }}
+                                onMouseOver={(e) => { if(!isBooked && !isSelected) e.currentTarget.style.borderColor = '#EA580C'; }}
+                                onMouseOut={(e) => { if(!isBooked && !isSelected) e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                              >
+                                {timeSlot}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {/* Hidden input to keep HTML5 form validation working */}
+                        <input type="text" style={{ opacity: 0, position: 'absolute', height: 0, width: 0, pointerEvents: 'none' }} value={formData.time} required onChange={() => {}} />
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="auth-form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={16} /> Chủ đề muốn trao đổi *</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-charcoal)' }}><MessageSquare size={18} color="#EA580C" /> Chủ đề muốn trao đổi *</label>
                   <textarea
-                    className="auth-input"
-                    placeholder="VD: Nhờ anh review giúp CV ứng tuyển vị trí Backend Developer và tư vấn lộ trình học Node.js..."
-                    style={{ minHeight: '120px', resize: 'vertical' }}
+                    style={{ width: '100%', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--color-surface)', fontSize: '1rem', outline: 'none', color: 'var(--color-text)', minHeight: '120px', resize: 'vertical', fontFamily: 'var(--font-sans)' }}
+                    placeholder=""
                     required
                     value={formData.topic}
                     onChange={e => setFormData({ ...formData, topic: e.target.value })}
                   />
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.75rem', lineHeight: 1.5 }}>
                     Mentor sẽ nhận được email chứa thông tin liên hệ và link CV của bạn. Hãy ghi rõ mong muốn để Mentor chuẩn bị tốt nhất.
                   </p>
                 </div>
 
                 <button
                   type="submit"
-                  className="btn btn--primary btn--pill"
-                  style={{ padding: '1rem', fontSize: '1rem', marginTop: '1rem' }}
+                  className="btn"
+                  style={{ 
+                    padding: '1rem', fontSize: '1.1rem', marginTop: '1rem', borderRadius: '50px',
+                    background: '#EA580C', color: '#fff', border: 'none', fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(234, 88, 12, 0.3)', transition: 'all 0.3s ease',
+                    opacity: submitting ? 0.7 : 1, cursor: submitting ? 'not-allowed' : 'pointer',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
+                  }}
+                  onMouseOver={(e) => { if(!submitting) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(234, 88, 12, 0.4)'; } }}
+                  onMouseOut={(e) => { if(!submitting) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(234, 88, 12, 0.3)'; } }}
                   disabled={submitting}
                 >
                   {submitting ? 'Đang gửi yêu cầu...' : 'Xác Nhận Đặt Lịch'}
                 </button>
-              </form>
+              </motion.form>
             )}
 
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

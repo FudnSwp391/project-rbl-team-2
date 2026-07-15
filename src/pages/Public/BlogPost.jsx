@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
-import { Play, FileText, User, ExternalLink, Calendar } from 'lucide-react';
+import { Play, FileText, User, ExternalLink, Calendar, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const getYouTubeEmbedUrl = (url) => {
   if (!url) return null;
@@ -206,46 +207,115 @@ const BlogPost = () => {
   
   const roleLabel = authorRole === 'company' ? 'Doanh nghiệp' : (authorRole === 'mentor' ? 'Mentor' : (authorRole === 'admin' ? 'Admin' : 'Thành viên'));
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  };
+
   return (
-    <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>
+    <motion.div 
+      className="section" 
+      style={{ background: 'var(--color-cream)', minHeight: '100vh', paddingTop: '120px' }}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <div className="container container--narrow">
         
-        <div style={{ marginBottom: '2rem' }}>
-          <Link to="/blogs" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-            ← Quay lại danh sách Blog
+        <motion.div variants={itemVariants} style={{ marginBottom: '2rem' }}>
+          <Link to="/blogs" style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.6rem', 
+            textDecoration: 'none', 
+            color: 'var(--color-charcoal)', 
+            fontSize: '0.95rem', 
+            fontWeight: 600, 
+            background: 'var(--color-warm-white)',
+            padding: '0.6rem 1.25rem 0.6rem 0.6rem',
+            borderRadius: '50px',
+            border: '1px solid rgba(0,0,0,0.05)',
+            boxShadow: '0 4px 12px rgba(44, 40, 36, 0.04)',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' 
+          }} 
+          onMouseOver={(e) => { 
+            e.currentTarget.style.transform = 'translateY(-2px)'; 
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(44, 40, 36, 0.08)'; 
+            e.currentTarget.style.color = '#EA580C'; 
+            e.currentTarget.querySelector('.icon-wrapper').style.background = '#EA580C';
+            e.currentTarget.querySelector('.icon-wrapper').style.color = 'white';
+          }} 
+          onMouseOut={(e) => { 
+            e.currentTarget.style.transform = 'translateY(0)'; 
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(44, 40, 36, 0.04)'; 
+            e.currentTarget.style.color = 'var(--color-charcoal)'; 
+            e.currentTarget.querySelector('.icon-wrapper').style.background = 'var(--color-cream)';
+            e.currentTarget.querySelector('.icon-wrapper').style.color = 'var(--color-charcoal)';
+          }}>
+            <span className="icon-wrapper" style={{ 
+              width: '28px', 
+              height: '28px', 
+              borderRadius: '50%', 
+              background: 'var(--color-cream)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              color: 'var(--color-charcoal)',
+              transition: 'all 0.3s ease'
+            }}>
+              <ArrowLeft size={16} />
+            </span>
+            Quay lại danh sách Blog
           </Link>
-        </div>
+        </motion.div>
 
-        <article className="glass-card reveal is-visible" style={{ padding: '0', overflow: 'hidden' }}>
+        <motion.article variants={itemVariants} className="glass-card" style={{ padding: '0', overflow: 'hidden', borderRadius: '24px', boxShadow: '0 20px 40px rgba(44, 40, 36, 0.05)' }}>
           
           {/* Header Section */}
           <div style={{ padding: '4rem 3rem 3rem', background: 'var(--color-warm-white)', borderBottom: '1px solid var(--border-color)', position: 'relative' }}>
-            <div className="foliage-shadow" style={{ opacity: 0.5 }}></div>
+            <div className="foliage-shadow" style={{ opacity: 0.3 }}></div>
             <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
               <span style={{ 
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 fontSize: '0.75rem', 
                 textTransform: 'uppercase', 
                 letterSpacing: '0.05em', 
-                fontWeight: '600',
-                color: isVideo ? '#CC0000' : 'var(--color-moss)',
-                background: isVideo ? 'rgba(255,0,0,0.05)' : 'rgba(107,127,92,0.1)',
+                fontWeight: '700',
+                color: isVideo ? '#EA580C' : 'var(--color-moss)',
+                background: isVideo ? 'rgba(234, 88, 12, 0.1)' : 'rgba(107, 127, 92, 0.1)',
                 padding: '0.4rem 1rem',
                 borderRadius: '50px',
                 marginBottom: '1.5rem',
-                border: isVideo ? '1px solid rgba(255,0,0,0.1)' : '1px solid var(--border-color)'
+                border: isVideo ? '1px solid rgba(234, 88, 12, 0.15)' : '1px solid rgba(107, 127, 92, 0.15)'
               }}>
-                {isVideo ? <><Play size={14}/> Video</> : <><FileText size={14}/> Bài viết</>}
+                {isVideo ? <><Play size={14}/> VIDEO</> : <><FileText size={14}/> BÀI VIẾT</>}
               </span>
               
-              <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', marginBottom: '2rem', lineHeight: '1.3', color: 'var(--color-charcoal)' }}>
+              <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 800, marginBottom: '2rem', lineHeight: '1.25', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>
                 {blog.title}
               </h1>
               
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-charcoal)', fontWeight: '500' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                    {authorRole === 'company' ? '🏢' : <User size={14} />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--color-charcoal)', fontWeight: '600' }}>
+                  <div style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      borderRadius: '50%', 
+                      background: 'linear-gradient(135deg, var(--color-accent-vivid), var(--color-accent))', 
+                      color: 'white',
+                      overflow: 'hidden',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1rem',
+                      boxShadow: '0 2px 8px rgba(234, 88, 12, 0.3)'
+                    }}>
+                      {(authorName || 'Tác giả').charAt(0).toUpperCase()}
                   </div>
                   {authorName || 'Tác giả'}
                 </div>
@@ -274,7 +344,7 @@ const BlogPost = () => {
             {isVideo && (
               <div style={{ marginBottom: '3rem' }}>
                 {embedUrl ? (
-                  <div style={{ borderRadius: '16px', overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: '1px solid var(--border-color)' }}>
+                  <div style={{ borderRadius: '24px', overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
                     <iframe
                       width="100%"
                       height="100%"
@@ -295,30 +365,27 @@ const BlogPost = () => {
                 )}
                 
                 {/* Fallback YouTube Watch Button */}
-                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                   <a 
                     href={rawVideoUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                      padding: '0.6rem 1.2rem',
-                      background: 'rgba(255,0,0,0.08)',
-                      color: '#CC0000',
+                      padding: '0.8rem 1.5rem',
+                      background: 'rgba(234, 88, 12, 0.1)',
+                      color: '#EA580C',
                       borderRadius: '50px',
                       textDecoration: 'none',
-                      fontSize: '0.9rem',
-                      fontWeight: 500,
-                      transition: 'all 0.3s'
+                      fontSize: '0.95rem',
+                      fontWeight: 600,
+                      transition: 'all 0.3s ease'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,0,0,0.15)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,0,0,0.08)'}
+                    onMouseOver={(e) => { e.currentTarget.style.background = '#EA580C'; e.currentTarget.style.color = 'white'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(234, 88, 12, 0.1)'; e.currentTarget.style.color = '#EA580C'; }}
                   >
-                    Xem trên YouTube <ExternalLink size={14} />
+                    Xem trên YouTube <ExternalLink size={16} />
                   </a>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
-                    (Nhấp vào đây nếu video phía trên báo lỗi "Video unavailable")
-                  </p>
                 </div>
               </div>
             )}
@@ -352,10 +419,10 @@ const BlogPost = () => {
             )}
 
           </div>
-        </article>
+        </motion.article>
 
       </div>
-    </div>
+    </motion.div>
   );
 };
 

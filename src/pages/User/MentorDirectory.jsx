@@ -27,8 +27,9 @@ const MentorDirectory = () => {
     // Lấy danh sách Mentor đã được duyệt
     const { data, error } = await supabase
       .from('mentors')
-      .select('*')
-      .eq('status', 'approved');
+      .select('id, mentor_id, full_name, expertise, avatar_url, bio, phone, email, linkedin_url')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
 
     if (!error && data) {
       setMentors(data);
@@ -53,11 +54,6 @@ const MentorDirectory = () => {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* Background SVGs */}
-      <img src="/assets/svg/platform-bg-left.svg" alt="" style={{ position: 'absolute', left: 0, top: '15%', width: '300px', maxWidth: '25vw', zIndex: 0, pointerEvents: 'none', opacity: 0.9 }} />
-      <img src="/assets/svg/platform-bg-right.svg" alt="" style={{ position: 'absolute', right: 0, top: '10%', width: '350px', maxWidth: '30vw', zIndex: 0, pointerEvents: 'none', opacity: 0.9 }} />
-      <img src="/assets/svg/platform_mobile-bottom.svg" alt="" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '600px', zIndex: 0, pointerEvents: 'none', opacity: 0.6 }} />
-
       <div className="container" style={{ position: 'relative', zIndex: 1 }}>
         
         {/* Header */}
@@ -65,7 +61,7 @@ const MentorDirectory = () => {
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}
+          style={{ textAlign: 'center', marginBottom: '1.5rem' }}
         >
           <h1 style={{ marginBottom: '1rem', fontSize: '2.5rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-0.5px' }}>Đội ngũ Mentor Chuyên gia</h1>
           <p style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
@@ -108,8 +104,12 @@ const MentorDirectory = () => {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid-auto" 
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}
+            style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              justifyContent: 'center', 
+              gap: '2rem' 
+            }}
           >
             {filteredMentors.map((mentor, index) => (
               <motion.div 
@@ -118,7 +118,7 @@ const MentorDirectory = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
                 className="glass-card"
-                style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}
+                style={{ padding: '2rem', display: 'flex', flexDirection: 'column', flex: '1 1 350px', maxWidth: '450px' }}
               >
                 {/* Mentor Header (Avatar & Name) */}
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>

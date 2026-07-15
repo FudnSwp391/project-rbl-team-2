@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle, Zap, Shield, Crown, Star, FolderOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import PaymentModal from '../../components/PaymentModal';
@@ -172,20 +173,47 @@ const PricingPage = () => {
     });
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  };
+
   return (
-    <div className="container animate-fade" style={{ paddingTop: '120px', paddingBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
-      <header style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <h1 style={{ fontSize: '3rem', marginBottom: 'var(--spacing-sm)' }}>
-          {isExchangeMode ? <><span className="gradient-text">Đổi Điểm</span> Nhận Gói Dịch Vụ</> : <>Nâng cấp <span className="gradient-text">Trải nghiệm</span> của bạn</>}
+    <motion.div 
+      className="container animate-fade" 
+      style={{ paddingTop: '120px', paddingBottom: 'var(--spacing-xl)', textAlign: 'center' }}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.header variants={itemVariants} style={{ marginBottom: '3rem' }}>
+        <h1 style={{ 
+          fontSize: '2.8rem', 
+          fontWeight: 800, 
+          textTransform: 'uppercase', 
+          color: 'var(--color-charcoal)', 
+          letterSpacing: '-1px',
+          marginBottom: '1rem',
+          lineHeight: 1.2
+        }}>
+          {isExchangeMode ? <><span style={{ color: '#EA580C' }}>Đổi Điểm</span> Nhận Gói Dịch Vụ</> : <>Nâng cấp <span style={{ color: '#EA580C' }}>Trải nghiệm</span> của bạn</>}
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.15rem', maxWidth: '600px', margin: '0 auto', fontWeight: 500 }}>
           {isExchangeMode 
             ? `Sử dụng điểm tích lũy của bạn để đổi lấy các gói đặc quyền. Bạn đang có ${currentPoints} điểm.` 
             : `Chọn gói phù hợp để mở khóa toàn bộ tính năng phỏng vấn AI và bộ câu hỏi chuyên sâu.`}
         </p>
         {user && (
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ padding: '0.4rem 1rem', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '99px', fontSize: '0.9rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
+            <div style={{ padding: '0.5rem 1.25rem', background: 'var(--color-surface)', border: '1px solid var(--border-color)', borderRadius: '50px', fontSize: '0.95rem', color: 'var(--color-charcoal)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
               {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) 
                 ? 'Tài khoản đặc quyền (Không giới hạn)'
                 : `Gói hiện tại: ${currentPlan} ${planDaysLeft !== null ? `(Còn ${planDaysLeft} ngày)` : ''}`
@@ -193,58 +221,78 @@ const PricingPage = () => {
             </div>
           </div>
         )}
-      </header>
+      </motion.header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--spacing-lg)', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', alignItems: 'center' }}>
         {/* Free Plan */}
-        <div className="glass-card" style={{ padding: '2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Gói Free</h3>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{getPlanLimits('Free').price === 0 ? '0đ' : `${getPlanLimits('Free').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{getPlanLimits('Free').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Free').duration_days} ngày`}</span></div>
+        <motion.div variants={itemVariants} className="glass-card" style={{ padding: '2.5rem 2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.75rem', color: 'var(--color-charcoal)', fontWeight: 800, textTransform: 'uppercase' }}>Gói Free</h3>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-charcoal)' }}>{getPlanLimits('Free').price === 0 ? '0đ' : `${getPlanLimits('Free').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{getPlanLimits('Free').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Free').duration_days} ngày`}</span></div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2.5rem 0', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
             <FeatureItem text={`${getPlanLimits('Free').max_ai_interviews} lượt luyện tập với AI`} />
             <FeatureItem text={`${getPlanLimits('Free').max_questions > 900 ? 'Không giới hạn' : getPlanLimits('Free').max_questions} lượt luyện tập question`} />
           </ul>
           <button style={{
-            width: '100%', padding: '0.85rem', borderRadius: '12px', border: '2px solid #e2e8f0',
-            background: '#f8fafc', color: '#64748b', fontWeight: 'bold', cursor: 'default',
-            transition: 'all 0.3s ease', marginTop: 'auto'
+            width: '100%', padding: '1rem', borderRadius: '50px', border: '1px solid var(--border-color)',
+            background: 'var(--color-surface)', color: 'var(--color-charcoal)', fontWeight: 700, cursor: 'default',
+            transition: 'all 0.3s ease', marginTop: 'auto', fontSize: '1.05rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
           }}
           disabled={currentPlan === 'Free' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())}
           >
             {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (currentPlan === 'Free' ? 'Gói hiện tại' : 'Đang sử dụng gói cao hơn')}
           </button>
-        </div>
+        </motion.div>
 
         {/* Pro Plan */}
-        <div className="glass-card" style={{ padding: '2.5rem 2rem', textAlign: 'left', border: '2px solid var(--primary)', transform: 'scale(1.05)', position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', zIndex: 10, boxShadow: '0 20px 40px -10px rgba(79, 70, 229, 0.15)' }}>
-          <div style={{ position: 'absolute', top: '-15px', right: '20px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', padding: '0.4rem 1.25rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)' }}>
-            PHỔ BIẾN
+        <motion.div variants={itemVariants} className="glass-card" style={{ padding: '3rem 2rem', textAlign: 'left', border: '2px solid #EA580C', scale: 1.05, position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', zIndex: 10, borderRadius: '24px', boxShadow: '0 20px 40px rgba(234, 88, 12, 0.15)' }}>
+          <div style={{ 
+            position: 'absolute', 
+            top: '-30px', 
+            right: '1rem', 
+            width: '135px', 
+            height: '75px', 
+            background: 'url(/assets/cloud02.svg) center/contain no-repeat', 
+            color: 'white', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            fontSize: '0.95rem', 
+            fontWeight: 900, 
+            fontFamily: "'Nunito', 'Quicksand', system-ui, sans-serif",
+            textTransform: 'uppercase', 
+            letterSpacing: '1.5px', 
+            zIndex: 20, 
+            textShadow: '1px 2px 4px rgba(194, 65, 12, 0.6)',
+            transform: 'rotate(6deg)'
+          }}>
+            Phổ Biến
           </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <Zap color="hsl(var(--primary-hsl))" />
-              <h3 style={{ fontSize: '1.8rem', margin: 0, color: 'var(--primary)' }}>Pro</h3>
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Zap color="#EA580C" size={24} />
+              <h3 style={{ fontSize: '1.8rem', margin: 0, color: '#EA580C', fontWeight: 800, textTransform: 'uppercase' }}>Pro</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-              {isExchangeMode ? '300 điểm' : `${getPlanLimits('Pro').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{getPlanLimits('Pro').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Pro').duration_days} ngày`}</span>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--color-charcoal)', lineHeight: 1 }}>
+              {isExchangeMode ? '300 điểm' : `${getPlanLimits('Pro').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1.1rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{getPlanLimits('Pro').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Pro').duration_days} ngày`}</span>
             </div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2.5rem 0', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
             <FeatureItem text={`${getPlanLimits('Pro').max_ai_interviews} lượt luyện tập với AI`} />
             <FeatureItem text={`${getPlanLimits('Pro').max_questions > 900 ? 'Không giới hạn' : getPlanLimits('Pro').max_questions} lượt luyện tập question`} />
             <FeatureItem text={`Đặt lịch mentor ${getPlanLimits('Pro').max_mentor_bookings} lần`} />
           </ul>
           <button style={{
-            width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
-            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
+            width: '100%', padding: '1rem', borderRadius: '50px', border: 'none',
+            background: 'linear-gradient(135deg, #EA580C, #c2410c)', color: 'white', fontWeight: 700, fontSize: '1.05rem',
             cursor: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'default' : 'pointer', marginTop: 'auto',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 0.7 : 1,
-            boxShadow: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'none' : '0 4px 15px rgba(79, 70, 229, 0.4)'
+            boxShadow: (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'none' : '0 10px 25px rgba(234, 88, 12, 0.3)'
           }}
-          onMouseOver={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
-          onMouseOut={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onMouseOver={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Pro' && currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0)'; }}
           onClick={() => {
             if (currentPlan === 'Pro' || currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) return;
             if (isExchangeMode) handleExchange('Pro');
@@ -253,33 +301,33 @@ const PricingPage = () => {
           >
             {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang xử lý...' : (currentPlan === 'Premium' ? 'Đang sử dụng gói cao hơn' : (currentPlan === 'Pro' ? 'Đang sử dụng' : (isExchangeMode ? 'Đổi 300 điểm' : 'Nâng cấp Pro'))))}
           </button>
-        </div>
+        </motion.div>
 
         {/* Premium Plan */}
-        <div className="glass-card" style={{ padding: '2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <Crown color="#f59e0b" />
-              <h3 style={{ fontSize: '1.5rem', margin: 0, color: '#f59e0b' }}>Premium</h3>
+        <motion.div variants={itemVariants} className="glass-card" style={{ padding: '2.5rem 2rem', textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%', borderRadius: '24px' }}>
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Crown color="#d97706" size={24} />
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: '#d97706', fontWeight: 800, textTransform: 'uppercase' }}>Premium</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-              {isExchangeMode ? '500 điểm' : `${getPlanLimits('Premium').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{getPlanLimits('Premium').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Premium').duration_days} ngày`}</span>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-charcoal)' }}>
+              {isExchangeMode ? '500 điểm' : `${getPlanLimits('Premium').price.toLocaleString('vi-VN')}đ`} <span style={{ fontSize: '1rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{getPlanLimits('Premium').duration_days === 0 ? '/ Vĩnh viễn' : `/${getPlanLimits('Premium').duration_days} ngày`}</span>
             </div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2.5rem 0', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
             <FeatureItem text={`${getPlanLimits('Premium').max_ai_interviews} lượt luyện tập với AI`} />
             <FeatureItem text={`${getPlanLimits('Premium').max_questions > 900 ? 'Không giới hạn' : getPlanLimits('Premium').max_questions} lượt luyện tập question`} />
             <FeatureItem text={`Đặt lịch mentor ${getPlanLimits('Premium').max_mentor_bookings} lần`} />
           </ul>
           <button style={{
-            width: '100%', padding: '0.9rem', borderRadius: '12px', border: 'none',
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', fontWeight: 'bold', fontSize: '1rem',
+            width: '100%', padding: '1rem', borderRadius: '50px', border: 'none',
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', fontWeight: 700, fontSize: '1.05rem',
             cursor: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'default' : 'pointer', marginTop: 'auto',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', opacity: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 0.7 : 1,
-            boxShadow: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'none' : '0 4px 15px rgba(245, 158, 11, 0.4)'
+            boxShadow: (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) ? 'none' : '0 10px 25px rgba(245, 158, 11, 0.3)'
           }}
-          onMouseOver={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px) scale(1.02)'; }}
-          onMouseOut={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0) scale(1)'; }}
+          onMouseOver={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(-3px)'; }}
+          onMouseOut={(e) => { if(currentPlan !== 'Premium' && !['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) e.target.style.transform = 'translateY(0)'; }}
           onClick={() => {
             if (currentPlan === 'Premium' || ['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase())) return;
             if (isExchangeMode) handleExchange('Premium');
@@ -289,7 +337,7 @@ const PricingPage = () => {
           >
             {['admin', 'company', 'recruiter', 'mentor'].includes(profile?.role?.toLowerCase()) ? 'Không giới hạn' : (isProcessing ? 'Đang xử lý...' : (currentPlan === 'Premium' ? 'Đang sử dụng' : (isExchangeMode ? 'Đổi 500 điểm' : 'Nâng cấp Premium')))}
           </button>
-        </div>
+        </motion.div>
       </div>
 
       {showPayment && selectedPlan && (
@@ -325,13 +373,13 @@ const PricingPage = () => {
           }}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 
 const FeatureItem = ({ text }) => (
-  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-    <CheckCircle size={20} color="#32c864" />
+  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--color-charcoal)', fontWeight: 500, fontSize: '1.05rem' }}>
+    <CheckCircle size={20} color="#EA580C" />
     <span>{text}</span>
   </li>
 );

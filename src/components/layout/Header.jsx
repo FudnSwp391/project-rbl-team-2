@@ -55,11 +55,11 @@ const Header = () => {
       {
         label: 'Khám phá',
         dropdown: [
-          { to: '/mentors', label: '🧑‍🏫 Tìm Mentors', desc: 'Kết nối với mentor chuyên nghiệp' },
-          { to: '/blogs', label: '📝 Blog', desc: 'Chia sẻ kinh nghiệm phỏng vấn' },
-          { to: '/jobs', label: '💼 Việc làm', desc: 'Tìm kiếm cơ hội nghề nghiệp' },
-          { to: '/mentor-register', label: '🎓 Đăng ký Mentor', desc: 'Chia sẻ kiến thức của bạn' },
-          { to: '/recruiter-register', label: '🏢 Dành cho doanh nghiệp', desc: 'Đăng tin tuyển dụng' }
+          { to: '/mentors', label: 'Tìm Mentors', desc: 'Kết nối với mentor chuyên nghiệp' },
+          { to: '/blogs', label: 'Blog', desc: 'Chia sẻ kinh nghiệm phỏng vấn' },
+          { to: '/jobs', label: 'Việc làm', desc: 'Tìm kiếm cơ hội nghề nghiệp' },
+          { to: '/mentor-register', label: 'Đăng ký Mentor', desc: 'Chia sẻ kiến thức của bạn' },
+          { to: '/recruiter-register', label: 'Dành cho doanh nghiệp', desc: 'Đăng tin tuyển dụng' }
         ]
       },
       { to: '/pricing', label: 'Gói dịch vụ' }
@@ -198,25 +198,25 @@ const Header = () => {
                       key={subItem.to}
                       to={subItem.to}
                       style={{
-                        padding: '0.7rem 1rem',
+                        padding: '0.8rem 1.2rem',
                         textDecoration: 'none',
                         color: 'var(--color-charcoal)',
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
                         borderRadius: '12px',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '2px',
+                        gap: '5px',
+                        borderLeft: '3px solid transparent'
                       }}
                       className="dropdown-link-item"
                     >
-                      <span>{subItem.label}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.95rem', transition: 'color 0.3s ease' }} className="dropdown-title">{subItem.label}</span>
                       {subItem.desc && (
                         <span style={{
-                          fontSize: '0.7rem',
-                          color: 'var(--color-text-muted)',
-                          fontWeight: 400,
+                          fontSize: '0.75rem',
+                          color: 'var(--color-text-secondary)',
+                          fontWeight: 500,
+                          opacity: 0.85
                         }}>{subItem.desc}</span>
                       )}
                     </Link>
@@ -434,7 +434,7 @@ const Header = () => {
                   }}
                   className="mobile-nav-link"
                 >
-                  {typeof subItem.label === 'string' ? subItem.label.replace(/^[^\s]+\s/, '') : subItem.label}
+                  {subItem.label}
                 </Link>
               ))}
             </div>
@@ -563,7 +563,12 @@ const Header = () => {
           transform: translateX(-50%) translateY(6px) !important;
         }
         .dropdown-link-item:hover {
-          background: var(--color-cream) !important;
+          background: rgba(234, 88, 12, 0.04) !important;
+          border-left: 3px solid var(--color-accent-vivid) !important;
+          padding-left: 1.5rem !important;
+        }
+        .dropdown-link-item:hover .dropdown-title {
+          color: var(--color-accent-vivid) !important;
         }
         .btn--vivid {
           transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
