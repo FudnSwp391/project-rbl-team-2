@@ -2,8 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
-import './Auth.css';
 import { useConfirm } from '../../utils/ConfirmContext';
+import { 
+  User, 
+  Mail, 
+  Calendar, 
+  Phone, 
+  MapPin, 
+  Lock, 
+  ShieldCheck, 
+  FileText, 
+  History, 
+  Plus, 
+  Trash2, 
+  ExternalLink, 
+  Save, 
+  Eye, 
+  EyeOff,
+  CheckCircle2,
+  Clock,
+  Sparkles
+} from 'lucide-react';
+import './Auth.css';
 
 const Profile = () => {
   const confirm = useConfirm();
@@ -21,6 +41,8 @@ const Profile = () => {
   // Security States
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
@@ -47,7 +69,6 @@ const Profile = () => {
   const fetchUserData = async () => {
     setLoadingData(true);
     try {
-      // Fetch user's CVs (assuming table name is 'cvs' and has user_id)
       const { data: cvData, error: cvError } = await supabase
         .from('cvs')
         .select('*')
@@ -58,7 +79,6 @@ const Profile = () => {
         setCvs(cvData);
       }
 
-      // Fetch user's practice history (assuming table name is 'interview_history')
       const { data: historyData, error: historyError } = await supabase
         .from('interview_history')
         .select('*')
@@ -70,38 +90,36 @@ const Profile = () => {
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
-      // Suppress errors visually since tables might not exist yet
     } finally {
       setLoadingData(false);
     }
   };
 
   const handleDeleteCV = async (cv) => {
-    const isConfirmed = await new Promise(resolve => confirm({ message: 'Bạn có chắc chắn muốn xóa CV này?', isDanger: true, onConfirm: () => resolve(true), onCancel: () => resolve(false) }));
+    const isConfirmed = await new Promise(resolve => confirm({ 
+      message: 'Bạn có chắc chắn muốn xóa CV này?', 
+      isDanger: true, 
+      onConfirm: () => resolve(true), 
+      onCancel: () => resolve(false) 
+    }));
     if (!isConfirmed) return;
     
     try {
-      // Dùng hàm RPC lách chặn DELETE của network (sử dụng POST)
       const { error } = await supabase.rpc('drop_cv_record', { cv_id: cv.id });
       
       if (error) {
         if (error.message === 'TypeError: Failed to fetch') {
-          // Lỗi mạng ảo: Trình diệt virus có thể ngắt kết nối trình duyệt đột ngột 
-          // nhưng lệnh xóa (POST) ĐÃ KỊP BAY TỚI và CHẠY TRÊN SERVER.
-          // Ta dùng lệnh GET để kiểm tra lại xem CV còn tồn tại không.
           const { data: checkData } = await supabase.from('cvs').select('id').eq('id', cv.id).maybeSingle();
           if (checkData) {
-            throw error; // Dữ liệu vẫn còn -> Lỗi thật, văng lỗi ra
+            throw error;
           } else {
-            console.warn("Bỏ qua lỗi Failed to fetch ảo do Antivirus tạo ra.");
-            // Dữ liệu đã mất -> Lệnh xóa đã thành công, cứ đi tiếp!
+            console.warn("Bỏ qua lỗi Failed to fetch ảo.");
           }
         } else {
-          throw error; // Các lỗi API khác thì vẫn báo
+          throw error;
         }
       }
       
-      // Thử xóa file Storage ngầm
       if (cv.file_url) {
         try {
           const urlParts = cv.file_url.split('/cv-bucket/');
@@ -113,7 +131,7 @@ const Profile = () => {
       alert('Đã xóa CV thành công!');
     } catch (err) {
       console.error("Lỗi xóa CV:", err);
-      alert('Không thể xóa CV: ' + err.message + '\n\n(Vui lòng đảm bảo bạn đã chạy mã SQL tạo hàm drop_cv_record trên Supabase)');
+      alert('Không thể xóa CV: ' + err.message);
     }
   };
 
@@ -164,70 +182,111 @@ const Profile = () => {
     }
   };
 
+  const userInitial = (fullName || user?.email || 'U').charAt(0).toUpperCase();
+
   const renderPersonalInfoTab = () => (
-    <div className="grid-auto animate-fade">
+    <div className="profile-grid animate-fade">
       {/* General Info Form */}
-      <div className="glass-card reveal is-visible" style={{ padding: 'var(--spacing-md)' }}>
-        <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>Thông tin chung</h3>
+      <div className="profile-section-card">
+        <div className="profile-card-header">
+          <div className="profile-card-icon">
+            <User size={20} />
+          </div>
+          <div>
+            <h3>Thông tin cá nhân</h3>
+            <p>Cập nhật họ tên, liên hệ và thông tin cơ bản của bạn</p>
+          </div>
+        </div>
         
-        <form onSubmit={handleUpdateProfile}>
+        <form onSubmit={handleUpdateProfile} className="profile-form">
           <div className="auth-form-group">
-            <label>Email (Không thể thay đổi)</label>
-            <input
-              type="email"
-              className="auth-input"
-              value={user?.email || ''}
-              disabled
-              style={{ opacity: 0.7, cursor: 'not-allowed' }}
-            />
+            <label>Email (Tài khoản)</label>
+            <div className="input-with-icon-wrapper disabled">
+              <div className="input-icon-left">
+                <Mail size={18} />
+              </div>
+              <div className="input-divider"></div>
+              <input
+                type="email"
+                className="auth-input-no-border"
+                value={user?.email || ''}
+                disabled
+              />
+            </div>
           </div>
 
           <div className="auth-form-group">
             <label htmlFor="fullName">Họ và tên</label>
-            <input
-              type="text"
-              id="fullName"
-              className="auth-input"
-              placeholder="Nhập họ và tên"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <User size={18} />
+              </div>
+              <div className="input-divider"></div>
+              <input
+                type="text"
+                id="fullName"
+                className="auth-input-no-border"
+                placeholder="Nhập họ và tên của bạn"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
-          <div className="auth-form-group">
-            <label htmlFor="dob">Ngày sinh</label>
-            <input
-              type="date"
-              id="dob"
-              className="auth-input"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-            />
-          </div>
+          <div className="profile-form-row">
+            <div className="auth-form-group">
+              <label htmlFor="dob">Ngày sinh</label>
+              <div className="input-with-icon-wrapper">
+                <div className="input-icon-left">
+                  <Calendar size={18} />
+                </div>
+                <div className="input-divider"></div>
+                <input
+                  type="date"
+                  id="dob"
+                  className="auth-input-no-border"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                />
+              </div>
+            </div>
 
-          <div className="auth-form-group">
-            <label htmlFor="phone">Số điện thoại</label>
-            <input
-              type="tel"
-              id="phone"
-              className="auth-input"
-              placeholder="Nhập số điện thoại"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
+            <div className="auth-form-group">
+              <label htmlFor="phone">Số điện thoại</label>
+              <div className="input-with-icon-wrapper">
+                <div className="input-icon-left">
+                  <Phone size={18} />
+                </div>
+                <div className="input-divider"></div>
+                <input
+                  type="tel"
+                  id="phone"
+                  className="auth-input-no-border"
+                  placeholder="Nhập số điện thoại"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="auth-form-group">
             <label htmlFor="address">Địa chỉ</label>
-            <input
-              type="text"
-              id="address"
-              className="auth-input"
-              placeholder="Nhập địa chỉ của bạn"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
+            <div className="input-with-icon-wrapper">
+              <div className="input-icon-left">
+                <MapPin size={18} />
+              </div>
+              <div className="input-divider"></div>
+              <input
+                type="text"
+                id="address"
+                className="auth-input-no-border"
+                placeholder="Nhập địa chỉ của bạn"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
           </div>
 
           {profileMessage.text && (
@@ -238,44 +297,74 @@ const Profile = () => {
 
           <button 
             type="submit" 
-            className="btn btn--primary"
-            style={{ width: '100%', marginTop: '0.5rem' }}
+            className="btn-profile-save"
             disabled={loading}
           >
-            {loading ? 'Đang lưu...' : 'Lưu thông tin'}
+            <Save size={18} />
+            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </form>
       </div>
 
       {/* Security Form */}
-      <div className="glass-card reveal is-visible" style={{ padding: 'var(--spacing-md)' }}>
-        <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>Bảo mật</h3>
+      <div className="profile-section-card">
+        <div className="profile-card-header">
+          <div className="profile-card-icon security">
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <h3>Bảo mật tài khoản</h3>
+            <p>Thay đổi mật khẩu đăng nhập để bảo vệ tài khoản</p>
+          </div>
+        </div>
         
-        <form onSubmit={handleUpdatePassword}>
+        <form onSubmit={handleUpdatePassword} className="profile-form">
           <div className="auth-form-group">
             <label htmlFor="newPassword">Mật khẩu mới</label>
-            <input
-              type="password"
-              id="newPassword"
-              className="auth-input"
-              placeholder="Nhập mật khẩu mới"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="input-with-icon-wrapper">
+              <button
+                type="button"
+                className="input-icon-left password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              <div className="input-divider"></div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="newPassword"
+                className="auth-input-no-border"
+                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength="6"
+              />
+            </div>
           </div>
 
           <div className="auth-form-group">
             <label htmlFor="confirmNewPassword">Xác nhận mật khẩu mới</label>
-            <input
-              type="password"
-              id="confirmNewPassword"
-              className="auth-input"
-              placeholder="Nhập lại mật khẩu mới"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+            <div className="input-with-icon-wrapper">
+              <button
+                type="button"
+                className="input-icon-left password-toggle-btn"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              <div className="input-divider"></div>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmNewPassword"
+                className="auth-input-no-border"
+                placeholder="Nhập lại mật khẩu mới"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength="6"
+              />
+            </div>
           </div>
 
           {passwordMessage.text && (
@@ -286,11 +375,11 @@ const Profile = () => {
 
           <button 
             type="submit" 
-            className="btn btn--outline"
-            style={{ width: '100%', marginTop: '0.5rem' }}
+            className="btn-profile-secondary"
             disabled={loading}
           >
-            {loading ? 'Đang lưu...' : 'Đổi mật khẩu'}
+            <Lock size={18} />
+            {loading ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
           </button>
         </form>
       </div>
@@ -298,54 +387,75 @@ const Profile = () => {
   );
 
   const renderCVTab = () => (
-    <div className="glass-card reveal is-visible animate-fade" style={{ padding: 'var(--spacing-md)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-        <h3 style={{ margin: 0 }}>Quản lý CV</h3>
+    <div className="profile-section-card animate-fade">
+      <div className="profile-card-header flex-between">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="profile-card-icon">
+            <FileText size={20} />
+          </div>
+          <div>
+            <h3>Danh sách CV của bạn</h3>
+            <p>Quản lý các hồ sơ CV đã tải lên hệ thống ITA</p>
+          </div>
+        </div>
         <button 
           onClick={() => navigate('/cv-analysis')}
-          className="btn btn--primary" 
-          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+          className="btn-profile-action" 
         >
-          + Tải CV mới
+          <Plus size={16} /> Tải CV mới
         </button>
       </div>
 
-      <div className="mock-list">
+      <div className="profile-data-list">
         {loadingData ? (
-          <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem' }}>Đang tải dữ liệu...</p>
+          <div className="profile-loading-box">
+            <Sparkles className="spinning-icon" size={24} />
+            <p>Đang tải danh sách CV...</p>
+          </div>
         ) : cvs.length > 0 ? (
           cvs.map(cv => (
-            <div key={cv.id} className="mock-list-item">
-              <div className="mock-item-info">
-                <h4>{cv.file_name || 'Tên file không xác định'}</h4>
-                <p>Tải lên ngày: {new Date(cv.created_at).toLocaleDateString('vi-VN')} {cv.file_size ? `• ${cv.file_size}` : ''}</p>
+            <div key={cv.id} className="profile-data-item">
+              <div className="profile-item-main">
+                <div className="profile-item-icon-box">
+                  <FileText size={24} color="#f97316" />
+                </div>
+                <div>
+                  <h4 className="profile-item-title">{cv.file_name || 'Hồ sơ CV chưa đặt tên'}</h4>
+                  <p className="profile-item-sub">
+                    Tải lên: {new Date(cv.created_at).toLocaleDateString('vi-VN')} {cv.file_size ? `• ${cv.file_size}` : ''}
+                  </p>
+                </div>
               </div>
-              <div className="mock-item-actions">
-                <span className={`status-badge ${cv.status === 'Đã phân tích' ? 'success' : 'pending'}`}>
+              
+              <div className="profile-item-right">
+                <span className={`profile-badge ${cv.status === 'Đã phân tích' ? 'success' : 'pending'}`}>
+                  {cv.status === 'Đã phân tích' ? <CheckCircle2 size={13} /> : <Clock size={13} />}
                   {cv.status || 'Đang xử lý'}
                 </span>
                 <button 
                   onClick={() => navigate('/cv-analysis')}
-                  className={cv.status === 'Đã phân tích' ? "btn btn--outline" : "btn btn--primary"}
-                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                  className="btn-item-view"
                 >
-                  {cv.status === 'Đã phân tích' ? 'Xem chi tiết' : 'Phân tích ngay'}
+                  <ExternalLink size={14} />
+                  {cv.status === 'Đã phân tích' ? 'Xem phân tích' : 'Phân tích'}
                 </button>
                 <button
                   onClick={() => handleDeleteCV(cv)}
-                  className="btn btn--outline"
-                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', color: '#c0392b', borderColor: '#c0392b', marginLeft: '0.5rem' }}
+                  className="btn-item-delete"
+                  title="Xóa CV này"
                 >
-                  Xóa
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(255,255,255,0.3)', borderRadius: '12px' }}>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Bạn chưa tải lên CV nào.</p>
-            <button onClick={() => navigate('/cv-analysis')} className="btn btn--outline">
-              Phân tích CV đầu tiên
+          <div className="profile-empty-box">
+            <FileText size={48} className="empty-icon" />
+            <h4>Chưa có dữ liệu CV</h4>
+            <p>Hãy tải lên CV của bạn để nhận phân tích chuyên sâu từ AI.</p>
+            <button onClick={() => navigate('/cv-analysis')} className="btn-profile-action" style={{ marginTop: '0.75rem' }}>
+              <Sparkles size={16} /> Phân tích CV đầu tiên
             </button>
           </div>
         )}
@@ -354,46 +464,66 @@ const Profile = () => {
   );
 
   const renderHistoryTab = () => (
-    <div className="glass-card reveal is-visible animate-fade" style={{ padding: 'var(--spacing-md)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-        <h3 style={{ margin: 0 }}>Lịch sử thực hành</h3>
+    <div className="profile-section-card animate-fade">
+      <div className="profile-card-header flex-between">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="profile-card-icon history">
+            <History size={20} />
+          </div>
+          <div>
+            <h3>Lịch sử phỏng vấn AI</h3>
+            <p>Xem lại các phiên thực hành và kết quả đánh giá</p>
+          </div>
+        </div>
         <button 
           onClick={() => navigate('/interview')}
-          className="btn btn--primary" 
-          style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+          className="btn-profile-action" 
         >
-          Luyện tập tiếp
+          <Plus size={16} /> Luyện tập tiếp
         </button>
       </div>
 
-      <div className="mock-list">
+      <div className="profile-data-list">
         {loadingData ? (
-          <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: '2rem' }}>Đang tải dữ liệu...</p>
+          <div className="profile-loading-box">
+            <Sparkles className="spinning-icon" size={24} />
+            <p>Đang tải lịch sử thực hành...</p>
+          </div>
         ) : history.length > 0 ? (
           history.map(item => (
-            <div key={item.id} className="mock-list-item">
-              <div className="mock-item-info">
-                <h4>Phỏng vấn {item.role_title || 'Mặc định'}</h4>
-                <p>Ngày thi: {new Date(item.created_at).toLocaleDateString('vi-VN')} {item.duration ? `• Thời gian: ${item.duration}` : ''}</p>
+            <div key={item.id} className="profile-data-item">
+              <div className="profile-item-main">
+                <div className="profile-item-icon-box history">
+                  <History size={24} color="#3b82f6" />
+                </div>
+                <div>
+                  <h4 className="profile-item-title">Phỏng vấn {item.role_title || 'Thực hành tổng hợp'}</h4>
+                  <p className="profile-item-sub">
+                    Ngày thi: {new Date(item.created_at).toLocaleDateString('vi-VN')} {item.duration ? `• Thời lượng: ${item.duration}` : ''}
+                  </p>
+                </div>
               </div>
-              <div className="mock-item-actions">
-                <span className={`status-badge ${item.score >= 80 ? 'success' : 'pending'}`}>
+              
+              <div className="profile-item-right">
+                <span className={`profile-badge ${item.score >= 80 ? 'success' : 'pending'}`}>
                   Điểm: {item.score || 0}/100
                 </span>
                 <button 
-                  className="btn btn--outline" 
-                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                  onClick={() => navigate(`/interview/result/${item.id}`)}
+                  className="btn-item-view"
                 >
-                  Xem phản hồi
+                  <ExternalLink size={14} /> Xem báo cáo
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(255,255,255,0.3)', borderRadius: '12px' }}>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Bạn chưa có lịch sử phỏng vấn nào.</p>
-            <button onClick={() => navigate('/interview')} className="btn btn--outline">
-              Bắt đầu luyện tập
+          <div className="profile-empty-box">
+            <History size={48} className="empty-icon" />
+            <h4>Chưa có lịch sử phỏng vấn</h4>
+            <p>Hãy bắt đầu phiên phỏng vấn giả lập đầu tiên với AI để rèn luyện kỹ năng.</p>
+            <button onClick={() => navigate('/interview')} className="btn-profile-action" style={{ marginTop: '0.75rem' }}>
+              <Sparkles size={16} /> Bắt đầu ngay
             </button>
           </div>
         )}
@@ -402,43 +532,63 @@ const Profile = () => {
   );
 
   return (
-    <div className="auth-page animate-fade" style={{ alignItems: 'flex-start', paddingTop: 'var(--spacing-3xl)' }}>
-      <div className="container" style={{ maxWidth: '1000px', width: '100%' }}>
+    <div className="profile-page-wrapper animate-fade">
+      <div className="profile-main-container">
         
-        <div className="auth-header" style={{ textAlign: 'left', marginBottom: 'var(--spacing-lg)' }}>
-          <h1>Hồ sơ & Quản lý</h1>
-          <p>Quản lý thông tin, xem lại CV và lịch sử phỏng vấn của bạn.</p>
+        {/* User Hero Header Banner */}
+        <div className="profile-hero-card">
+          <div className="profile-hero-content">
+            <div className="profile-avatar-circle">
+              {userInitial}
+            </div>
+            <div className="profile-hero-text">
+              <div className="profile-name-row">
+                <h2>{fullName || 'Người dùng ITA'}</h2>
+                <span className="profile-role-badge">
+                  {profile?.role === 'admin' ? 'Quản trị viên' : profile?.role === 'mentor' ? 'Mentor' : profile?.role === 'company' ? 'Nhà tuyển dụng' : 'Ứng viên'}
+                </span>
+              </div>
+              <p className="profile-email">
+                <Mail size={14} /> {user?.email}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="profile-layout">
-          {/* Sidebar Tabs */}
-          <div className="profile-sidebar">
+        <div className="profile-layout-grid">
+          {/* Sidebar Navigation */}
+          <div className="profile-sidebar-v2">
             <button 
-              className={`profile-tab-btn ${activeTab === 'personal' ? 'active' : ''}`}
+              className={`profile-nav-item ${activeTab === 'personal' ? 'active' : ''}`}
               onClick={() => setActiveTab('personal')}
             >
-              <span>👤</span> Hồ sơ cá nhân
+              <User size={18} />
+              <span>Hồ sơ cá nhân</span>
             </button>
+            
             {profile?.role !== 'company' && profile?.role !== 'recruiter' && (
               <>
                 <button 
-                  className={`profile-tab-btn ${activeTab === 'cv' ? 'active' : ''}`}
+                  className={`profile-nav-item ${activeTab === 'cv' ? 'active' : ''}`}
                   onClick={() => setActiveTab('cv')}
                 >
-                  <span>📄</span> Quản lý CV
+                  <FileText size={18} />
+                  <span>Quản lý CV</span>
                 </button>
+
                 <button 
-                  className={`profile-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                  className={`profile-nav-item ${activeTab === 'history' ? 'active' : ''}`}
                   onClick={() => setActiveTab('history')}
                 >
-                  <span>🕒</span> Lịch sử thực hành
+                  <History size={18} />
+                  <span>Lịch sử thực hành</span>
                 </button>
               </>
             )}
           </div>
 
-          {/* Main Content Area */}
-          <div className="profile-content">
+          {/* Tab Content Area */}
+          <div className="profile-content-area">
             {activeTab === 'personal' && renderPersonalInfoTab()}
             {activeTab === 'cv' && renderCVTab()}
             {activeTab === 'history' && renderHistoryTab()}
