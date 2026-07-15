@@ -4,6 +4,7 @@ import { supabase } from '../../utils/supabaseClient';
 import { useAuth } from '../../utils/AuthContext';
 import { Search, User, Briefcase, Award, Clock, Star, Phone, Link as LinkIcon, Mail, Calendar } from 'lucide-react';
 import { useConfirm } from '../../utils/ConfirmContext';
+import { motion } from 'framer-motion';
 
 const MentorDirectory = () => {
   const confirm = useConfirm();
@@ -43,20 +44,42 @@ const MentorDirectory = () => {
   );
 
   return (
-    <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh', paddingTop: '120px' }}>
-      <div className="container">
+    <div className="section" style={{ 
+      backgroundColor: '#fdfbf7', 
+      backgroundImage: 'linear-gradient(rgba(234, 88, 12, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(234, 88, 12, 0.05) 1px, transparent 1px)',
+      backgroundSize: '50px 50px',
+      minHeight: '100vh', 
+      paddingTop: '120px',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Background SVGs */}
+      <img src="/assets/svg/platform-bg-left.svg" alt="" style={{ position: 'absolute', left: 0, top: '15%', width: '300px', maxWidth: '25vw', zIndex: 0, pointerEvents: 'none', opacity: 0.9 }} />
+      <img src="/assets/svg/platform-bg-right.svg" alt="" style={{ position: 'absolute', right: 0, top: '10%', width: '350px', maxWidth: '30vw', zIndex: 0, pointerEvents: 'none', opacity: 0.9 }} />
+      <img src="/assets/svg/platform_mobile-bottom.svg" alt="" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '600px', zIndex: 0, pointerEvents: 'none', opacity: 0.6 }} />
+
+      <div className="container" style={{ position: 'relative', zIndex: 1 }}>
         
         {/* Header */}
-        <div className="reveal is-visible" style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}>
-          <span className="label" style={{ marginBottom: '1rem' }}>Mentoring 1-on-1</span>
-          <h1 style={{ marginBottom: '1rem', fontSize: '3rem' }}>Đội ngũ Mentor Chuyên gia</h1>
-          <p style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem', color: 'var(--color-text-secondary)' }}>
+        <motion.div 
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}
+        >
+          <h1 style={{ marginBottom: '1rem', fontSize: '2.5rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-0.5px' }}>Đội ngũ Mentor Chuyên gia</h1>
+          <p style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
             Kết nối với các chuyên gia hàng đầu để nhận lời khuyên định hướng nghề nghiệp, giải đáp thắc mắc và mock interview thực tế.
           </p>
-        </div>
+        </motion.div>
 
         {/* Search Bar */}
-        <div className="reveal is-visible" style={{ maxWidth: '600px', margin: '0 auto var(--spacing-xl) auto', position: 'relative' }}>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          style={{ maxWidth: '600px', margin: '0 auto var(--spacing-xl) auto', position: 'relative' }}
+        >
           <Search size={20} color="var(--color-text-muted)" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
@@ -69,7 +92,7 @@ const MentorDirectory = () => {
               fontSize: '1rem', outline: 'none', boxShadow: 'var(--shadow-sm)'
             }}
           />
-        </div>
+        </motion.div>
 
         {/* Mentors Grid */}
         {loading ? (
@@ -82,11 +105,19 @@ const MentorDirectory = () => {
             <p>Không tìm thấy Mentor nào phù hợp.</p>
           </div>
         ) : (
-          <div className="grid-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid-auto" 
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}
+          >
             {filteredMentors.map((mentor, index) => (
-              <div 
+              <motion.div 
                 key={mentor.id || index} 
-                className={`glass-card reveal is-visible reveal--delay-${(index % 4) + 1}`}
+                initial={{ opacity: 0, y: -30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+                className="glass-card"
                 style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Mentor Header (Avatar & Name) */}
@@ -105,8 +136,8 @@ const MentorDirectory = () => {
                     )}
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--color-charcoal)' }}>{mentor.full_name}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-moss)', fontSize: '0.85rem', fontWeight: 500 }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem', color: 'var(--color-charcoal)', fontWeight: 700, letterSpacing: '0.2px' }}>{mentor.full_name}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#EA580C', fontSize: '0.9rem', fontWeight: 600 }}>
                       <Briefcase size={14} /> {mentor.expertise}
                     </div>
                   </div>
@@ -178,15 +209,31 @@ const MentorDirectory = () => {
                     }
                   }}
                   className={`btn ${isPremiumOrPro ? 'btn--primary' : 'btn--outline'}`}
-                  style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                  style={{ 
+                    width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
+                    background: isPremiumOrPro ? '#EA580C' : 'transparent',
+                    borderColor: isPremiumOrPro ? '#EA580C' : 'var(--border-color)',
+                    boxShadow: isPremiumOrPro ? '0 4px 12px rgba(234, 88, 12, 0.3)' : 'none',
+                    color: isPremiumOrPro ? '#fff' : 'var(--color-charcoal)',
+                    transition: 'all 0.3s ease',
+                    border: isPremiumOrPro ? 'none' : '1px solid var(--border-color)'
+                  }}
+                  onMouseOver={(e) => { 
+                    e.currentTarget.style.transform = 'translateY(-2px)'; 
+                    if(isPremiumOrPro) e.currentTarget.style.boxShadow = '0 6px 16px rgba(234, 88, 12, 0.4)'; 
+                  }}
+                  onMouseOut={(e) => { 
+                    e.currentTarget.style.transform = 'translateY(0)'; 
+                    if(isPremiumOrPro) e.currentTarget.style.boxShadow = '0 4px 12px rgba(234, 88, 12, 0.3)'; 
+                  }}
                 >
                   <Calendar size={18} />
                   Đặt Lịch Mentoring
                 </button>
 
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
       </div>
