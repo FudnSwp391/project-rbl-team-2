@@ -17,8 +17,11 @@ function AppContent() {
   const lenisRef = useRef(null);
   const [footerHeight, setFooterHeight] = useState(0);
 
-  // Hide Header/Footer on interview routes for immersive experience
-  const isInterviewRoute = location.pathname === '/interview' || location.pathname.startsWith('/interview/');
+  // Hide Header/Footer on interview room/result routes for immersive experience
+  const isInterviewRoute = location.pathname.startsWith('/interview/room') || location.pathname.startsWith('/interview/result');
+  
+  // Hide Header/Footer on auth routes for clean floating card layout
+  const isAuthRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
 
   useEffect(() => {
     // Disable Lenis on interview routes (they handle their own scrolling)
@@ -57,9 +60,12 @@ function AppContent() {
     };
   }, [isInterviewRoute]);
 
-  if (isInterviewRoute) {
+  if (isInterviewRoute || isAuthRoute) {
     return (
-      <AppRoutes />
+      <>
+        <Toaster position="top-right" toastOptions={{ duration: 3000, style: { background: '#333', color: '#fff' } }} />
+        <AppRoutes />
+      </>
     );
   }
 

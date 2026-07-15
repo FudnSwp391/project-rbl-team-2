@@ -7,8 +7,116 @@
   justify-content: center;
   padding: var(--spacing-3xl) var(--spacing-md);
   background: radial-gradient(circle at top right, rgba(212, 197, 180, 0.2) 0%, transparent 60%),
-              radial-gradient(circle at bottom left, rgba(139, 115, 85, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at bottom left, rgba(139, 115, 85, 0.1) 0%, transparent 50%);
+}
+
+/* Split Layout Modifier (Dribbble Style Floating Card) */
+.auth-page--split {
+  padding: var(--spacing-md);
+  /* Use a soft peach/pink background like the dribbble shot */
+  background: #ffe5de;
+  min-height: 100vh;
+  /* Restore to 100vh since Header is now hidden */
+}
+
+.form-transition-enter {
+  animation: formFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-card-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* Mobile default */
+  width: 100%;
+  max-width: 900px; /* Restored to original login size */
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
   position: relative;
+  z-index: 10;
+}
+
+@media (min-width: 900px) {
+  .auth-card-split {
+    grid-template-columns: 4fr 6fr; /* Restored to original ratio to give form more width */
+    min-height: 640px; /* Increased to keep consistent height between login and registration forms */
+    max-height: calc(100vh - 120px);
+  }
+}
+
+.auth-form-side {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  position: relative;
+}
+
+.auth-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-close-btn:hover {
+  background: #f1f5f9;
+  color: #ef4444;
+  transform: rotate(90deg);
+}
+
+@media (min-width: 900px) {
+  .auth-form-side {
+    padding: 1.5rem 3rem; /* Reduced vertical padding */
+  }
+}
+
+.auth-media-side {
+  display: none;
+  position: relative;
+  background: transparent; /* Remove pink background */
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .auth-media-side {
+    display: block;
+  }
+}
+
+.auth-media-side video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cover will now fit the height perfectly without cropping top/bottom */
+  object-position: center;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .auth-container {
@@ -20,96 +128,99 @@
 
 .auth-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 1rem; /* Reduced from var(--spacing-lg) to save vertical space */
 }
 
 .auth-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: var(--spacing-xs);
-  color: var(--color-charcoal);
-}
-
-.auth-header p {
-  color: var(--color-text-secondary);
-  font-size: 1rem;
+  font-size: 1.8rem; /* Slightly smaller */
+  margin-bottom: 0.5rem; /* Reduced margin */
+  color: #0f172a; /* Dark navy color for title */
+  font-weight: 800;
+  text-transform: uppercase; /* Match the uppercase "ĐĂNG NHẬP" in the image */
 }
 
 .auth-form-group {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 0.8rem; /* Reduced from var(--spacing-md) to fit more inputs */
 }
 
 .auth-form-group label {
   display: block;
   font-family: var(--font-sans);
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-charcoal);
-  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.4rem;
 }
 
-.auth-input {
-  width: 100%;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  color: var(--color-text);
-  transition: all var(--transition-fast);
-  outline: none;
-}
-
-.auth-input:focus {
-  background: white;
-  border-color: var(--color-earth);
-  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
-}
-
-.auth-input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.password-input-wrapper {
-  position: relative;
+.input-with-icon-wrapper {
   display: flex;
   align-items: center;
   width: 100%;
+  background: #f1f5f9; /* Light blue/gray background from image */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+  padding: 0.15rem 0.5rem; /* Slightly thinner */
 }
 
-.password-input-wrapper .auth-input {
-  padding-right: 3.25rem;
+.input-with-icon-wrapper:focus-within {
+  background: #ffffff;
+  border-color: #cbd5e1; 
+  box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.2);
 }
 
-.password-toggle-btn {
-  position: absolute;
-  right: 1.25rem;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
+.input-icon-left {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  margin: 0;
-  transition: color var(--transition-fast);
-  z-index: 2;
+  color: #64748b;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+}
+
+.password-toggle-btn {
+  cursor: pointer;
 }
 
 .password-toggle-btn:hover {
-  color: var(--color-charcoal);
+  color: #0f172a;
 }
 
-input::-ms-reveal,
-input::-ms-clear {
-  display: none;
+.input-divider {
+  width: 1px;
+  height: 20px;
+  background-color: #e2e8f0;
+  margin: 0 0.25rem;
 }
+
+.auth-input-no-border {
+  flex: 1;
+  padding: 0.65rem 0.5rem; /* Slightly smaller padding */
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  outline: none;
+}
+
+.auth-input-no-border::placeholder {
+  color: #94a3b8;
+}
+
+
 
 .auth-error-msg {
-  color: #D32F2F;
+  color: #ef4444; /* Tailwind red-500 */
+  background: #fef2f2; /* Tailwind red-50 */
+  border: 1px solid #fca5a5; /* Tailwind red-300 */
+  padding: 0.6rem 0.8rem; /* Reduced padding */
+  border-radius: 8px;
   font-size: 0.85rem;
-  margin-top: 0.5rem;
+  font-weight: 500;
+  margin-top: 0.5rem; /* Reduced top margin */
+  margin-bottom: 0.5rem;
   display: block;
 }
 
@@ -118,34 +229,45 @@ input::-ms-clear {
   font-size: 0.85rem;
   margin-top: 0.5rem;
   display: block;
-  padding: 1rem;
+  padding: 0.6rem 0.8rem; /* Reduced padding */
   background: rgba(107, 127, 92, 0.1);
   border-radius: 8px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem; /* Reduced bottom margin */
 }
 
 .auth-submit-btn {
   width: 100%;
   justify-content: center;
   margin-top: var(--spacing-sm);
-  padding: 1.15rem;
+  padding: 1rem;
   font-size: 1rem;
+  background-color: #f97316; /* Vibrant orange */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.auth-submit-btn:hover {
+  background-color: #ea580c; /* Darker orange on hover */
 }
 
 .auth-divider {
   display: flex;
   align-items: center;
   text-align: center;
-  margin: var(--spacing-xl) 0 var(--spacing-md) 0;
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
+  margin: 1.5rem 0 1rem 0; /* Reduced from spacing-xl to save vertical space */
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .auth-divider::before,
 .auth-divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #cbd5e1;
 }
 
 .auth-divider span {
@@ -154,57 +276,64 @@ input::-ms-clear {
 
 .auth-social-group {
   display: flex;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
 }
 
 .auth-social-btn {
-  flex: 1;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.8rem;
   background: white;
-  color: var(--color-charcoal);
-  border: 1px solid var(--border-color);
-  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  padding: 0;
+  cursor: pointer;
 }
 
 .auth-social-btn:hover {
-  background: rgba(139, 115, 85, 0.05);
-  border-color: var(--color-earth);
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .auth-footer {
-  margin-top: var(--spacing-xl);
+  margin-top: 1rem; /* Reduced from 1.5rem */
   text-align: center;
   font-size: 0.9rem;
-  color: var(--color-text-secondary);
+  color: #64748b; /* Gray text for 'Chưa có tài khoản?' */
 }
 
 .auth-link {
-  color: var(--color-earth);
-  font-weight: 500;
+  color: #f97316; /* Match button orange */
+  font-weight: 600;
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 .auth-link:hover {
-  color: var(--color-earth-dark);
-  text-decoration: underline;
+  color: #ea580c; /* Darker orange */
+  text-decoration: none;
 }
 
 .auth-forgot-password {
   display: block;
   text-align: right;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   margin-top: 0.5rem;
-  color: var(--color-text-secondary);
+  margin-bottom: 1rem; /* Reduced from 1.5rem */
+  color: #f97316; /* Match button orange */
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
 }
 
 .auth-forgot-password:hover {
-  color: var(--color-charcoal);
+  color: #ea580c; /* Darker orange */
 }
 
 /* ── Profile Dashboard Styles ── */
@@ -265,7 +394,8 @@ input::-ms-clear {
 }
 
 .profile-tab-btn:hover {
-  background: rgba(139, 115, 85, 0.05); /* very light earth */
+  background: rgba(139, 115, 85, 0.05);
+  /* very light earth */
   color: var(--color-charcoal);
 }
 
@@ -278,7 +408,8 @@ input::-ms-clear {
 .profile-content {
   flex-grow: 1;
   width: 100%;
-  min-width: 0; /* Prevents overflow */
+  min-width: 0;
+  /* Prevents overflow */
 }
 
 /* Mock List Styles (CV & History) */
@@ -340,11 +471,13 @@ input::-ms-clear {
 }
 
 .status-badge.success {
-  background: rgba(107, 127, 92, 0.15); /* moss */
+  background: rgba(107, 127, 92, 0.15);
+  /* moss */
   color: var(--color-moss-dark);
 }
 
 .status-badge.pending {
-  background: rgba(212, 197, 180, 0.4); /* cream */
+  background: rgba(212, 197, 180, 0.4);
+  /* cream */
   color: var(--color-earth-dark);
 }

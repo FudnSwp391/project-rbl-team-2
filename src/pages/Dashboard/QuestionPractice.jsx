@@ -15,6 +15,7 @@ import {
   Copy, 
   Check 
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const QuestionPractice = () => {
   const { id } = useParams();
@@ -194,11 +195,17 @@ const QuestionPractice = () => {
         <ArrowLeft size={18} /> Quay lại
       </button>
 
-      <div className="glass-card" style={{ padding: '2.5rem', marginBottom: '2rem' }}>
-        <h1 className="text-editorial" style={{ fontSize: '2rem', color: 'var(--color-charcoal)', lineHeight: 1.4, margin: 0 }}>
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="glass-card" 
+        style={{ padding: '2.5rem', marginBottom: '2rem' }}
+      >
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', lineHeight: 1.4, margin: 0, letterSpacing: '-0.5px' }}>
           {question.content}
         </h1>
-      </div>
+      </motion.div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
@@ -210,43 +217,53 @@ const QuestionPractice = () => {
           </h3>
           
           {isBehavioral ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ staggerChildren: 0.1, delayChildren: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#fef3c7', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
                 <strong style={{ color: '#d97706', display: 'block', marginBottom: '0.25rem' }}>S (Situation) - Tình huống</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Mô tả ngắn gọn hoàn cảnh, bối cảnh xảy ra sự việc. (Ví dụ: Dự án sắp trễ deadline, server bị sập...)</p>
-              </div>
-              <div style={{ background: '#e0f2fe', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #0ea5e9' }}>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#e0f2fe', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #0ea5e9' }}>
                 <strong style={{ color: '#0284c7', display: 'block', marginBottom: '0.25rem' }}>T (Task) - Nhiệm vụ</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Vai trò và trách nhiệm cụ thể của bạn trong tình huống đó là gì? Mục tiêu cần đạt được?</p>
-              </div>
-              <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #22c55e' }}>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#dcfce7', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #22c55e' }}>
                 <strong style={{ color: '#16a34a', display: 'block', marginBottom: '0.25rem' }}>A (Action) - Hành động</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Các bước chi tiết bạn đã thực hiện để giải quyết vấn đề. Nhấn mạnh vào những gì BẠN đã làm (dùng đại từ "Tôi", không dùng "Chúng tôi").</p>
-              </div>
-              <div style={{ background: '#f3e8ff', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #a855f7' }}>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#f3e8ff', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #a855f7' }}>
                 <strong style={{ color: '#9333ea', display: 'block', marginBottom: '0.25rem' }}>R (Result) - Kết quả</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Kết quả đạt được là gì? Có số liệu cụ thể không? Bạn rút ra bài học gì từ trải nghiệm này?</p>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ staggerChildren: 0.1, delayChildren: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
                 <strong style={{ color: '#334155', display: 'block', marginBottom: '0.25rem' }}>1. Khái niệm cốt lõi (Concept)</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Định nghĩa ngắn gọn, dễ hiểu về công nghệ/khái niệm được hỏi. Tránh dùng quá nhiều thuật ngữ học thuật phức tạp nếu không cần thiết.</p>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
                 <strong style={{ color: '#334155', display: 'block', marginBottom: '0.25rem' }}>2. Cách thức hoạt động / Bản chất</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Giải thích cơ chế hoạt động của nó ở bên dưới (Under the hood). Tại sao nó lại được thiết kế như vậy?</p>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
                 <strong style={{ color: '#334155', display: 'block', marginBottom: '0.25rem' }}>3. Ưu / Nhược điểm & Trường hợp sử dụng</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Khi nào thì nên dùng nó? Khi nào không nên dùng? (Trade-offs).</p>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', borderLeft: '4px solid #64748b' }}>
                 <strong style={{ color: '#334155', display: 'block', marginBottom: '0.25rem' }}>4. Ví dụ thực tế (Kinh nghiệm cá nhân)</strong>
                 <p style={{ margin: 0, fontSize: '0.95rem' }}>Kể một ví dụ ngắn về dự án bạn đã từng áp dụng công nghệ này, và bạn đã giải quyết vấn đề gì với nó.</p>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
 
           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem', background: 'var(--color-cream)', padding: '1rem', borderRadius: '12px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
@@ -309,7 +326,16 @@ const QuestionPractice = () => {
 
               <button 
                 className="btn btn--primary" 
-                style={{ padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-earth-dark)' }}
+                style={{ 
+                  padding: '0.8rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                  background: '#EA580C', 
+                  boxShadow: '0 4px 12px rgba(234, 88, 12, 0.3)',
+                  transition: 'all 0.3s ease',
+                  border: 'none',
+                  opacity: (isSaving || isAnalyzing || !answerText.trim()) ? 0.6 : 1
+                }}
+                onMouseOver={(e) => { if (!isSaving && !isAnalyzing && answerText.trim()) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(234, 88, 12, 0.4)'; } }}
+                onMouseOut={(e) => { if (!isSaving && !isAnalyzing && answerText.trim()) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(234, 88, 12, 0.3)'; } }}
                 onClick={handleAnalyze}
                 disabled={isSaving || isAnalyzing || !answerText.trim()}
               >

@@ -489,3 +489,18 @@ export const formatDuration = (minutes) => {
   const m = minutes % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 };
+
+// ── Popular Tech Skills (For Autocomplete) ──
+export const POPULAR_SKILLS = [
+  'ReactJS', 'VueJS', 'Angular', 'NextJS', 'NuxtJS', 'Svelte',
+  'HTML5', 'CSS3', 'TailwindCSS', 'Sass', 'Bootstrap',
+  'JavaScript', 'TypeScript',
+  'NodeJS', 'ExpressJS', 'NestJS', 'Python', 'Django', 'Flask',
+  'Java', 'Spring Boot', 'C#', '.NET', 'PHP', 'Laravel',
+  'Ruby on Rails', 'Go', 'Rust', 'C++',
+  'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'SQL Server',
+  'Docker', 'Kubernetes', 'AWS', 'Google Cloud', 'Azure',
+  'Git', 'GitHub', 'GitLab', 'CI/CD', 'Jenkins', 'Terraform',
+  'Figma', 'UI/UX Design', 'Photoshop',
+  'Data Analysis', 'Machine Learning', 'TensorFlow', 'PyTorch'
+];

@@ -17,7 +17,7 @@ const GROQ_MODELS = [
 /**
  * Generate customized interview questions using Groq or Gemini AI.
  */
-export async function generateInterviewQuestions({ industry, difficulty, questionType, count, cvText, language }) {
+export async function generateInterviewQuestions({ industry, difficulty, questionType, count, cvText, language, experienceLevel, skills, jobDescription, aiNotes }) {
   const finalCount = count || 5;
   const industryLabel = industry?.nameVi || 'Công nghệ thông tin';
   const difficultyLabel = difficulty?.name || 'Trung bình';
@@ -42,7 +42,7 @@ export async function generateInterviewQuestions({ industry, difficulty, questio
   const langId = language?.id || 'vi';
 
   // Build prompt — keep it SHORT to avoid TPM limits
-  const prompt = buildPrompt({ cvText, finalCount, industryLabel, difficultyLabel, typeLabel, typeId, diffId, industry, langId });
+  const prompt = buildPrompt({ cvText, finalCount, industryLabel, difficultyLabel, typeLabel, typeId, diffId, industry, langId, experienceLevel, skills, jobDescription, aiNotes });
 
   // ── 1. Try Groq — multiple models ──
   if (hasGroq) {
@@ -85,53 +85,47 @@ export async function generateInterviewQuestions({ industry, difficulty, questio
 /**
  * Build a concise prompt that stays within token limits.
  */
-function buildPrompt({ cvText, finalCount, industryLabel, difficultyLabel, typeLabel, typeId, diffId, industry, langId }) {
+function buildPrompt({ cvText, finalCount, industryLabel, difficultyLabel, typeLabel, typeId, diffId, industry, langId, experienceLevel, skills, jobDescription, aiNotes }) {
   const isEnglish = langId === 'en';
   const jsonExample = isEnglish
     ? `{"questions":[{"id":1,"content":"Your question...","type":"${typeId}","difficulty":"${diffId}"}]}`
     : `{"questions":[{"id":1,"content":"Câu hỏi...","type":"${typeId}","difficulty":"${diffId}"}]}`;
 
+  const skillsText = skills && skills.length > 0 ? skills.join(', ') : 'Not specified';
+  const levelText = experienceLevel || 'Junior';
+
+  // Combine CV and JD context
+  let contextSection = '';
   if (cvText) {
-    // Limit CV to 2000 chars to stay within free-tier TPM limits (12k tokens/min)
-    const trimmedCV = cvText.substring(0, 2000);
-
-    if (isEnglish) {
-      return `You are a senior IT interview expert. Generate ${finalCount} interview questions IN ENGLISH based on the CV below.
-
-Difficulty: ${difficultyLabel} | Type: ${typeLabel}
-
-CV:
-${trimmedCV}
-
-Requirements: Ask about SPECIFIC projects and technologies in the CV. No generic theory questions. Questions must be practical and insightful.
-Return JSON only, no markdown: ${jsonExample}`;
-    }
-
-    return `Bạn là chuyên gia phỏng vấn IT cấp cao. Tạo ${finalCount} câu hỏi phỏng vấn TIẾNG VIỆT dựa trên CV bên dưới.
-
-Độ khó: ${difficultyLabel} | Dạng: ${typeLabel}
-
-CV:
-${trimmedCV}
-
-Yêu cầu: Hỏi về dự án, công nghệ CỤ THỂ trong CV. Không hỏi lý thuyết chung. Câu hỏi phải thực tế, sâu sắc.
-Trả về JSON duy nhất, không markdown: ${jsonExample}`;
+    contextSection += `\nCANDIDATE CV:\n${cvText.substring(0, 1500)}\n`;
+  }
+  if (jobDescription) {
+    contextSection += `\nJOB DESCRIPTION:\n${jobDescription.substring(0, 1500)}\n`;
+  }
+  if (aiNotes) {
+    contextSection += `\nSPECIAL INSTRUCTIONS (Must Follow):\n${aiNotes}\n`;
   }
 
   if (isEnglish) {
     return `You are a senior IT interview expert. Generate ${finalCount} interview questions IN ENGLISH.
-
-Industry: ${industryLabel} (${industry?.name || 'IT'}) | Difficulty: ${difficultyLabel} | Type: ${typeLabel}
-
-Requirements: Practical scenario-based questions, no definitions. Include architecture, performance optimization, error handling.
+    
+Position: ${industryLabel}
+Experience Level: ${levelText}
+Core Skills/Tech: ${skillsText}
+Difficulty: ${difficultyLabel} | Type: ${typeLabel}
+${contextSection}
+Requirements: Ask about SPECIFIC projects, technologies, and requirements mentioned above. No generic theory questions. Questions must be practical, insightful, and match the experience level.
 Return JSON only, no markdown: ${jsonExample}`;
   }
 
   return `Bạn là chuyên gia phỏng vấn IT cấp cao. Tạo ${finalCount} câu hỏi phỏng vấn TIẾNG VIỆT.
 
-Ngành: ${industryLabel} (${industry?.name || 'IT'}) | Độ khó: ${difficultyLabel} | Dạng: ${typeLabel}
-
-Yêu cầu: Câu hỏi tình huống thực tế, không hỏi định nghĩa. Bao gồm kiến trúc, tối ưu hiệu năng, xử lý lỗi.
+Vị trí ứng tuyển: ${industryLabel}
+Cấp độ kinh nghiệm: ${levelText}
+Công nghệ/Kỹ năng chính: ${skillsText}
+Độ khó: ${difficultyLabel} | Dạng: ${typeLabel}
+${contextSection}
+Yêu cầu: Hỏi về dự án, công nghệ CỤ THỂ theo JD/CV/Kỹ năng ở trên. Không hỏi lý thuyết chung. Câu hỏi phải thực tế, sâu sắc, và phù hợp với cấp độ kinh nghiệm.
 Trả về JSON duy nhất, không markdown: ${jsonExample}`;
 }
 

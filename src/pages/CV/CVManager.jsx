@@ -10,6 +10,8 @@ import remarkGfm from 'remark-gfm';
 import { analyzeCV, extractDocxHtml } from '../../utils/cvAnalysisService';
 import IT_JOB_POSITIONS, { JOB_CATEGORIES } from '../../constants/itJobPositions';
 import './CVManager.css';
+import '../../assets/styles/interview-theme.css';
+import heroImageSvg from '../../assets/images/Hero-image.svg';
 
 // NOTE: Supabase upload is ready in cvStorageService.js
 // Uncomment import below when Supabase is configured:
@@ -26,14 +28,27 @@ const CVManager = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [docxHtml, setDocxHtml] = useState(null);
-  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [selectedPositions, setSelectedPositions] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [positionSearch, setPositionSearch] = useState('');
   const [isPositionDropdownOpen, setIsPositionDropdownOpen] = useState(false);
   const fileInputRef = useRef(null);
   const folderToggleRef = useRef(null);
   const positionSearchRef = useRef(null);
+  const positionSearchContainerRef = useRef(null);
 
+  // Handle clicking outside the position search dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (positionSearchContainerRef.current && !positionSearchContainerRef.current.contains(event.target)) {
+        setIsPositionDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   // Load CV history from database on mount or when user changes
   useEffect(() => {
     const fetchCVHistory = async () => {
@@ -115,7 +130,7 @@ const CVManager = () => {
     setDocxHtml(null);
     setSelectedFile(null);
     setAnalysisResult(null);
-    setSelectedPosition(null);
+    setSelectedPositions([]);
     setCategoryFilter('all');
 
     // Create preview based on file type
@@ -164,7 +179,7 @@ const CVManager = () => {
       const result = await analyzeCV(pendingFile, (progress, status) => {
         setAnalysisProgress(progress);
         setAnalysisStatus(status);
-      }, selectedPosition);
+      }, selectedPositions);
 
       // Update the database record with the AI score and JSON analysis result
       if (user?.id && dbRecord?.id) {
@@ -193,11 +208,11 @@ const CVManager = () => {
       setAnalysisResult(result);
 
       // --- AUTOMATIC POSITION MATCHING ---
-      if (!selectedPosition && result.suggestedPositionId) {
+      if (selectedPositions.length === 0 && result.suggestedPositionId) {
         const autoMatchedPos = IT_JOB_POSITIONS.find(p => p.id === result.suggestedPositionId);
         if (autoMatchedPos) {
-          setSelectedPosition(autoMatchedPos);
-          setPositionSearch(autoMatchedPos.name);
+          setSelectedPositions([autoMatchedPos]);
+          setPositionSearch('');
           // Set the category filter to match the newly selected position
           setCategoryFilter(autoMatchedPos.category);
         }
@@ -247,7 +262,7 @@ const CVManager = () => {
       const result = await analyzeCV(fileToAnalyze, (progress, status) => {
         setAnalysisProgress(progress);
         setAnalysisStatus(status);
-      }, selectedPosition);
+      }, selectedPositions);
 
       if (selectedFile.id && selectedFile.id !== Date.now().toString()) {
          const { error: updateError } = await updateCVAnalysis(selectedFile.id, result, result.atsScore);
@@ -262,10 +277,10 @@ const CVManager = () => {
       
       setFiles(prev => prev.map(f => f.id === selectedFile.id ? updatedFile : f));
 
-      if (!selectedPosition && result.suggestedPositionId) {
+      if (selectedPositions.length === 0 && result.suggestedPositionId) {
         const autoMatchedPos = IT_JOB_POSITIONS.find(p => p.id === result.suggestedPositionId);
         if (autoMatchedPos) {
-          setSelectedPosition(autoMatchedPos);
+          setSelectedPositions([autoMatchedPos]);
           setCategoryFilter(autoMatchedPos.category);
         }
       }
@@ -290,11 +305,11 @@ const CVManager = () => {
     if (file.analysis?.evaluatedPositionId) {
       const matchedPos = IT_JOB_POSITIONS.find(p => p.id === file.analysis?.evaluatedPositionId);
       if (matchedPos) {
-        setSelectedPosition(matchedPos);
+        setSelectedPositions([matchedPos]);
         setCategoryFilter(matchedPos.category);
       }
     } else {
-      setSelectedPosition(null);
+      setSelectedPositions([]);
       setCategoryFilter('all');
     }
 
@@ -323,7 +338,7 @@ const CVManager = () => {
       setAnalysisResult(null);
       setPreviewUrl(null);
       setDocxHtml(null);
-      setSelectedPosition(null);
+      setSelectedPositions([]);
       setCategoryFilter('all');
     }
 
@@ -387,21 +402,26 @@ const CVManager = () => {
 
   /* ---------- Render ---------- */
   return (
-    <div className="cv-manager container">
-      <motion.div 
-        className="cv-manager__header"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <h1 className="cv-manager__title gradient-text">Phân tích CV bằng AI</h1>
-        <p className="cv-manager__subtitle">
-          Tải lên CV và nhận đánh giá chi tiết từ trí tuệ nhân tạo
-        </p>
-      </motion.div>
+    <div className="cv-manager interview-theme">
+      <div className="iv-grid-bg" />
+      <div className="iv-orb iv-orb--blue" />
+      <div className="iv-orb iv-orb--purple" />
+      <img src={heroImageSvg} alt="" className="iv-bg-illustration" />
+      <div className="container">
+        <motion.div 
+          className="cv-manager__header"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h1 className="cv-manager__title">Phân tích CV bằng AI</h1>
+          <p className="cv-manager__subtitle">
+            Tải lên CV và nhận đánh giá chi tiết từ trí tuệ nhân tạo
+          </p>
+        </motion.div>
 
-      <div className="cv-manager__grid">
-        {/* ===== LEFT SIDEBAR ===== */}
+        <div className="cv-manager__grid">
+          {/* ===== LEFT SIDEBAR ===== */}
         <div className="cv-sidebar">
           {/* Drop Zone */}
           <div className="glass-card">
@@ -525,7 +545,7 @@ const CVManager = () => {
             </p>
 
             {/* Search bar with folder icon */}
-            <div className="cv-position-search" style={{ position: 'relative' }}>
+            <div className="cv-position-search" style={{ position: 'relative' }} ref={positionSearchContainerRef}>
               <div className="cv-position-search__bar">
                 <div className="cv-position-search__icon-wrap">
                   {/* Mini folder icon */}
@@ -533,21 +553,33 @@ const CVManager = () => {
                     <path d="M 0 4 Q 0 0 4 0 L 8 0 Q 10 0 11 2 L 12 4 Q 13 6 15 6 L 20 6 Q 24 6 24 10 L 24 16 Q 24 20 20 20 L 4 20 Q 0 20 0 16 Z" fill="var(--color-accent, #c4956a)" />
                   </svg>
                 </div>
-                <Search size={14} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                <Search size={14} style={{ color: selectedPositions.length > 0 ? 'var(--color-accent, #c4956a)' : 'var(--color-text-muted)', flexShrink: 0 }} />
+                
+                {/* Selected Tags */}
+                {selectedPositions.map(pos => (
+                  <div key={pos.id} className="cv-position-search__tag" style={{ display: 'flex', alignItems: 'center', background: 'var(--color-cream-dark, #F2ECE4)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', gap: '6px', border: '1px solid var(--color-border)', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                    {pos.name}
+                    <X size={12} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedPositions(prev => prev.filter(p => p.id !== pos.id));
+                    }} />
+                  </div>
+                ))}
+
                 <input
                   ref={positionSearchRef}
                   type="text"
                   className="cv-position-search__input"
-                  placeholder="Tìm kiếm vị trí (VD: Frontend, Data...)"
+                  placeholder={selectedPositions.length > 0 ? "Thêm vị trí..." : "Tìm kiếm vị trí (VD: Frontend, Data...)"}
                   value={positionSearch}
                   onChange={e => setPositionSearch(e.target.value)}
                   onFocus={() => setIsPositionDropdownOpen(true)}
-                  onBlur={() => setTimeout(() => setIsPositionDropdownOpen(false), 200)}
                 />
-                {selectedPosition && (
+                {selectedPositions.length > 0 && (
                   <button
                     className="cv-position-search__clear"
-                    onClick={() => { setSelectedPosition(null); setPositionSearch(''); }}
+                    onClick={() => { setSelectedPositions([]); setPositionSearch(''); }}
                     title="Xóa lựa chọn"
                   >
                     <X size={14} />
@@ -568,7 +600,7 @@ const CVManager = () => {
                       <button
                         key={cat.id}
                         className={`cv-position-search__cat ${categoryFilter === cat.id ? 'cv-position-search__cat--active' : ''}`}
-                        onMouseDown={(e) => { e.preventDefault(); setCategoryFilter(cat.id); }}
+                        onClick={(e) => { e.preventDefault(); setCategoryFilter(cat.id); }}
                       >
                         {cat.label}
                       </button>
@@ -580,15 +612,24 @@ const CVManager = () => {
                     {IT_JOB_POSITIONS
                       .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
                       .filter(p => !positionSearch || p.name.toLowerCase().includes(positionSearch.toLowerCase()))
-                      .map(pos => (
+                      .map(pos => {
+                        const isSelected = selectedPositions.some(p => p.id === pos.id);
+                        return (
                         <div
                           key={pos.id}
-                          className={`cv-position-search__item ${selectedPosition?.id === pos.id ? 'cv-position-search__item--active' : ''}`}
-                          onMouseDown={(e) => {
+                          className={`cv-position-search__item ${isSelected ? 'cv-position-search__item--active' : ''}`}
+                          onClick={(e) => {
                             e.preventDefault();
-                            setSelectedPosition(pos);
-                            setPositionSearch(pos.name);
-                            setIsPositionDropdownOpen(false);
+                            if (isSelected) {
+                              setSelectedPositions(prev => prev.filter(p => p.id !== pos.id));
+                            } else {
+                              setSelectedPositions(prev => [...prev, pos]);
+                            }
+                            setPositionSearch('');
+                            // Focus lại input để user có thể tiếp tục gõ tìm kiếm nếu muốn
+                            if (positionSearchRef.current) {
+                              positionSearchRef.current.focus();
+                            }
                           }}
                         >
                           <div className="cv-position-search__item-name">{pos.name}</div>
@@ -597,7 +638,7 @@ const CVManager = () => {
                             <span className="cv-position-search__item-salary">{pos.demandSalary}</span>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     {IT_JOB_POSITIONS
                       .filter(p => categoryFilter === 'all' || p.category === categoryFilter)
                       .filter(p => !positionSearch || p.name.toLowerCase().includes(positionSearch.toLowerCase())).length === 0 && (
@@ -611,28 +652,36 @@ const CVManager = () => {
             </div>
 
             {/* Selected position details */}
-            {selectedPosition && (
-              <div className="cv-position-selector__info animate-fade" style={{ marginTop: '16px' }}>
-                <div className="cv-position-selector__info-row">
-                  <span className="cv-position-selector__info-label">📊 Rating:</span>
-                  <span className="cv-position-selector__info-value">{selectedPosition.rating}</span>
-                </div>
-                <div className="cv-position-selector__info-row">
-                  <span className="cv-position-selector__info-label">💰 Mức lương:</span>
-                  <span className="cv-position-selector__info-value">{selectedPosition.demandSalary}</span>
-                </div>
-                <div className="cv-position-selector__info-row">
-                  <span className="cv-position-selector__info-label">📝 Mô tả:</span>
-                  <span className="cv-position-selector__info-value">{selectedPosition.description}</span>
-                </div>
-                <div className="cv-position-selector__skills">
-                  <span className="cv-position-selector__info-label">🔑 Kỹ năng bắt buộc:</span>
-                  <div className="cv-position-selector__skill-tags">
-                    {selectedPosition.requiredSkills.map(s => (
-                      <span key={s} className="cv-position-selector__skill-tag">{s}</span>
-                    ))}
+            {selectedPositions.length > 0 && (
+              <div className="cv-position-selector__info-container animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                {selectedPositions.map(selectedPosition => (
+                  <div key={selectedPosition.id} className="cv-position-selector__info" style={{ marginTop: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid rgba(196, 149, 106, 0.15)', paddingBottom: '6px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--color-charcoal)', fontSize: '0.9rem' }}>
+                        {selectedPosition.name}
+                      </span>
+                      <span className="cv-position-search__item-rating" style={{ fontSize: '0.72rem', padding: '2px 8px', flexShrink: 0 }}>
+                        {selectedPosition.rating}
+                      </span>
+                    </div>
+                    <div className="cv-position-selector__info-row">
+                      <span className="cv-position-selector__info-label">Mức lương:</span>
+                      <span className="cv-position-selector__info-value">{selectedPosition.demandSalary}</span>
+                    </div>
+                    <div className="cv-position-selector__info-row">
+                      <span className="cv-position-selector__info-label">Mô tả:</span>
+                      <span className="cv-position-selector__info-value">{selectedPosition.description}</span>
+                    </div>
+                    <div className="cv-position-selector__skills" style={{ marginTop: '8px' }}>
+                      <span className="cv-position-selector__info-label">Kỹ năng bắt buộc:</span>
+                      <div className="cv-position-selector__skill-tags" style={{ marginTop: '6px' }}>
+                        {selectedPosition.requiredSkills.map(s => (
+                          <span key={s} className="cv-position-selector__skill-tag">{s}</span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
@@ -646,17 +695,22 @@ const CVManager = () => {
             </div>
 
             {files.length === 0 ? (
-              <div className={`cv-wallet cv-wallet--empty`}>
+              <div className="cv-wallet cv-wallet--empty">
                 <div className="cv-wallet__back"></div>
                 <div className="cv-wallet__pocket">
-                  <svg viewBox="0 0 280 110" fill="none">
-                    <path d="M 0 15 C 0 8 4 8 8 8 C 16 8 20 20 32 20 L 248 20 C 260 20 264 8 272 8 C 276 8 280 8 280 15 L 280 85 C 280 105 265 110 248 110 L 32 110 C 15 110 0 105 0 85 Z" fill="var(--color-charcoal, #3a3632)"></path>
-                    <path d="M 6 17 C 6 13 9 13 12 13 C 18 13 22 24 32 24 L 248 24 C 258 24 262 13 268 13 C 271 13 274 13 274 17 L 274 85 C 274 100 262 104 248 104 L 32 104 C 18 104 6 100 6 85 Z" stroke="rgba(196,149,106,0.3)" strokeWidth="1" strokeDasharray="5 3" fill="none"></path>
+                  <svg className="pocket-svg" viewBox="0 0 280 160" fill="none" preserveAspectRatio="none">
+                    <path
+                      d="M 0 20 C 0 10, 5 10, 10 10 C 20 10, 25 25, 40 25 L 240 25 C 255 25, 260 10, 270 10 C 275 10, 280 10, 280 20 L 280 120 C 280 155, 260 160, 240 160 L 40 160 C 20 160, 0 155, 0 120 Z"
+                      fill="#1e341e"
+                    ></path>
+                    <path
+                      d="M 8 22 C 8 16, 12 16, 15 16 C 23 16, 27 29, 40 29 L 240 29 C 253 29, 257 16, 265 16 C 268 16, 272 16, 272 22 L 272 120 C 272 150, 255 152, 240 152 L 40 152 C 25 152, 8 152, 8 120 Z"
+                      stroke="#3d5635"
+                      strokeWidth="1.5"
+                      strokeDasharray="6 4"
+                      vectorEffect="non-scaling-stroke"
+                    ></path>
                   </svg>
-                </div>
-                <div className="cv-wallet__empty-msg">
-                  <BookOpen size={32} style={{ opacity: 0.3 }} />
-                  <p>Chưa có CV nào được tải lên</p>
                 </div>
               </div>
             ) : (
@@ -674,24 +728,27 @@ const CVManager = () => {
                       style={{ animationDelay: `${0.1 * (idx + 1)}s` }}
                     >
                       <div className="cv-wallet__card-top">
-                        <span>{file.name.split('.').pop()?.toUpperCase()}</span>
-                        <div className="cv-wallet__card-chip"></div>
+                        <span className="cv-wallet__card-ext-badge">{file.name.split('.').pop()?.toUpperCase()}</span>
+                        <FileText size={18} className="cv-wallet__card-icon" />
                       </div>
                       <div className="cv-wallet__card-bottom">
-                        <div>
-                          <span className="cv-wallet__card-label">File</span>
-                          <span className="cv-wallet__card-value">{file.name}</span>
+                        <div className="cv-wallet__card-info">
+                          <span className="cv-wallet__card-label">Tên tệp</span>
+                          <span className="cv-wallet__card-value" title={file.name}>{file.name}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="cv-wallet__card-actions">
                           {file.score && (
-                            <span className="cv-wallet__card-score">{file.score}đ</span>
+                            <div className="cv-wallet__card-score-badge">
+                              <span className="cv-wallet__card-score-num">{file.score}</span>
+                              <span className="cv-wallet__card-score-lbl">điểm</span>
+                            </div>
                           )}
                           <button
                             onClick={(e) => handleDeleteCV(e, file.id)}
                             title="Xóa CV"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.6, padding: 2 }}
+                            className="cv-wallet__card-delete-btn"
                           >
-                            <Trash2 size={12} color="currentColor" />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
@@ -699,15 +756,42 @@ const CVManager = () => {
                   );
                 })}
 
-                {/* Pocket (front panel) */}
                 <div className="cv-wallet__pocket">
-                  <svg viewBox="0 0 280 110" fill="none">
-                    <path d="M 0 15 C 0 8 4 8 8 8 C 16 8 20 20 32 20 L 248 20 C 260 20 264 8 272 8 C 276 8 280 8 280 15 L 280 85 C 280 105 265 110 248 110 L 32 110 C 15 110 0 105 0 85 Z" fill="var(--color-charcoal, #3a3632)"></path>
-                    <path d="M 6 17 C 6 13 9 13 12 13 C 18 13 22 24 32 24 L 248 24 C 258 24 262 13 268 13 C 271 13 274 13 274 17 L 274 85 C 274 100 262 104 248 104 L 32 104 C 18 104 6 100 6 85 Z" stroke="rgba(196,149,106,0.3)" strokeWidth="1" strokeDasharray="5 3" fill="none"></path>
+                  <svg className="pocket-svg" viewBox="0 0 280 160" fill="none" preserveAspectRatio="none">
+                    <path
+                      d="M 0 20 C 0 10, 5 10, 10 10 C 20 10, 25 25, 40 25 L 240 25 C 255 25, 260 10, 270 10 C 275 10, 280 10, 280 20 L 280 120 C 280 155, 260 160, 240 160 L 40 160 C 20 160, 0 155, 0 120 Z"
+                      fill="#1e341e"
+                    ></path>
+                    <path
+                      d="M 8 22 C 8 16, 12 16, 15 16 C 23 16, 27 29, 40 29 L 240 29 C 253 29, 257 16, 265 16 C 268 16, 272 16, 272 22 L 272 120 C 272 150, 255 152, 240 152 L 40 152 C 25 152, 8 152, 8 120 Z"
+                      stroke="#3d5635"
+                      strokeWidth="1.5"
+                      strokeDasharray="6 4"
+                      vectorEffect="non-scaling-stroke"
+                    ></path>
                   </svg>
-                  <div className="cv-wallet__pocket-content">
-                    <span className="cv-wallet__pocket-count">{files.length.toString().padStart(2, '0')}</span>
-                    <span className="cv-wallet__pocket-label">CV đã tải lên</span>
+                  <div className="pocket-content">
+                    <div className="balance-real" style={{ 
+                      color: '#ffffff', 
+                      fontSize: '1.6rem', 
+                      fontFamily: 'var(--font-display, sans-serif)', 
+                      fontWeight: '800', 
+                      letterSpacing: '1px',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                      marginBottom: '2px'
+                    }}>
+                      {files.length.toString().padStart(2, '0')} CVs
+                    </div>
+                    <div style={{ 
+                      color: '#a3c29b', 
+                      fontSize: '0.75rem', 
+                      fontFamily: 'var(--font-sans, sans-serif)',
+                      fontWeight: '600', 
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase'
+                    }}>
+                      Tổng Số Đã Tải Lên
+                    </div>
                   </div>
                 </div>
               </div>
@@ -718,20 +802,29 @@ const CVManager = () => {
         {/* ===== RIGHT MAIN AREA ===== */}
         <div className="cv-main">
           {/* PDF Preview */}
+          {/* PDF Preview */}
           {previewUrl && (
-            <div className="glass-card cv-preview animate-fade" style={{ position: 'relative', overflow: 'hidden' }}>
+            <div className="glass-card animate-fade" style={{ padding: '16px', position: 'relative' }}>
               <iframe
-                className="cv-preview__iframe"
-                src={previewUrl}
+                className="cv-preview-iframe"
+                src={`${previewUrl}#toolbar=1&navpanes=0&scrollbar=0`}
                 title="PDF Preview"
-                style={{ opacity: isAnalyzing ? 0.7 : 1, transition: 'opacity 0.3s' }}
+                style={{ 
+                  opacity: isAnalyzing ? 0.7 : 1, 
+                  width: '100%', 
+                  maxWidth: '100%', 
+                  height: '800px', 
+                  borderRadius: '12px',
+                  display: 'block'
+                }}
               />
+
               {isAnalyzing && (
                 <motion.div 
                   className="cv-laser-scan__beam"
                   animate={{ top: ['0%', '100%', '0%'] }}
                   transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                  style={{ zIndex: 10, pointerEvents: 'none', height: '4px', opacity: 0.8 }}
+                  style={{ zIndex: 10, pointerEvents: 'none', height: '4px', opacity: 0.8, position: 'absolute', left: 0, right: 0 }}
                 />
               )}
             </div>
@@ -824,10 +917,10 @@ const CVManager = () => {
                       transition={{ delay: i * 0.1, duration: 0.3 }}
                     >
                       {cls === 'cv-analysis-step--done'
-                        ? <CheckCircle size={16} />
+                        ? <CheckCircle size={16} style={{ flexShrink: 0 }} />
                         : cls === 'cv-analysis-step--active'
-                          ? <div className="cv-analysis-loading__spinner" style={{ width: 16, height: 16 }} />
-                          : <ChevronRight size={16} />}
+                          ? <div className="cv-analysis-step__loader" />
+                          : <ChevronRight size={16} style={{ opacity: 0.4, flexShrink: 0 }} />}
                       {step.label}
                     </motion.div>
                   );
@@ -864,7 +957,13 @@ const CVManager = () => {
                         </div>
                         <div className="cv-section-score__value" style={{ color: getScoreColor(val) }}>{val}</div>
                         <div className="cv-section-score__bar">
-                          <div className="cv-section-score__bar-fill" style={{ width: `${val}%`, background: getScoreColor(val) }} />
+                          <motion.div 
+                            className="cv-section-score__bar-fill" 
+                            style={{ background: getScoreColor(val) }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${val}%` }}
+                            transition={{ duration: 1.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          />
                         </div>
                       </div>
                     ))}
@@ -1033,18 +1132,19 @@ const CVManager = () => {
                   const displayPosName = evaluatedPos ? evaluatedPos.name : analysisResult.suggestedPosition;
                   
                   // Check if the globally selected dropdown position matches the one evaluated
-                  const isMismatch = selectedPosition && analysisResult.evaluatedPositionId && selectedPosition.id !== analysisResult.evaluatedPositionId;
+                  const isMismatch = selectedPositions.length > 0 && analysisResult.evaluatedPositionId && !selectedPositions.some(p => p.id === analysisResult.evaluatedPositionId);
 
                   if (isMismatch) {
+                    const requestedNames = selectedPositions.map(p => p.name).join(', ');
                     return (
                       <div className="glass-card cv-job-match mismatch-warning animate-fade" style={{ marginTop: 'var(--spacing-md)', background: 'rgba(255, 165, 0, 0.05)', border: '1px solid rgba(255, 165, 0, 0.3)' }}>
                         <div className="cv-job-match__header" style={{ color: 'orange', marginBottom: '1rem' }}>
                           <AlertCircle size={20} />
-                          <h3>Chưa phân tích cho vị trí: {selectedPosition.name}</h3>
+                          <h3>Chưa phân tích cho vị trí: {requestedNames}</h3>
                         </div>
                         <p style={{ marginBottom: '1rem', fontSize: '0.95rem' }}>
                           Điểm số <strong>{analysisResult.jobMatchScore}/100</strong> bên dưới là của vị trí <strong>{displayPosName}</strong>. 
-                          Bạn vừa đổi Dropdown sang một vị trí mới, vui lòng bấm phân tích lại để AI đánh giá với bộ tiêu chuẩn khắt khe của <strong>{selectedPosition.name}</strong>.
+                          Bạn vừa đổi Dropdown sang một vị trí mới, vui lòng bấm phân tích lại để AI đánh giá với bộ tiêu chuẩn khắt khe của <strong>{requestedNames}</strong>.
                         </p>
                         <button 
                           className="cv-btn cv-btn-primary" 
@@ -1083,7 +1183,7 @@ const CVManager = () => {
                         ) : (
                           <div className="cv-job-match__market">
                              <div className="cv-job-match__market-item">
-                              <span className="cv-job-match__market-label">🤖 AI ĐỀ XUẤT</span>
+                              <span className="cv-job-match__market-label">AI ĐỀ XUẤT</span>
                               <span className="cv-job-match__market-value">Vị trí này được AI tự động phân tích và đề xuất dựa trên kỹ năng của bạn.</span>
                             </div>
                           </div>
@@ -1097,17 +1197,48 @@ const CVManager = () => {
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 };
 
 /* ===== ATS Score Ring Component ===== */
 const ATSScoreRing = ({ score, label }) => {
+  const [animatedScore, setAnimatedScore] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedScore(score);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [score]);
+
   const radius = 65;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+  // Arc spans 270 degrees.
+  const arcLength = 2 * Math.PI * radius * (270 / 360); 
+  const circumference = 2 * Math.PI * radius; 
+  const offset = arcLength - (animatedScore / 100) * arcLength;
+  
   const scoreClass = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
   const color = score >= 80 ? '#3d7a3d' : score >= 60 ? '#b07d50' : '#c0392b';
+
+  // Generate ticks for background
+  const ticks = [];
+  const numTicks = 45;
+  for (let i = 0; i <= numTicks; i++) {
+    const angleDeg = (i * 270) / numTicks;
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const r1 = radius - 7;
+    const r2 = radius + 7;
+    ticks.push({
+      x1: 80 + r1 * Math.cos(angleRad),
+      y1: 80 + r1 * Math.sin(angleRad),
+      x2: 80 + r2 * Math.cos(angleRad),
+      y2: 80 + r2 * Math.sin(angleRad),
+    });
+  }
+
+  const capRotation = (animatedScore / 100) * 270;
 
   return (
     <div className="cv-ats__ring">
@@ -1126,13 +1257,42 @@ const ATSScoreRing = ({ score, label }) => {
             <stop offset="100%" stopColor="#d35400" />
           </linearGradient>
         </defs>
-        <circle className="cv-ats__ring-bg" cx="80" cy="80" r={radius} />
+
+        {/* Background ticks */}
+        {ticks.map((t, i) => (
+          <line
+            key={i}
+            x1={t.x1}
+            y1={t.y1}
+            x2={t.x2}
+            y2={t.y2}
+            stroke="var(--color-cream-dark)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        ))}
+
+        {/* Filled Arc */}
         <circle
           className={`cv-ats__ring-fill cv-ats__ring-fill--${scoreClass}`}
           cx="80" cy="80" r={radius}
-          strokeDasharray={circumference}
+          strokeDasharray={`${arcLength} ${circumference}`}
           strokeDashoffset={offset}
         />
+
+        {/* Cap Line (Needle) */}
+        <g style={{
+          transform: `rotate(${capRotation}deg)`,
+          transformOrigin: '80px 80px',
+          transition: 'transform 1.5s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <line 
+            x1="135" y1="80" x2="155" y2="80" 
+            stroke={color} 
+            strokeWidth="3.5" 
+            strokeLinecap="round" 
+          />
+        </g>
       </svg>
       <div className="cv-ats__score-text">
         <div className="cv-ats__score-value" style={{ color }}>{score}</div>

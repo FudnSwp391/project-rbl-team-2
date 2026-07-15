@@ -338,12 +338,18 @@ function getAnalysisSystemPrompt(targetPosition = null) {
   let jobAssessmentJsonStructure = '';
   let jobAssessmentInstruction = '';
 
-  if (targetPosition) {
+  if (targetPosition && (!Array.isArray(targetPosition) || targetPosition.length > 0)) {
+    const positions = Array.isArray(targetPosition) ? targetPosition : [targetPosition];
+    const names = positions.map(p => p.name).join(', ');
+    const descriptions = positions.map(p => p.description).join(' | ');
+    const requiredSkills = [...new Set(positions.flatMap(p => p.requiredSkills))].join(', ');
+    const bonusSkills = [...new Set(positions.flatMap(p => p.bonusSkills))].join(', ');
+
     jobAssessmentInstruction = `
-- Bạn cần đánh giá CV dựa trên vị trí mục tiêu: "${targetPosition.name}".
-- Mô tả công việc (JD): ${targetPosition.description}.
-- Kỹ năng bắt buộc: ${targetPosition.requiredSkills.join(', ')}.
-- Kỹ năng nâng cao: ${targetPosition.bonusSkills.join(', ')}.`;
+- Bạn cần đánh giá CV dựa trên các vị trí mục tiêu: "${names}".
+- Mô tả công việc (JD): ${descriptions}.
+- Kỹ năng bắt buộc: ${requiredSkills}.
+- Kỹ năng nâng cao: ${bonusSkills}.`;
 
     jobAssessmentJsonStructure = `
     "jobMatch": {

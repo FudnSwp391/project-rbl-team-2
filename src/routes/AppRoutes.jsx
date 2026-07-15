@@ -2,8 +2,6 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/Landing/LandingPage';
 import CVManager from '../pages/CV/CVManager';
 import Login from '../pages/Auth/Login';
-import Register from '../pages/Auth/Register';
-import ForgotPassword from '../pages/Auth/ForgotPassword';
 import ResetPassword from '../pages/Auth/ResetPassword';
 import Profile from '../pages/Auth/Profile';
 import ProtectedRoute from '../ProtectedRoute';
@@ -72,8 +70,8 @@ const AppRoutes = () => {
       <Routes location={location}>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/register" element={<Login initialView="register" />} />
+      <Route path="/forgot-password" element={<Login initialView="forgot-password" />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/pricing" element={<PricingPage />} />
       

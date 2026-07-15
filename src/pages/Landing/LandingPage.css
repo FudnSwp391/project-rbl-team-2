@@ -8,28 +8,7 @@
   position: relative;
 }
 
-/* Fixed dotted background */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-color: #EEE7E0;
-  background-image: radial-gradient(circle, rgba(216, 109, 70, 0.4) 1.5px, transparent 1.5px);
-  background-size: 32px 32px;
-  animation: gridDrift 60s linear infinite;
-  z-index: -9999;
-}
 
-@keyframes gridDrift {
-  from {
-    background-position: 0px 0px, 0px 0px;
-  }
-
-  to {
-    background-position: -320px 320px, 0px 0px;
-  }
-}
 
 /* Subtle grain overlay */
 .landing::before {

@@ -191,8 +191,8 @@
 }
 
 .iv-badge--warning {
-  background: var(--iv-warning-soft);
-  color: var(--iv-warning);
+  background: rgba(217, 119, 6, 0.15); /* Vibrant translucent orange */
+  color: #b45309; /* Dark orange for strong readability */
 }
 
 .iv-badge--danger {
@@ -230,19 +230,20 @@
 .iv-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: var(--iv-bg-input);
-  border: 1px solid var(--iv-border);
-  border-radius: var(--iv-radius-md);
-  color: var(--iv-text-primary);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #1e293b;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   transition: all var(--iv-transition);
   outline: none;
 }
 
 .iv-input:focus {
-  border-color: var(--iv-accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.2);
 }
 
 .iv-input::placeholder {
@@ -355,14 +356,19 @@
 
 /* ── Grid Background Pattern ── */
 .iv-grid-bg {
+  display: none;
+}
+
+/* ── Global Background Illustration ── */
+.iv-bg-illustration {
   position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(44, 40, 36, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(44, 40, 36, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
   z-index: 0;
+  pointer-events: none;
 }
 
 /* ── Gradient Orbs (Background decoration) ── */

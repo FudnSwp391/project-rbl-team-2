@@ -1,111 +1,231 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Monitor, Server, Layers, Database, Cloud,
-  Bug, BarChart3, Palette, Code, Globe, Cpu,
-  ChevronRight, ChevronLeft, Clock, Zap,
-  Target, Sparkles, ArrowRight, Check, HelpCircle,
-  Loader2, FileUp
+  Sparkles, ArrowRight, Loader2, FileUp, X, Upload, Check, ChevronDown
 } from 'lucide-react';
 import {
-  INDUSTRIES, DIFFICULTIES, QUESTION_TYPES, DURATIONS, LANGUAGES, ICON_MAP
+  DIFFICULTIES, QUESTION_TYPES, DURATIONS, LANGUAGES, POPULAR_SKILLS
 } from '../../constants/interviewConstants';
 import { extractTextFromFile } from '../../utils/cvAnalysisService';
 import '../../assets/styles/interview-theme.css';
 import './InterviewSetup.css';
+import heroImageSvg from '../../assets/images/Hero-image.svg';
 
-const STEPS = [
-  { id: 1, label: 'Chọn Ngành', icon: Target },
-  { id: 2, label: 'Cấu hình', icon: Zap },
-  { id: 3, label: 'Xác nhận', icon: Sparkles },
+const EXPERIENCE_LEVELS = [
+  { id: 'fresher', label: 'Fresher' },
+  { id: 'junior', label: 'Junior' },
+  { id: 'middle', label: 'Middle' },
+  { id: 'senior', label: 'Senior' },
+  { id: 'lead', label: 'Lead' }
 ];
 
-const IndustryIcon = ({ iconName, size = 28 }) => {
-  const icons = { Monitor, Server, Layers, Database, Cloud, Bug, BarChart3, Palette, Code, Globe, Cpu };
-  const Icon = icons[iconName];
-  return Icon ? <Icon size={size} /> : <HelpCircle size={size} />;
+const SECTIONS = [
+  { id: 'section-basic', label: 'Thông tin cơ bản' },
+  { id: 'section-skills', label: 'Kỹ năng chuyên môn' },
+  { id: 'section-config', label: 'Cấu hình phỏng vấn' },
+  { id: 'section-details', label: 'Chi tiết & Ghi chú' }
+];
+
+const CustomSelect = ({ options, value, onChange, placeholder = "Chọn một mục" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  return (
+    <div className={`custom-select-container ${isOpen ? 'custom-select-container--open' : ''}`} ref={containerRef}>
+      <div 
+        className="custom-select-trigger" 
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        <ChevronDown size={16} className="custom-select-icon" />
+      </div>
+      {isOpen && (
+        <div className="custom-select-dropdown">
+          {options.map((opt) => (
+            <div 
+              key={opt.value}
+              className={`custom-select-option ${value === opt.value ? 'custom-select-option--selected' : ''}`}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+            >
+              {opt.label}
+              {value === opt.value && <Check size={14} />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default function InterviewSetup() {
   const navigate = useNavigate();
   const location = useLocation();
+  const fileInputRef = useRef(null);
+  const observerRef = useRef(null);
   
+  // State
   const [cvFile, setCvFile] = useState(location.state?.cvFile || null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedIndustry, setSelectedIndustry] = useState(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState(null);
-  const [selectedQuestionType, setSelectedQuestionType] = useState(null);
+  const [position, setPosition] = useState(cvFile ? 'Lập trình viên' : '');
+  const [experience, setExperience] = useState('junior');
+  
+  // Tags (Skills)
+  const [skills, setSkills] = useState([]);
+  const [currentTag, setCurrentTag] = useState('');
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const tagContainerRef = useRef(null);
+  
+  // Config
+  const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
+  const [selectedQuestionType, setSelectedQuestionType] = useState('technical');
   const [selectedLanguage, setSelectedLanguage] = useState('vi');
-  const [selectedDuration, setSelectedDuration] = useState(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(20);
+  
+  // Textareas
+  const [jobDescription, setJobDescription] = useState('');
+  const [aiNotes, setAiNotes] = useState('');
+
+  // UI state
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState('');
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
 
-  // Auto-detect or select industry if it's Frontend/Backend/etc in CV name
+  const canStart = position.trim().length > 0;
+
+  // Scrollspy logic
   useEffect(() => {
-    if (cvFile) {
-      const name = cvFile.name.toLowerCase();
-      if (name.includes('frontend') || name.includes('fe') || name.includes('react')) {
-        setSelectedIndustry('frontend');
-      } else if (name.includes('backend') || name.includes('be') || name.includes('java') || name.includes('node')) {
-        setSelectedIndustry('backend');
-      } else if (name.includes('tester') || name.includes('qa') || name.includes('testing')) {
-        setSelectedIndustry('testing');
-      } else if (name.includes('devops') || name.includes('aws') || name.includes('cloud')) {
-        setSelectedIndustry('devops');
-      } else {
-        setSelectedIndustry('fullstack'); // Default sensible fallback
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        // Find the most visible section (or the one intersecting positively)
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 } // Triggers when section is near top of viewport
+    );
+
+    SECTIONS.forEach((sec) => {
+      const el = document.getElementById(sec.id);
+      if (el) observerRef.current.observe(el);
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
       }
-    }
-  }, [cvFile]);
+    };
+  }, []);
 
-  const canNext = () => {
-    if (currentStep === 1) return selectedIndustry !== null;
-    if (currentStep === 2) return selectedDifficulty !== null && selectedQuestionType !== null;
-    if (currentStep === 3) return selectedDuration !== null;
-    return false;
+  // Click outside for suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (tagContainerRef.current && !tagContainerRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const yOffset = -120; // Offset for sticky header
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
   };
 
-  const handleNext = () => {
-    if (!canNext()) return;
-    if (currentStep < 3) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-        setIsTransitioning(false);
-      }, 200);
+  const handleTagInputChange = (e) => {
+    const value = e.target.value;
+    setCurrentTag(value);
+    
+    if (value.trim().length > 0) {
+      const filtered = POPULAR_SKILLS.filter(
+        skill => 
+          skill.toLowerCase().includes(value.toLowerCase()) && 
+          !skills.includes(skill)
+      );
+      setFilteredSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentStep(prev => prev - 1);
-        setIsTransitioning(false);
-      }, 200);
+  const handleAddTag = (e) => {
+    if ((e.key === 'Enter' || e.key === ',') && currentTag.trim()) {
+      e.preventDefault();
+      const newTag = currentTag.trim().replace(/,$/, '');
+      if (!skills.includes(newTag)) {
+        setSkills([...skills, newTag]);
+      }
+      setCurrentTag('');
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectSuggestion = (skill) => {
+    if (!skills.includes(skill)) {
+      setSkills([...skills, skill]);
+    }
+    setCurrentTag('');
+    setShowSuggestions(false);
+  };
+
+  const removeTag = (tagToRemove) => {
+    setSkills(skills.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCvFile(file);
+      setExtractionError('');
     }
   };
 
   const handleStart = async () => {
-    if (!canNext()) return;
+    if (!canStart) return;
 
     const baseConfig = {
-      industry: INDUSTRIES.find(i => i.id === selectedIndustry),
-      difficulty: DIFFICULTIES.find(d => d.id === selectedDifficulty),
-      questionType: QUESTION_TYPES.find(q => q.id === selectedQuestionType),
-      duration: DURATIONS.find(d => d.id === selectedDuration),
-      language: LANGUAGES.find(l => l.id === selectedLanguage),
+      industry: { id: 'custom', nameVi: position, name: position, color: 'var(--iv-accent-blue)' },
+      difficulty: DIFFICULTIES.find(d => d.id === selectedDifficulty) || DIFFICULTIES[1],
+      questionType: QUESTION_TYPES.find(q => q.id === selectedQuestionType) || QUESTION_TYPES[0],
+      duration: DURATIONS.find(d => d.id === selectedDuration) || DURATIONS[1],
+      language: LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0],
+      experienceLevel: experience,
+      skills: skills,
+      jobDescription: jobDescription.trim(),
+      aiNotes: aiNotes.trim()
     };
 
     if (cvFile) {
       setIsExtracting(true);
       setExtractionError('');
       try {
-        // Extract text from the uploaded CV file
         const extraction = await extractTextFromFile(cvFile);
-        
-        // Navigate with config and CV text
         navigate('/interview/room', { 
           state: { 
             ...baseConfig, 
@@ -116,7 +236,7 @@ export default function InterviewSetup() {
         });
       } catch (err) {
         console.error('Error extracting CV text:', err);
-        setExtractionError('Không thể trích xuất nội dung CV. Hãy thử lại hoặc bắt đầu không dùng CV.');
+        setExtractionError('Không thể trích xuất nội dung CV. Hãy kiểm tra lại file.');
         setIsExtracting(false);
       }
     } else {
@@ -124,65 +244,21 @@ export default function InterviewSetup() {
     }
   };
 
-  const selectedIndustryData = INDUSTRIES.find(i => i.id === selectedIndustry);
-  const selectedDifficultyData = DIFFICULTIES.find(d => d.id === selectedDifficulty);
-  const selectedTypeData = QUESTION_TYPES.find(q => q.id === selectedQuestionType);
-  const selectedLanguageData = LANGUAGES.find(l => l.id === selectedLanguage);
-  const selectedDurationData = DURATIONS.find(d => d.id === selectedDuration);
-
   return (
     <div className="interview-theme">
       <div className="iv-grid-bg" />
       <div className="iv-orb iv-orb--blue" />
       <div className="iv-orb iv-orb--purple" />
+      <img src={heroImageSvg} alt="" className="iv-bg-illustration" />
 
-      <div className="setup-container">
-        {/* Header */}
+      <div className="setup-container" style={{ maxWidth: '1200px' }}>
+        
         <div className="setup-header iv-animate-fade">
-          <button className="iv-btn iv-btn--ghost" onClick={() => navigate('/interview')}>
-            <ChevronLeft size={18} />
-            Quay lại
-          </button>
-          <div className="setup-header__title">
-            <Sparkles size={20} style={{ color: 'var(--iv-accent-blue)' }} />
-            <span>Phỏng Vấn Giả Lập AI</span>
+          <div className="setup-header__content">
+            <h1 className="setup-title">Thiết lập phỏng vấn</h1>
+            <p className="setup-desc">Điền thông tin chi tiết để AI tạo bộ câu hỏi cá nhân hóa tốt nhất.</p>
           </div>
         </div>
-
-        {/* Progress Stepper */}
-        <div className="setup-stepper iv-animate-fade iv-delay-1">
-          {STEPS.map((step, index) => {
-            const StepIcon = step.icon;
-            const isActive = currentStep === step.id;
-            const isCompleted = currentStep > step.id;
-            return (
-              <React.Fragment key={step.id}>
-                <div className={`stepper-item ${isActive ? 'stepper-item--active' : ''} ${isCompleted ? 'stepper-item--completed' : ''}`}>
-                  <div className="stepper-item__circle">
-                    {isCompleted ? <Check size={16} /> : <StepIcon size={16} />}
-                  </div>
-                  <span className="stepper-item__label">{step.label}</span>
-                </div>
-                {index < STEPS.length - 1 && (
-                  <div className={`stepper-line ${isCompleted ? 'stepper-line--active' : ''}`} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {/* Active CV Bar */}
-        {cvFile && (
-          <div className="active-cv-bar iv-animate-fade">
-            <div className="active-cv-bar__content">
-              <FileUp size={16} className="active-cv-bar__icon" />
-              <span>Chế độ phỏng vấn cá nhân hóa theo CV: <strong>{cvFile.name}</strong></span>
-            </div>
-            <button className="active-cv-bar__btn" onClick={() => setCvFile(null)}>
-              Hủy dùng CV
-            </button>
-          </div>
-        )}
 
         {/* Error message */}
         {extractionError && (
@@ -191,241 +267,226 @@ export default function InterviewSetup() {
           </div>
         )}
 
-        {/* Step Content */}
-        <div className={`setup-content ${isTransitioning ? 'setup-content--exit' : 'setup-content--enter'}`}>
-
-          {/* ── Step 1: Select Industry ── */}
-          {currentStep === 1 && (
-            <div className="step-panel">
-              <div className="step-panel__header">
-                <h2 className="step-panel__title">Chọn ngành nghề</h2>
-                <p className="step-panel__desc">Chọn lĩnh vực IT bạn muốn phỏng vấn giả lập</p>
-              </div>
-              <div className="industry-grid">
-                {INDUSTRIES.map((industry, i) => (
-                  <button
-                    key={industry.id}
-                    className={`industry-card iv-animate-slide-up iv-delay-${i + 1} ${selectedIndustry === industry.id ? 'industry-card--selected' : ''}`}
-                    onClick={() => setSelectedIndustry(industry.id)}
+        <div className="setup-main-card iv-animate-slide-up iv-delay-1">
+          
+          {/* Sidebar Nav */}
+          <aside className="setup-sidebar">
+            <div className="setup-nav-list">
+              {SECTIONS.map((sec, index) => {
+                const isActive = activeSection === sec.id;
+                const activeIndex = SECTIONS.findIndex(s => s.id === activeSection);
+                const isCompleted = index < activeIndex;
+                
+                return (
+                  <div 
+                    key={sec.id} 
+                    className={`setup-nav-item ${isActive ? 'setup-nav-item--active' : ''} ${isCompleted ? 'setup-nav-item--completed' : ''}`}
+                    onClick={() => scrollToSection(sec.id)}
                   >
-                    <div className="industry-card__glow" style={{ background: industry.color }} />
-                    <div className="industry-card__icon" style={{ background: industry.bgColor, color: industry.color }}>
-                      <IndustryIcon iconName={industry.icon} size={24} />
-                    </div>
-                    <div className="industry-card__info">
-                      <h3 className="industry-card__name">{industry.nameVi}</h3>
-                      <p className="industry-card__desc">{industry.description}</p>
-                    </div>
-                    {selectedIndustry === industry.id && (
-                      <div className="industry-card__check">
-                        <Check size={16} />
+                    <div className="setup-nav-track">
+                      <div className="setup-nav-circle">
+                        <Check />
                       </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 2: Difficulty + Question Type ── */}
-          {currentStep === 2 && (
-            <div className="step-panel">
-              {/* Difficulty */}
-              <div className="step-panel__section">
-                <div className="step-panel__header">
-                  <h2 className="step-panel__title">Chọn độ khó</h2>
-                  <p className="step-panel__desc">Chọn mức độ phù hợp với kinh nghiệm của bạn</p>
-                </div>
-                <div className="difficulty-grid">
-                  {DIFFICULTIES.map((diff, i) => (
-                    <button
-                      key={diff.id}
-                      className={`difficulty-card iv-animate-slide-up iv-delay-${i + 1} ${selectedDifficulty === diff.id ? 'difficulty-card--selected' : ''}`}
-                      onClick={() => setSelectedDifficulty(diff.id)}
-                      style={{
-                        '--diff-color': diff.color,
-                        '--diff-bg': diff.bgColor,
-                        '--diff-border': diff.borderColor,
-                      }}
-                    >
-                      <div className="difficulty-card__dot" />
-                      <h3 className="difficulty-card__name">{diff.name}</h3>
-                      <p className="difficulty-card__desc">{diff.description}</p>
-                      {selectedDifficulty === diff.id && (
-                        <div className="difficulty-card__check"><Check size={14} /></div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Question Type */}
-              <div className="step-panel__section">
-                <div className="step-panel__header">
-                  <h2 className="step-panel__title">Loại câu hỏi</h2>
-                  <p className="step-panel__desc">Chọn dạng câu hỏi phỏng vấn</p>
-                </div>
-                <div className="qtype-grid">
-                  {QUESTION_TYPES.map((qt, i) => {
-                    const QtIcon = ICON_MAP[qt.icon] || HelpCircle;
-                    return (
-                      <button
-                        key={qt.id}
-                        className={`qtype-card iv-animate-slide-up iv-delay-${i + 4} ${selectedQuestionType === qt.id ? 'qtype-card--selected' : ''}`}
-                        onClick={() => setSelectedQuestionType(qt.id)}
-                      >
-                        <div className="qtype-card__icon" style={{ background: qt.bgColor, color: qt.color }}>
-                          <QtIcon size={22} />
-                        </div>
-                        <h3 className="qtype-card__name">{qt.name}</h3>
-                        <p className="qtype-card__desc">{qt.description}</p>
-                        {selectedQuestionType === qt.id && (
-                          <div className="qtype-card__check"><Check size={14} /></div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Language Selection */}
-              <div className="step-panel__section">
-                <div className="step-panel__header">
-                  <h2 className="step-panel__title">Ngôn ngữ phỏng vấn</h2>
-                  <p className="step-panel__desc">Chọn ngôn ngữ cho câu hỏi và phản hồi AI</p>
-                </div>
-                <div className="language-grid">
-                  {LANGUAGES.map((lang, i) => (
-                    <button
-                      key={lang.id}
-                      className={`language-card iv-animate-slide-up iv-delay-${i + 7} ${selectedLanguage === lang.id ? 'language-card--selected' : ''}`}
-                      onClick={() => setSelectedLanguage(lang.id)}
-                      style={{
-                        '--lang-color': lang.color,
-                        '--lang-bg': lang.bgColor,
-                      }}
-                    >
-                      <span className="language-card__flag">{lang.flag}</span>
-                      <div className="language-card__info">
-                        <h3 className="language-card__name">{lang.name}</h3>
-                        <p className="language-card__desc">{lang.description}</p>
-                      </div>
-                      {selectedLanguage === lang.id && (
-                        <div className="language-card__check"><Check size={14} /></div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3: Duration + Summary ── */}
-          {currentStep === 3 && (
-            <div className="step-panel">
-              <div className="step-panel__section">
-                <div className="step-panel__header">
-                  <h2 className="step-panel__title">Thời lượng phỏng vấn</h2>
-                  <p className="step-panel__desc">Chọn thời gian phù hợp cho buổi phỏng vấn</p>
-                </div>
-                <div className="duration-grid">
-                  {DURATIONS.map((dur, i) => (
-                    <button
-                      key={dur.id}
-                      className={`duration-card iv-animate-slide-up iv-delay-${i + 1} ${selectedDuration === dur.id ? 'duration-card--selected' : ''}`}
-                      onClick={() => setSelectedDuration(dur.id)}
-                    >
-                      <Clock size={24} className="duration-card__icon" />
-                      <h3 className="duration-card__time">{dur.label}</h3>
-                      <p className="duration-card__questions">~{dur.estimatedQuestions} câu hỏi</p>
-                      {selectedDuration === dur.id && (
-                        <div className="duration-card__check"><Check size={14} /></div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Summary Card */}
-              {selectedDuration && (
-                <div className="summary-card iv-animate-fade">
-                  <h3 className="summary-card__title">
-                    <Sparkles size={18} />
-                    Tổng quan buổi phỏng vấn
-                  </h3>
-                  <div className="summary-card__grid">
-                    <div className="summary-item">
-                      <span className="summary-item__label">Ngành nghề</span>
-                      <span className="summary-item__value" style={{ color: selectedIndustryData?.color }}>
-                        {selectedIndustryData?.nameVi}
-                      </span>
+                      {index < SECTIONS.length - 1 && <div className="setup-nav-line" />}
                     </div>
-                    <div className="summary-item">
-                      <span className="summary-item__label">Độ khó</span>
-                      <span className="summary-item__value" style={{ color: selectedDifficultyData?.color }}>
-                        {selectedDifficultyData?.name}
-                      </span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-item__label">Loại câu hỏi</span>
-                      <span className="summary-item__value">{selectedTypeData?.name}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-item__label">Ngôn ngữ</span>
-                      <span className="summary-item__value">
-                        {selectedLanguageData?.flag} {selectedLanguageData?.name}
-                      </span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-item__label">Thời lượng</span>
-                      <span className="summary-item__value">{selectedDurationData?.label}</span>
-                    </div>
-                    <div className="summary-item">
-                      <span className="summary-item__label">Số câu ước tính</span>
-                      <span className="summary-item__value summary-item__value--accent">
-                        ~{selectedDurationData?.estimatedQuestions} câu hỏi
-                      </span>
-                    </div>
+                    <div className="setup-nav-label">{sec.label}</div>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
-          )}
-        </div>
+          </aside>
 
-        {/* Navigation Buttons */}
-        <div className="setup-nav iv-animate-fade">
-          <div className="setup-nav__left">
-            {currentStep > 1 && (
-              <button className="iv-btn iv-btn--ghost" onClick={handleBack}>
-                <ChevronLeft size={18} />
-                Quay lại
-              </button>
-            )}
-          </div>
-          <div className="setup-nav__right">
-            {currentStep < 3 ? (
+          {/* Form Content */}
+          <div className="setup-form-container">
+            
+            {/* 1. Thông tin cơ bản */}
+            <section id="section-basic" className="form-section">
+              <h2 className="form-section__title">1. Thông tin cơ bản</h2>
+              
+              <div className="form-group">
+                <label className="form-label">Vị trí ứng tuyển <span>*</span></label>
+                <input
+                  type="text"
+                  className="iv-input"
+                  placeholder="Vd: Lập trình viên ReactJS, Data Analyst..."
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Cấp độ kinh nghiệm</label>
+                <div className="pill-group">
+                  {EXPERIENCE_LEVELS.map(level => (
+                    <button
+                      key={level.id}
+                      className={`pill-btn ${experience === level.id ? 'pill-btn--active' : ''}`}
+                      onClick={() => setExperience(level.id)}
+                    >
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 2. Kỹ năng chuyên môn */}
+            <section id="section-skills" className="form-section">
+              <h2 className="form-section__title">2. Kỹ năng chuyên môn</h2>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Công nghệ / Kỹ năng</label>
+                <span className="form-hint" style={{ marginBottom: '0.5rem' }}>Liệt kê các kỹ năng chính để AI tập trung câu hỏi. Nhấn Enter để thêm.</span>
+                <div className="tag-input-container" ref={tagContainerRef}>
+                  {skills.map(tag => (
+                    <span key={tag} className="tag-item">
+                      {tag}
+                      <button type="button" className="tag-remove" onClick={() => removeTag(tag)}>
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    className="tag-input"
+                    placeholder={skills.length === 0 ? "Nhập tên công nghệ và nhấn Enter..." : ""}
+                    value={currentTag}
+                    onChange={handleTagInputChange}
+                    onKeyDown={handleAddTag}
+                    onFocus={() => {
+                      if (currentTag.trim().length > 0 && filteredSuggestions.length > 0) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                  />
+                  {showSuggestions && filteredSuggestions.length > 0 && (
+                    <div className="suggestions-dropdown">
+                      {filteredSuggestions.map((suggestion, index) => (
+                        <div 
+                          key={index} 
+                          className="suggestion-item"
+                          onClick={() => selectSuggestion(suggestion)}
+                        >
+                          {suggestion}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* 3. Cấu hình phỏng vấn */}
+            <section id="section-config" className="form-section">
+              <h2 className="form-section__title">3. Cấu hình phỏng vấn</h2>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Thời lượng</label>
+                  <CustomSelect 
+                    value={selectedDuration} 
+                    onChange={setSelectedDuration}
+                    options={DURATIONS.map(d => ({ value: d.id, label: `${d.label} (~${d.estimatedQuestions} câu)` }))}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mức độ khó</label>
+                  <CustomSelect 
+                    value={selectedDifficulty} 
+                    onChange={setSelectedDifficulty}
+                    options={DIFFICULTIES.map(d => ({ value: d.id, label: d.name }))}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* 4. Chi tiết & Ghi chú */}
+            <section id="section-details" className="form-section">
+              <h2 className="form-section__title">4. Chi tiết & Ghi chú</h2>
+              
+              <div className="form-group">
+                <label className="form-label">Job Description (Khuyến khích)</label>
+                <span className="form-hint" style={{ marginBottom: '0.5rem' }}>Dán JD tại đây hoặc tải lên file PDF để câu hỏi sát với yêu cầu thực tế nhất.</span>
+                <textarea
+                  className="iv-textarea"
+                  placeholder="Dán nội dung mô tả công việc (JD) vào đây..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                />
+              </div>
+
+              {/* Upload PDF */}
+              <div className="form-group">
+                <div className="form-hint" style={{ textAlign: 'center', marginBottom: '0.5rem', fontWeight: 600 }}>HOẶC TẢI LÊN CV/JD (PDF)</div>
+                {cvFile ? (
+                  <div className="active-cv-bar" style={{ marginBottom: 0 }}>
+                    <div className="active-cv-bar__content">
+                      <FileUp size={16} className="active-cv-bar__icon" />
+                      <span>Đã tải lên: <strong>{cvFile.name}</strong></span>
+                    </div>
+                    <button className="active-cv-bar__btn" onClick={() => setCvFile(null)}>Xóa file</button>
+                  </div>
+                ) : (
+                  <button 
+                    type="button"
+                    className="iv-btn" 
+                    style={{ 
+                      width: '100%', 
+                      justifyContent: 'center', 
+                      border: '1px dashed #f97316',
+                      color: '#f97316',
+                      background: 'rgba(249, 115, 22, 0.05)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(249, 115, 22, 0.05)';
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload size={16} />
+                    Tải lên file PDF hoặc Word
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {/* Ghi chú cho AI */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Ghi chú cho AI</label>
+                <input
+                  type="text"
+                  className="iv-input"
+                  placeholder="Vd: Không hỏi về cấu trúc dữ liệu, tập trung vào design pattern..."
+                  value={aiNotes}
+                  onChange={(e) => setAiNotes(e.target.value)}
+                />
+              </div>
+            </section>
+            
+            <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'flex-end' }}>
               <button
-                className={`iv-btn iv-btn--primary ${!canNext() ? 'iv-btn--disabled' : ''}`}
-                onClick={handleNext}
-                disabled={!canNext()}
-              >
-                Tiếp theo
-                <ChevronRight size={18} />
-              </button>
-            ) : (
-              <button
-                className={`iv-btn iv-btn--primary iv-btn--lg setup-start-btn ${!canNext() ? 'iv-btn--disabled' : ''}`}
+                className={`iv-btn iv-btn--primary iv-btn--lg setup-start-btn ${!canStart ? 'iv-btn--disabled' : ''}`}
                 onClick={handleStart}
-                disabled={!canNext()}
+                disabled={!canStart}
+                style={{ minWidth: '240px' }}
               >
                 <Sparkles size={18} />
                 Bắt đầu phỏng vấn
                 <ArrowRight size={18} />
               </button>
-            )}
+            </div>
+
           </div>
         </div>
+
       </div>
 
       {/* Premium CV AI Scan Overlay */}
@@ -436,9 +497,9 @@ export default function InterviewSetup() {
               <Loader2 className="extraction-card__spinner iv-spin" size={44} />
             </div>
             <div className="extraction-card__scanner" />
-            <h3 className="extraction-card__title">AI Đang Phân Tích CV</h3>
+            <h3 className="extraction-card__title">AI Đang Phân Tích Thông Tin</h3>
             <p className="extraction-card__desc">
-              Hệ thống đang trích xuất dữ liệu từ CV và chuẩn bị phòng phỏng vấn cá nhân hóa cho bạn...
+              Hệ thống đang trích xuất dữ liệu và chuẩn bị phòng phỏng vấn cá nhân hóa cho bạn...
             </p>
             <div className="extraction-card__progress-line">
               <div className="extraction-card__progress-fill" />

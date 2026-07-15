@@ -15,6 +15,7 @@ import { supabase } from '../../utils/supabaseClient';
 import { resolveResourceUrl } from '../../utils/speechUtils';
 import '../../assets/styles/interview-theme.css';
 import './InterviewResult.css';
+import heroImageSvg from '../../assets/images/Hero-image.svg';
 
 // ── Circular Score Ring ──
 const ScoreRing = ({ score, size = 180, strokeWidth = 10 }) => {
@@ -110,14 +111,14 @@ const RadarChart = ({ skills }) => {
             const p = getPoint(i, skills[l.key]);
             return `${p.x},${p.y}`;
           }).join(' ')}
-          fill="rgba(59, 130, 246, 0.15)"
-          stroke="var(--iv-accent-blue)"
+          fill="rgba(249, 115, 22, 0.15)"
+          stroke="#f97316"
           strokeWidth="2"
         />
         {/* Data points */}
         {labels.map((l, i) => {
           const p = getPoint(i, skills[l.key]);
-          return <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--iv-accent-blue)" />;
+          return <circle key={i} cx={p.x} cy={p.y} r="4" fill="#f97316" />;
         })}
         {/* Labels */}
         {labels.map((l, i) => {
@@ -558,7 +559,7 @@ export default function InterviewResult() {
   if (isEvaluating) {
     return (
       <div className="interview-theme room-theme room-loading-screen">
-        <div className="iv-grid-bg" />
+        {/* Background illustration removed */}
         <div className="room-loading-content iv-glass iv-animate-scale">
           <Loader2 className="room-loading-spinner iv-spin" size={48} />
           <h3 className="room-loading-title">AI Đang Đánh Giá Câu Trả Lời</h3>
@@ -573,7 +574,7 @@ export default function InterviewResult() {
   if (evalError) {
     return (
       <div className="interview-theme room-theme room-error-screen">
-        <div className="iv-grid-bg" />
+        {/* Background illustration removed */}
         <div className="room-error-content iv-glass iv-animate-scale">
           <div className="room-error-icon-wrapper">
             <AlertTriangle className="room-error-icon" size={44} />
@@ -598,7 +599,7 @@ export default function InterviewResult() {
 
   return (
     <div className="interview-theme">
-      <div className="iv-grid-bg" />
+      {/* Background illustration removed to fix dotted line bug at bottom of long content */}
       <div className="iv-orb iv-orb--blue" />
       <div className="iv-orb iv-orb--purple" />
 
@@ -614,11 +615,8 @@ export default function InterviewResult() {
               <Download size={14} />
               {isDownloading ? 'Đang tạo PDF...' : 'Tải PDF'}
             </button>
-            <button className="iv-btn iv-btn--secondary iv-btn--sm">
-              <Share2 size={14} />
-              Chia sẻ
-            </button>
-            <button className="iv-btn iv-btn--primary iv-btn--sm" onClick={() => navigate('/interview/setup')}>
+
+            <button className="iv-btn result-btn-orange iv-btn--sm" onClick={() => navigate('/interview/setup')}>
               <RotateCcw size={14} />
               Thử lại
             </button>
@@ -997,7 +995,7 @@ export default function InterviewResult() {
             <ArrowLeft size={16} />
             Lịch sử phỏng vấn
           </button>
-          <button className="iv-btn iv-btn--primary iv-btn--lg" onClick={() => navigate('/interview/setup')}>
+          <button className="iv-btn result-btn-orange iv-btn--lg" onClick={() => navigate('/interview/setup')}>
             <RotateCcw size={16} />
             Phỏng vấn lại
           </button>

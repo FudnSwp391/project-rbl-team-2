@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import '../../assets/styles/interview-theme.css';
 import './InterviewLanding.css';
+import heroImageSvg from '../../assets/images/Hero-image.svg';
 
 const ACCEPTED_TYPES = {
   'application/pdf': '.pdf',
@@ -98,37 +99,19 @@ export default function InterviewLanding() {
 
   return (
     <div className="interview-theme">
-      <div className="iv-grid-bg" />
       <div className="iv-orb iv-orb--blue" />
       <div className="iv-orb iv-orb--purple" />
+      <img src={heroImageSvg} alt="" className="iv-bg-illustration" />
 
       <div className="landing-container">
-        {/* Header */}
-        <div className="landing-header iv-animate-fade">
-          <button className="iv-btn iv-btn--ghost" onClick={() => navigate('/')}>
-            <ChevronLeft size={18} />
-            Trang chủ
-          </button>
-          <div className="landing-header__title">
-            <Sparkles size={20} style={{ color: 'var(--iv-accent-blue)' }} />
-            <span>Phỏng Vấn Giả Lập AI</span>
-          </div>
-        </div>
+
 
         {/* Hero Section */}
         <div className="landing-hero iv-animate-fade iv-delay-1">
-          <div className="landing-hero__badge">
-            <Brain size={14} />
-            <span>Powered by AI</span>
-          </div>
+
           <h1 className="landing-hero__title">
-            Sẵn sàng cho buổi
-            <span className="landing-hero__gradient"> phỏng vấn </span>
-            tiếp theo?
+            Sẵn sàng cho buổi phỏng vấn tiếp theo?
           </h1>
-          <p className="landing-hero__desc">
-            Chọn phương thức phỏng vấn phù hợp với bạn. Tải CV lên để AI phân tích và tạo câu hỏi riêng, hoặc bắt đầu nhanh với cấu hình tùy chỉnh.
-          </p>
         </div>
 
         {/* Mode Selection Cards */}
@@ -140,7 +123,7 @@ export default function InterviewLanding() {
               <div className="mode-card__icon mode-card__icon--blue">
                 <Zap size={28} />
               </div>
-              <div className="mode-card__badge mode-card__badge--blue">Phổ biến</div>
+
             </div>
             <h2 className="mode-card__title">Phỏng vấn nhanh</h2>
             <p className="mode-card__desc">
@@ -167,10 +150,7 @@ export default function InterviewLanding() {
               <div className="mode-card__icon mode-card__icon--purple">
                 <FileText size={28} />
               </div>
-              <div className="mode-card__badge mode-card__badge--purple">
-                <Star size={12} />
-                Đề xuất
-              </div>
+
             </div>
             <h2 className="mode-card__title">Phỏng vấn theo CV</h2>
             <p className="mode-card__desc">
@@ -268,23 +248,7 @@ export default function InterviewLanding() {
           </div>
         </div>
 
-        {/* Bottom Stats */}
-        <div className="landing-stats iv-animate-fade iv-delay-5">
-          <div className="landing-stat">
-            <span className="landing-stat__number">10,000+</span>
-            <span className="landing-stat__label">Buổi phỏng vấn</span>
-          </div>
-          <div className="landing-stat__divider" />
-          <div className="landing-stat">
-            <span className="landing-stat__number">95%</span>
-            <span className="landing-stat__label">Hài lòng</span>
-          </div>
-          <div className="landing-stat__divider" />
-          <div className="landing-stat">
-            <span className="landing-stat__number">50+</span>
-            <span className="landing-stat__label">Ngành nghề</span>
-          </div>
-        </div>
+
       </div>
     </div>
   );

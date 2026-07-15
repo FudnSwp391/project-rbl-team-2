@@ -93,15 +93,47 @@ export function useMediaDevices() {
   }, []);
 
   // Toggle video
-  const toggleVideo = useCallback(() => {
-    if (streamRef.current) {
-      const videoTracks = streamRef.current.getVideoTracks();
-      videoTracks.forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setIsVideoOn(prev => !prev);
+  const toggleVideo = useCallback(async () => {
+    if (isVideoOn) {
+      // Turn OFF video - completely stop the track to turn off hardware light
+      if (streamRef.current) {
+        const videoTracks = streamRef.current.getVideoTracks();
+        videoTracks.forEach(track => {
+          track.stop();
+          streamRef.current.removeTrack(track);
+        });
+      }
+      setIsVideoOn(false);
+    } else {
+      // Turn ON video - re-request camera access
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 640 }, 
+            height: { ideal: 400 },
+            facingMode: 'user'
+          }
+        });
+        
+        const newVideoTrack = newStream.getVideoTracks()[0];
+        
+        if (streamRef.current) {
+          streamRef.current.addTrack(newVideoTrack);
+          // Force update the video element
+          if (videoRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+          }
+        } else {
+          streamRef.current = newStream;
+          setStream(newStream);
+        }
+        setIsVideoOn(true);
+      } catch (err) {
+        console.error('[useMediaDevices] Failed to restart video:', err);
+        setPermissionError('Không thể khởi động lại camera. Vui lòng kiểm tra quyền truy cập.');
+      }
     }
-  }, []);
+  }, [isVideoOn]);
 
   // Cleanup all tracks
   const stopAll = useCallback(() => {

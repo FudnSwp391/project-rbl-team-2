@@ -26,6 +26,17 @@
   flex-wrap: wrap;
 }
 
+.result-btn-orange {
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.result-btn-orange:hover {
+  box-shadow: 0 8px 25px rgba(249, 115, 22, 0.4) !important;
+}
+
 /* ── Hero Score ── */
 .result-hero {
   display: flex;
@@ -163,17 +174,17 @@
 
 .result-card__text {
   font-size: 0.9rem;
-  color: var(--iv-text-secondary);
+  color: #111111;
   line-height: 1.7;
 }
 
 .result-card--feedback {
-  border-left: 3px solid var(--iv-accent-blue);
+  border-left: 4px solid #f97316;
 }
 
 .result-card--career {
-  border-left: 3px solid var(--iv-accent-purple);
-  background: rgba(139, 92, 246, 0.03);
+  border-left: 4px solid #f97316;
+  background: rgba(249, 115, 22, 0.03);
 }
 
 /* ── Skills Grid ── */
@@ -259,7 +270,7 @@
   position: relative;
   padding-left: 1.25rem;
   font-size: 0.85rem;
-  color: var(--iv-text-secondary);
+  color: #111111;
   line-height: 1.5;
 }
 
@@ -325,7 +336,7 @@
 
 .improvement-text {
   font-size: 0.85rem;
-  color: var(--iv-text-secondary);
+  color: #111111;
   line-height: 1.5;
 }
 
@@ -386,7 +397,7 @@
 
 .qa-item__question {
   font-size: 0.85rem;
-  color: var(--iv-text-secondary);
+  color: #111111;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -436,7 +447,7 @@
 
 .qa-detail p {
   font-size: 0.82rem;
-  color: var(--iv-text-secondary);
+  color: #111111;
   line-height: 1.6;
 }
 

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { useAuth } from '../../utils/AuthContext';
-import { ArrowLeft, CheckCircle, Clock, BookMarked, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, BookMarked, MessageSquare, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const PracticeHistory = () => {
   const navigate = useNavigate();
@@ -51,12 +52,20 @@ const PracticeHistory = () => {
         <ArrowLeft size={18} /> Quay lại Ngân hàng câu hỏi
       </button>
 
-      <header style={{ marginBottom: '2.5rem' }}>
-        <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
-          <BookMarked color="var(--color-earth)" size={32} /> Lịch sử Luyện tập
+      <motion.header 
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{ marginBottom: '2.5rem' }}
+      >
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)', letterSpacing: '-0.5px' }}>
+          <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(234, 88, 12, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(234, 88, 12, 0.15)', border: '1px solid rgba(234, 88, 12, 0.2)' }}>
+            <BookMarked color="#EA580C" size={36} strokeWidth={2.5} style={{ filter: 'drop-shadow(0 2px 4px rgba(234, 88, 12, 0.2))' }} />
+          </div> 
+          Lịch sử Luyện tập
         </h1>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Xem lại các câu hỏi bạn đã trả lời và đánh giá từ AI.</p>
-      </header>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem', fontWeight: 500 }}>Xem lại các câu hỏi bạn đã trả lời và đánh giá từ AI.</p>
+      </motion.header>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>Đang tải lịch sử...</div>
@@ -68,28 +77,39 @@ const PracticeHistory = () => {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {history.map((item) => (
-            <div key={item.id} className="glass-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+        >
+          {history.map((item, index) => (
+            <motion.div 
+              key={item.id} 
+              initial={{ opacity: 0, y: -30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+              className="glass-card" 
+              style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+            >
               
               {/* Header của item */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                     <span style={{ 
-                      fontSize: '0.8rem', fontWeight: 600, padding: '0.25rem 0.75rem', borderRadius: '50px',
-                      background: item.ai_feedback ? '#dcfce7' : '#f3f4f6',
+                      fontSize: '0.85rem', fontWeight: 700, padding: '0.4rem 0.8rem', borderRadius: '50px',
+                      background: item.ai_feedback ? 'rgba(34, 197, 94, 0.1)' : '#f3f4f6',
                       color: item.ai_feedback ? '#16a34a' : '#4b5563',
-                      display: 'flex', alignItems: 'center', gap: '0.25rem'
+                      display: 'flex', alignItems: 'center', gap: '0.4rem'
                     }}>
-                      <CheckCircle size={14} />
+                      <CheckCircle size={16} strokeWidth={2.5} />
                       {item.ai_feedback ? 'Đã đánh giá AI' : 'Đã nộp'}
                     </span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
                       {new Date(item.created_at).toLocaleString('vi-VN')}
                     </span>
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', color: 'var(--color-charcoal)', fontWeight: 600, lineHeight: 1.5 }}>
+                  <h3 style={{ fontSize: '1.15rem', color: 'var(--color-charcoal)', fontWeight: 700, lineHeight: 1.6, letterSpacing: '0.2px' }}>
                     {item.questions?.content || 'Câu hỏi không xác định'}
                   </h3>
                 </div>
@@ -97,13 +117,13 @@ const PracticeHistory = () => {
 
               {/* Câu trả lời của ứng viên */}
               <div>
-                <h4 style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <h4 style={{ fontSize: '0.95rem', color: 'var(--color-charcoal)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Câu trả lời của bạn:
                 </h4>
                 <div style={{ 
-                  background: 'var(--surface)', padding: '1.25rem', borderRadius: '12px', 
+                  background: 'var(--surface)', padding: '1.5rem', borderRadius: '16px', 
                   border: '1px solid var(--border-color)', color: 'var(--color-text)', 
-                  lineHeight: 1.6, whiteSpace: 'pre-wrap'
+                  lineHeight: 1.7, whiteSpace: 'pre-wrap', fontSize: '1rem'
                 }}>
                   {item.answer_text}
                 </div>
@@ -112,22 +132,22 @@ const PracticeHistory = () => {
               {/* Nhận xét của AI */}
               {item.ai_feedback && (
                 <div style={{ 
-                  background: 'var(--color-cream-dark)', padding: '1.5rem', borderRadius: '12px', 
-                  borderLeft: '4px solid var(--color-moss)', marginTop: '0.5rem'
+                  background: '#fff', padding: '1.5rem', borderRadius: '16px', 
+                  border: '1px solid rgba(234, 88, 12, 0.2)', marginTop: '0.5rem',
+                  boxShadow: '0 4px 20px rgba(234, 88, 12, 0.05)'
                 }}>
                   <h4 style={{ 
-                    fontSize: '0.95rem', color: '#16a34a', marginBottom: '0.75rem', 
-                    display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 
+                    fontSize: '1.05rem', color: '#EA580C', marginBottom: '1.25rem', 
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.5px'
                   }}>
-                    <MessageSquare size={18} /> Kết quả Đánh giá từ AI:
+                    <Sparkles size={20} color="#EA580C" /> Kết quả Đánh giá từ AI
                   </h4>
                   <div style={{ color: 'var(--color-charcoal)', lineHeight: 1.6 }}>
                     {typeof item.ai_feedback === 'object' && item.ai_feedback !== null ? (
                       <>
-                        <div style={{ marginBottom: '0.5rem', fontWeight: 600 }}>
-                          <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', background: '#e0f2fe', color: '#0284c7', borderRadius: '4px' }}>
-                            Điểm: {item.ai_feedback.score}/100
-                          </span>
+                        <div style={{ marginBottom: '1.5rem', display: 'inline-flex', alignItems: 'center', background: 'rgba(234, 88, 12, 0.1)', padding: '0.6rem 1.25rem', borderRadius: '50px', border: '1px solid rgba(234, 88, 12, 0.2)' }}>
+                          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#EA580C', lineHeight: 1 }}>Điểm: {item.ai_feedback.score} / 100</span>
                         </div>
                         <div style={{ whiteSpace: 'pre-wrap' }}>
                           <strong>Nhận xét tổng quan:</strong><br />
@@ -159,9 +179,9 @@ const PracticeHistory = () => {
                 </div>
               )}
 
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

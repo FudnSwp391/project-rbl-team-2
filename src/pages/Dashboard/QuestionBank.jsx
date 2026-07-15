@@ -4,6 +4,7 @@ import { useAuth } from '../../utils/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Crown, Search, Filter, BookMarked, ChevronDown, CheckCircle, ArrowUp, History } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const QuestionBank = () => {
   const { user, profile } = useAuth();
@@ -176,12 +177,20 @@ const QuestionBank = () => {
   return (
     <div className="container" style={{ paddingTop: '8rem', paddingBottom: 'var(--spacing-xl)', position: 'relative' }}>
       
-      <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <motion.header 
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}
+      >
         <div>
-          <h1 className="text-editorial" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)' }}>
-            <BookMarked color="var(--color-earth)" size={36} /> Ngân hàng Câu hỏi
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--color-charcoal)', letterSpacing: '-0.5px' }}>
+            <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(234, 88, 12, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 16px rgba(234, 88, 12, 0.15)', border: '1px solid rgba(234, 88, 12, 0.2)' }}>
+              <BookMarked color="#EA580C" size={36} strokeWidth={2.5} style={{ filter: 'drop-shadow(0 2px 4px rgba(234, 88, 12, 0.2))' }} />
+            </div> 
+            Ngân hàng Câu hỏi
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem' }}>Luyện tập từng câu hỏi phỏng vấn theo định hướng chuyên sâu để chinh phục buổi phỏng vấn thực tế.</p>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem', fontWeight: 500 }}>Luyện tập từng câu hỏi phỏng vấn theo định hướng chuyên sâu để chinh phục buổi phỏng vấn thực tế.</p>
         </div>
         <button 
           className="btn btn--outline" 
@@ -191,7 +200,7 @@ const QuestionBank = () => {
           <History size={18} color="var(--color-earth)" /> 
           <span style={{ color: 'var(--color-earth)', fontWeight: 600 }}>Lịch sử luyện tập</span>
         </button>
-      </header>
+      </motion.header>
 
       <div style={{ 
         position: 'relative',
@@ -289,11 +298,22 @@ const QuestionBank = () => {
             <p style={{ fontSize: '1.1rem', color: 'var(--color-text-secondary)' }}>Không tìm thấy câu hỏi nào phù hợp với bộ lọc.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {questions.map((q) => {
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+          >
+            {questions.map((q, index) => {
               return (
-                <div key={q.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <motion.div 
+                  initial={{ opacity: 0, y: -30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+                  key={q.id} 
+                  className="glass-card" 
+                  style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '300px' }}>
                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -302,15 +322,26 @@ const QuestionBank = () => {
                         </span>
                       </div>
                       
-                      <h3 style={{ fontSize: '1.25rem', color: 'var(--color-charcoal)', fontWeight: 600, lineHeight: 1.5 }}>
+                      <h3 style={{ fontSize: '1.15rem', color: 'var(--color-charcoal)', fontWeight: 700, lineHeight: 1.6, letterSpacing: '0.2px' }}>
                         {q.content}
                       </h3>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
                       <button 
-                        className="btn btn--outline" 
-                        style={{ borderRadius: '50px', padding: '0.6rem 1.5rem' }}
+                        style={{ 
+                          background: 'rgba(234, 88, 12, 0.1)', 
+                          color: '#EA580C', 
+                          border: '1px solid rgba(234, 88, 12, 0.3)', 
+                          padding: '0.6rem 1.5rem', 
+                          borderRadius: '99px', 
+                          fontSize: '0.9rem', 
+                          fontWeight: 700, 
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#EA580C'; e.currentTarget.style.color = '#fff'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(234, 88, 12, 0.1)'; e.currentTarget.style.color = '#EA580C'; }}
                         onClick={() => handlePracticeClick(q.id)}
                       >
                         Luyện tập
@@ -318,10 +349,10 @@ const QuestionBank = () => {
                     </div>
 
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
 
         {/* Pagination Controls */}

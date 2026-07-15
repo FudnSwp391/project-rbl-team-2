@@ -17,6 +17,7 @@ import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import { AvatarPanel } from '../../components/interview/AvatarPanel';
 import '../../assets/styles/interview-theme.css';
 import './InterviewRoom.css';
+import heroImageSvg from '../../assets/images/Hero-image.svg';
 
 // ── Từ ngập ngừng (Filler Words) theo ngôn ngữ ──
 const FILLER_WORDS_VI = ["ừm", "à", "ờ", "kiểu như", "thì", "là"];
@@ -87,21 +88,18 @@ function calculateVolumeScore(volumeHistory, hasTranscript = false) {
 
 
 // ── Real-time Audio Waveform Component ──
-const AudioWaveform = ({ bars, isMicOn }) => (
-  <div className={`waveform ${isMicOn ? 'waveform--active' : ''}`}>
-    {bars.map((val, i) => {
-      // Scale 0-255 → 4-24px height
-      const height = isMicOn ? Math.max(4, (val / 255) * 24) : 4;
-      return (
-        <div
-          key={i}
-          className="waveform__bar"
-          style={{ height: `${height}px`, transition: 'height 0.08s ease' }}
-        />
-      );
-    })}
-  </div>
-);
+const AudioWaveform = ({ bars, isMicOn }) => {
+  const displayBars = bars ? bars.slice(0, 5) : [0, 0, 0, 0, 0];
+  return (
+    <div className={`loading ${isMicOn ? 'active' : ''}`}>
+      {displayBars.map((val, i) => {
+        // Scale 0-255 → 4-24px height
+        const height = isMicOn ? Math.max(4, (val / 255) * 24) : 4;
+        return <span key={i} style={{ height: `${height}px` }} />;
+      })}
+    </div>
+  );
+};
 
 // ── AI Status Orb ──
 const AIOrb = ({ status }) => (
@@ -116,7 +114,7 @@ const AIOrb = ({ status }) => (
 
 // ── Connection Quality ──
 const ConnectionIndicator = ({ quality }) => {
-  const colors = { good: 'var(--iv-success)', fair: 'var(--iv-warning)', poor: 'var(--iv-danger)' };
+  const colors = { good: '#22c55e', fair: 'var(--iv-warning)', poor: 'var(--iv-danger)' };
   const labels = { good: 'Tốt', fair: 'Trung bình', poor: 'Yếu' };
   return (
     <div className="connection-indicator" style={{ color: colors[quality] }}>
@@ -124,6 +122,28 @@ const ConnectionIndicator = ({ quality }) => {
       <span>{labels[quality]}</span>
     </div>
   );
+};
+
+// ── Typewriter Effect for Question Text ──
+const TypewriterText = ({ text, speed = 35 }) => {
+  const [displayedText, setDisplayedText] = useState('');
+
+  useEffect(() => {
+    if (!text) {
+      setDisplayedText('');
+      return;
+    }
+    setDisplayedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(text.slice(0, i + 1));
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return <>{displayedText}</>;
 };
 
 export default function InterviewRoom() {
@@ -637,7 +657,7 @@ export default function InterviewRoom() {
   if (isLoading) {
     return (
       <div className="interview-theme room-theme room-loading-screen">
-        <div className="iv-grid-bg" />
+        <img src={heroImageSvg} alt="" className="iv-bg-illustration" />
         <div className="room-loading-content iv-glass iv-animate-scale">
           <Loader2 className="room-loading-spinner iv-spin" size={48} />
           <h3 className="room-loading-title">Khởi tạo phòng phỏng vấn AI</h3>
@@ -653,7 +673,7 @@ export default function InterviewRoom() {
   if (error) {
     return (
       <div className="interview-theme room-theme room-error-screen">
-        <div className="iv-grid-bg" />
+        <img src={heroImageSvg} alt="" className="iv-bg-illustration" />
         <div className="room-error-content iv-glass iv-animate-scale">
           <div className="room-error-icon-wrapper">
             <AlertTriangle className="room-error-icon" size={44} />
@@ -675,7 +695,6 @@ export default function InterviewRoom() {
 
   return (
     <div className="interview-theme room-theme">
-      <div className="iv-grid-bg" />
 
       {/* ── Permission Warning Banner ── */}
       {permissionError && (
@@ -721,7 +740,7 @@ export default function InterviewRoom() {
             </div>
             <span className="room-candidate-card__name">Ứng viên</span>
             {config.industry && (
-              <span className="iv-badge iv-badge--info">{config.industry.nameVi}</span>
+              <span className="iv-badge iv-badge--info" style={{ color: '#f97316' }}>{config.industry.nameVi}</span>
             )}
           </div>
         </div>
@@ -753,19 +772,6 @@ export default function InterviewRoom() {
               {isTtsThinking ? 'AI đang chuẩn bị phát âm...' : isTtsPlaying ? 'AI đang nói...' : aiStatusLabels[aiStatus]}
             </p>
 
-            {/* ChatGPT Voice Speech Bubble — always mounted, visibility toggled to prevent layout jitter */}
-            <div
-              className={`room-ai-bubble ${aiStatus === 'speaking' ? 'room-ai-bubble--speaking' : ''}`}
-              style={{
-                visibility: aiStatus === 'speaking' && questions[currentQuestionIndex]?.content ? 'visible' : 'hidden',
-                height: aiStatus === 'speaking' && questions[currentQuestionIndex]?.content ? 'auto' : '0',
-                padding: aiStatus === 'speaking' && questions[currentQuestionIndex]?.content ? undefined : '0',
-                margin: aiStatus === 'speaking' && questions[currentQuestionIndex]?.content ? undefined : '0',
-                overflow: 'hidden',
-              }}
-            >
-              {questions[currentQuestionIndex]?.content || ''}
-            </div>
 
             {/* Speaking indicator — always mounted, opacity toggled */}
             <div
@@ -868,64 +874,57 @@ export default function InterviewRoom() {
         </div>
       </div>
 
-      {/* ── Question Display ── */}
-      <div className="room-question-area">
-        <div className="room-question-label">
-          <MessageSquare size={16} />
-          <span>Câu hỏi {currentQuestionIndex + 1}</span>
-          {config.difficulty && (
-            <span className={`iv-badge iv-badge--${config.difficulty.id === 'easy' ? 'success' : config.difficulty.id === 'medium' ? 'warning' : 'danger'}`}>
-              {config.difficulty.name}
-            </span>
-          )}
-        </div>
-        <div className={`room-question-text ${questionTransition ? 'room-question-text--exit' : ''}`}>
-          {questions[currentQuestionIndex]?.content || 'Đang tải câu hỏi...'}
-        </div>
-      </div>
+      {/* ── Text Section ── */}
+      <div className="room-text-section">
+        <div className="room-text-container">
+          {/* ── Question Display ── */}
+          <div className="room-question-area">
+            <div className="room-question-label">
+              <MessageSquare size={16} />
+              <span>Câu hỏi {currentQuestionIndex + 1}</span>
+              {config.difficulty && (
+                <span className={`iv-badge iv-badge--${config.difficulty.id === 'easy' ? 'success' : config.difficulty.id === 'medium' ? 'warning' : 'danger'}`}>
+                  {config.difficulty.name}
+                </span>
+              )}
+            </div>
+            <div className={`room-question-text ${questionTransition ? 'room-question-text--exit' : ''}`}>
+              <TypewriterText text={questions[currentQuestionIndex]?.content || 'Đang tải câu hỏi...'} />
+            </div>
+          </div>
 
-      {/* ── Live Transcription Box ── */}
-      <div className="room-transcription">
-        <div className="room-transcription__header">
-          <Sparkles size={14} />
-          <span>Phiên âm trực tiếp</span>
-          <span className="room-transcription__tip">
-            (Chỉ để xem trước — Hệ thống sẽ dùng AI Whisper để chuẩn hóa chính xác khi chuyển câu)
-          </span>
-          {isListening && (
-            <span className="room-transcription__live-badge">LIVE</span>
-          )}
-          {!isSpeechSupported && (
-            <span className="room-transcription__unsupported">Không khả dụng</span>
-          )}
-          <button 
-            className="room-transcription__lang-badge"
-            onClick={() => switchLanguage(speechLang === 'en' ? 'vi' : 'en')}
-            title="Nhấn để đổi ngôn ngữ nhận diện"
-          >
-            {speechLang === 'en' ? '🇺🇸 English' : '🇻🇳 Tiếng Việt'}
-          </button>
-          {speechConfidence > 0 && transcript && (
-            <span className={`room-transcription__confidence ${speechConfidence > 85 ? 'high' : speechConfidence > 60 ? 'medium' : 'low'}`}>
-              Độ chính xác: {speechConfidence}%
-            </span>
-          )}
-        </div>
-        <div className="room-transcription__text">
-          {transcript ? (
-            <>
-              <span className="room-transcription__final">{finalTranscript}</span>
-              <span className="room-transcription__interim">{interimTranscript}</span>
-            </>
-          ) : (
-            <span className="room-transcription__placeholder">
-              {isSpeechSupported
-                ? 'Hãy nói câu trả lời của bạn, nội dung sẽ được phiên âm tại đây...'
-                : 'Phiên âm không khả dụng — trình duyệt không hỗ trợ Web Speech API.'
-              }
-            </span>
-          )}
-          {isListening && <span className="room-transcription__cursor" />}
+          {/* ── Live Transcription Box ── */}
+          <div className="room-transcription">
+            <div className="room-transcription__header">
+              <Sparkles size={14} />
+              <span>Phiên âm trực tiếp</span>
+              <span className="room-transcription__tip">
+                (Chỉ để xem trước — Hệ thống sẽ dùng AI Whisper để chuẩn hóa chính xác khi chuyển câu)
+              </span>
+              {isListening && (
+                <span className="room-transcription__live-badge">LIVE</span>
+              )}
+              {!isSpeechSupported && (
+                <span className="room-transcription__unsupported">Không khả dụng</span>
+              )}
+            </div>
+            <div className="room-transcription__text">
+              {transcript ? (
+                <>
+                  <span className="room-transcription__final">{finalTranscript}</span>
+                  <span className="room-transcription__interim">{interimTranscript}</span>
+                </>
+              ) : (
+                <span className="room-transcription__placeholder">
+                  {isSpeechSupported
+                    ? 'Hãy nói câu trả lời của bạn, nội dung sẽ được phiên âm tại đây...'
+                    : 'Phiên âm không khả dụng — trình duyệt không hỗ trợ Web Speech API.'
+                  }
+                </span>
+              )}
+              {isListening && <span className="room-transcription__cursor" />}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -939,7 +938,7 @@ export default function InterviewRoom() {
           Kết thúc
         </button>
         <button
-          className="iv-btn iv-btn--primary"
+          className="iv-btn iv-btn--primary room-btn-orange"
           onClick={handleNextQuestion}
         >
           {currentQuestionIndex < totalQuestions - 1 ? (
@@ -969,10 +968,10 @@ export default function InterviewRoom() {
               Kết quả sẽ được tính dựa trên các câu đã trả lời.
             </p>
             <div className="room-modal__actions">
-              <button className="iv-btn iv-btn--ghost" onClick={() => setShowEndModal(false)}>
+              <button className="iv-btn iv-btn--secondary" style={{ border: 'none', background: 'rgba(0,0,0,0.04)' }} onClick={() => setShowEndModal(false)}>
                 Tiếp tục phỏng vấn
               </button>
-              <button className="iv-btn iv-btn--danger" onClick={handleEndInterview}>
+              <button className="iv-btn room-btn-orange" onClick={handleEndInterview}>
                 Kết thúc ngay
               </button>
             </div>
@@ -980,16 +979,7 @@ export default function InterviewRoom() {
         </div>
       )}
 
-      {/* ── Transcribing Overlay ── */}
-      {isTranscribing && (
-        <div className="room-transcribing-overlay">
-          <div className="room-transcribing-content iv-glass iv-animate-scale">
-            <Loader2 className="room-transcribing-spinner iv-spin" size={40} />
-            <h4 className="room-transcribing-title">Đang tối ưu hóa câu trả lời</h4>
-            <p className="room-transcribing-desc">Groq Whisper Large V3 đang chuẩn hóa bản dịch...</p>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

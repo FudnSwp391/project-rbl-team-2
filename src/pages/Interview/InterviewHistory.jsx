@@ -13,6 +13,7 @@ import {
 import { supabase } from '../../utils/supabaseClient';
 import '../../assets/styles/interview-theme.css';
 import './InterviewHistory.css';
+import heroImageSvg from '../../assets/images/Hero-image.svg';
 
 // ── Stat Widget ──
 const StatWidget = ({ icon: Icon, label, value, sub, color }) => (
@@ -239,7 +240,7 @@ export default function InterviewHistory() {
 
   return (
     <div className="interview-theme">
-      <div className="iv-grid-bg" />
+      <img src={heroImageSvg} alt="" className="iv-bg-illustration" />
       <div className="iv-orb iv-orb--blue" />
       <div className="iv-orb iv-orb--purple" />
 
