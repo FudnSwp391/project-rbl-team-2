@@ -34,6 +34,7 @@ const Login = ({ initialView = 'login' }) => {
   const [loading, setLoading] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(initialView === 'forgot-password');
   const [isRegister, setIsRegister] = useState(initialView === 'register');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
   const { user, login, loginWithOAuth, resetPassword, register } = useAuth();
@@ -121,6 +122,10 @@ const Login = ({ initialView = 'login' }) => {
     setError('');
     setSuccessMessage('');
     
+    if (!acceptedTerms) {
+      return setError('Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật để đăng ký tài khoản.');
+    }
+
     if (!fullName || !email || !password || !confirmPassword) {
       return setError('Vui lòng điền đầy đủ các thông tin.');
     }
@@ -321,13 +326,39 @@ const Login = ({ initialView = 'login' }) => {
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '1rem', marginBottom: '1rem' }}>
+                  <input
+                    type="checkbox"
+                    id="reg-acceptedTerms"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    style={{ marginTop: '0.25rem', width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0 }}
+                    required
+                  />
+                  <label htmlFor="reg-acceptedTerms" style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5, cursor: 'pointer', userSelect: 'none' }}>
+                    Tôi đã đọc, hiểu và đồng ý với{' '}
+                    <Link to="/terms" target="_blank" rel="noopener noreferrer" className="auth-link" style={{ textDecoration: 'underline', fontWeight: '600' }}>
+                      Điều khoản dịch vụ
+                    </Link>{' '}
+                    và{' '}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="auth-link" style={{ textDecoration: 'underline', fontWeight: '600' }}>
+                      Chính sách bảo mật
+                    </Link>{' '}
+                    của ITA.
+                  </label>
+                </div>
+
                 {error && <div className="auth-error-msg">{error}</div>}
                 {successMessage && <div className="auth-success-msg" style={{marginTop: '1rem'}}>{successMessage}</div>}
 
                 <button
                   type="submit"
                   className="btn btn--primary auth-submit-btn"
-                  disabled={loading}
+                  disabled={loading || !acceptedTerms}
+                  style={{
+                    opacity: (loading || !acceptedTerms) ? 0.6 : 1,
+                    cursor: (loading || !acceptedTerms) ? 'not-allowed' : 'pointer'
+                  }}
                 >
                   Đăng ký tài khoản
                 </button>
