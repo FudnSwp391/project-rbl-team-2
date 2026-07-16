@@ -1,0 +1,92 @@
+/* src/pages/User/BookMentor.css */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: var(--font-sans), sans-serif;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  padding: 0.5rem;
+}
+
+.react-datepicker__header {
+  background-color: var(--color-surface);
+  border-bottom: none;
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+  padding-top: 1rem;
+}
+
+.react-datepicker__current-month {
+  color: var(--color-charcoal);
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.react-datepicker__day-name {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  width: 2.5rem;
+  line-height: 2.5rem;
+  margin: 0.2rem;
+}
+
+.react-datepicker__day {
+  color: var(--color-charcoal);
+  width: 2.5rem;
+  line-height: 2.5rem;
+  margin: 0.2rem;
+  border-radius: 50% !important;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.react-datepicker__day--selected, .react-datepicker__day--keyboard-selected {
+  background-color: #EA580C !important;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+}
+
+.react-datepicker__day:hover {
+  background-color: rgba(234, 88, 12, 0.1) !important;
+  color: #EA580C !important;
+}
+
+.react-datepicker__day--disabled {
+  color: #ccc !important;
+  background-color: transparent !important;
+  cursor: not-allowed;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: var(--color-text-secondary);
+  border-width: 2px 2px 0 0;
+  top: 10px;
+}
+
+.react-datepicker__navigation:hover *::before {
+  border-color: #EA580C;
+}
+
+/* Fix input style to match select */
+.custom-date-input {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--color-surface);
+  font-size: 1rem;
+  outline: none;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-date-input:focus {
+  border-color: #EA580C;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}

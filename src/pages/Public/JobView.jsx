@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Send, Briefcase, DollarSign, MapPin, Clock, Calendar } from 'lucide-react';
 
 const JobView = () => {
   const { jobId } = useParams();
@@ -61,81 +63,176 @@ const JobView = () => {
   if (loading) return <div style={{ textAlign: 'center', padding: '5rem' }}>Loading...</div>;
   if (error || !job) return <div style={{ textAlign: 'center', padding: '5rem', color: '#d9534f' }}>{error || 'Job not found'}</div>;
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  };
+
   return (
-    <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>
+    <motion.div 
+      className="section" 
+      style={{ background: 'var(--color-cream)', minHeight: '100vh', paddingTop: '120px' }}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <div className="container container--narrow">
         
-        <div style={{ marginBottom: '1.5rem' }}>
-          <Link to="/jobs" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            ← Quay về trang Việc làm
+        <motion.div variants={itemVariants} style={{ marginBottom: '2rem' }}>
+          <Link to="/jobs" style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.6rem', 
+            textDecoration: 'none', 
+            color: 'var(--color-charcoal)', 
+            fontSize: '0.95rem', 
+            fontWeight: 600, 
+            background: 'var(--color-warm-white)',
+            padding: '0.6rem 1.25rem 0.6rem 0.6rem',
+            borderRadius: '50px',
+            border: '1px solid rgba(0,0,0,0.05)',
+            boxShadow: '0 4px 12px rgba(44, 40, 36, 0.04)',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' 
+          }} 
+          onMouseOver={(e) => { 
+            e.currentTarget.style.transform = 'translateY(-2px)'; 
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(44, 40, 36, 0.08)'; 
+            e.currentTarget.style.color = '#EA580C'; 
+            e.currentTarget.querySelector('.icon-wrapper').style.background = '#EA580C';
+            e.currentTarget.querySelector('.icon-wrapper').style.color = 'white';
+          }} 
+          onMouseOut={(e) => { 
+            e.currentTarget.style.transform = 'translateY(0)'; 
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(44, 40, 36, 0.04)'; 
+            e.currentTarget.style.color = 'var(--color-charcoal)'; 
+            e.currentTarget.querySelector('.icon-wrapper').style.background = 'var(--color-cream)';
+            e.currentTarget.querySelector('.icon-wrapper').style.color = 'var(--color-charcoal)';
+          }}>
+            <span className="icon-wrapper" style={{ 
+              width: '28px', 
+              height: '28px', 
+              borderRadius: '50%', 
+              background: 'var(--color-cream)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              color: 'var(--color-charcoal)',
+              transition: 'all 0.3s ease'
+            }}>
+              <ArrowLeft size={16} />
+            </span>
+            Quay về trang Việc làm
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="glass-card reveal is-visible" style={{ padding: '3rem', position: 'relative' }}>
-          {job.status === 'closed' && (
-            <div style={{ background: '#ffebee', color: '#c62828', padding: '0.5rem 1rem', borderRadius: '4px', display: 'inline-block', marginBottom: '1rem', fontWeight: 'bold' }}>
-              ĐÃ NGỪNG TUYỂN DỤNG
-            </div>
-          )}
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
-            <div>
-              <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{job.title}</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', color: 'var(--color-text-secondary)', fontSize: '1rem', flexWrap: 'wrap' }}>
-                <Link to={`/company/${job.companyId}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'var(--color-charcoal)', fontWeight: '500', transition: 'color 0.2s' }} onMouseOver={(e) => e.target.style.color = 'var(--color-moss)'} onMouseOut={(e) => e.target.style.color = 'var(--color-charcoal)'}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    {job.companyLogo ? <img src={job.companyLogo} alt={job.company} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🏢'}
+        <motion.div variants={itemVariants} className="glass-card" style={{ padding: '0', overflow: 'hidden', borderRadius: '24px', boxShadow: '0 20px 40px rgba(44, 40, 36, 0.05)' }}>
+          <div style={{ padding: '4rem 3rem 3rem', background: 'var(--color-warm-white)', borderBottom: '1px solid var(--border-color)', position: 'relative' }}>
+            {job.status === 'closed' && (
+              <div style={{ background: '#ffebee', color: '#c62828', padding: '0.4rem 1rem', borderRadius: '50px', display: 'inline-flex', alignItems: 'center', marginBottom: '1.5rem', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', border: '1px solid #ffcdd2' }}>
+                ĐÃ NGỪNG TUYỂN DỤNG
+              </div>
+            )}
+            
+            <div style={{ position: 'relative', zIndex: 2, textAlign: 'left' }}>
+              <h1 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, marginBottom: '1.5rem', lineHeight: '1.25', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>
+                {job.title}
+              </h1>
+              
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+                <Link to={`/company/${job.companyId}`} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--color-charcoal)', fontWeight: '600', textDecoration: 'none' }} onMouseOver={(e) => e.currentTarget.style.color = '#EA580C'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--color-charcoal)'}>
+                  <div style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      borderRadius: '50%', 
+                      background: 'linear-gradient(135deg, var(--color-accent-vivid), var(--color-accent))', 
+                      color: 'white',
+                      overflow: 'hidden',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1rem',
+                      boxShadow: '0 2px 8px rgba(234, 88, 12, 0.3)'
+                    }}>
+                      {job.companyLogo ? <img src={job.companyLogo} alt={job.company} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (job.company || 'C').charAt(0).toUpperCase()}
                   </div>
                   {job.company}
                 </Link>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>📍 {job.location || 'N/A'}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>⏱️ {job.posted}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-muted)' }}><MapPin size={16} /> {job.location || 'N/A'}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-muted)' }}><Clock size={16} /> {job.posted}</span>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '2rem', marginBottom: '3rem', padding: '1.5rem', background: 'rgba(255,255,255,0.4)', borderRadius: '12px' }}>
-            <div>
-              <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Employment Type</span>
-              <strong style={{ color: 'var(--color-charcoal)' }}>{job.type || 'N/A'}</strong>
+          <div style={{ padding: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+              <div style={{ padding: '1.5rem', background: 'var(--color-cream)', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(234, 88, 12, 0.1)', color: '#EA580C', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Briefcase size={20} />
+                </div>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem', fontWeight: 600 }}>Loại hình</span>
+                  <strong style={{ color: 'var(--color-charcoal)', fontSize: '1.1rem' }}>{job.type || 'N/A'}</strong>
+                </div>
+              </div>
+              
+              <div style={{ padding: '1.5rem', background: 'var(--color-cream)', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(107, 127, 92, 0.1)', color: 'var(--color-moss)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <DollarSign size={20} />
+                </div>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem', fontWeight: 600 }}>Mức lương</span>
+                  <strong style={{ color: 'var(--color-charcoal)', fontSize: '1.1rem' }}>{job.salary || 'Thỏa thuận'}</strong>
+                </div>
+              </div>
             </div>
-            <div>
-              <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Salary Range</span>
-              <strong style={{ color: 'var(--color-charcoal)' }}>{job.salary || 'Negotiable'}</strong>
+
+            <div style={{ marginBottom: '2.5rem' }}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>Mô tả công việc</h3>
+              <div style={{ whiteSpace: 'pre-line', color: 'var(--color-text)', lineHeight: '1.8', fontSize: '1.05rem', fontFamily: 'var(--font-sans)' }}>
+                {job.description}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '2.5rem' }}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>Yêu cầu ứng viên</h3>
+              <div style={{ whiteSpace: 'pre-line', color: 'var(--color-text)', lineHeight: '1.8', fontSize: '1.05rem', fontFamily: 'var(--font-sans)' }}>
+                {job.requirements}
+              </div>
             </div>
           </div>
 
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.4rem' }}>Job Description</h3>
-            <div style={{ whiteSpace: 'pre-line', color: 'var(--color-text)', lineHeight: '1.8' }}>
-              {job.description}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.4rem' }}>Requirements</h3>
-            <div style={{ whiteSpace: 'pre-line', color: 'var(--color-text)', lineHeight: '1.8' }}>
-              {job.requirements}
-            </div>
-          </div>
-
-          <div style={{ marginTop: '3rem', padding: '2rem', borderTop: '1px solid var(--border-color)', textAlign: 'center', background: 'rgba(0,0,0,0.02)', borderRadius: '12px' }}>
-            <h3 style={{ marginBottom: '1rem' }}>Cách thức ứng tuyển</h3>
-            <p style={{ marginBottom: '1.5rem', color: 'var(--color-text-secondary)' }}>
+          <div style={{ padding: '3rem', borderTop: '1px solid var(--border-color)', textAlign: 'center', background: 'var(--color-surface-alt)' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>Cách thức ứng tuyển</h3>
+            <p style={{ marginBottom: '2rem', color: 'var(--color-text-secondary)', fontSize: '1rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
               Để ứng tuyển cho vị trí này, vui lòng gửi trực tiếp CV và Portfolio (nếu có) của bạn về email của doanh nghiệp.
             </p>
             {job.contactEmail ? (
-              <a href={`mailto:${job.contactEmail}?subject=Ứng tuyển vị trí ${job.title}`} className="btn btn--primary btn--pill" style={{ display: 'inline-block', textDecoration: 'none' }}>
-                Gửi Email Ứng Tuyển: {job.contactEmail}
+              <a 
+                href={`mailto:${job.contactEmail}?subject=Ứng tuyển vị trí ${job.title}`} 
+                style={{ 
+                  display: 'inline-flex', alignItems: 'center', gap: '0.8rem',
+                  textDecoration: 'none', background: '#EA580C', color: 'white',
+                  padding: '1rem 2rem', borderRadius: '50px', fontWeight: 600, fontSize: '1.05rem',
+                  boxShadow: '0 4px 15px rgba(234, 88, 12, 0.3)', transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(234, 88, 12, 0.4)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(234, 88, 12, 0.3)'; }}
+              >
+                Gửi Email Ứng Tuyển <Send size={18} />
               </a>
             ) : (
-              <span style={{ color: '#d9534f' }}>Doanh nghiệp chưa cung cấp email liên hệ.</span>
+              <span style={{ color: '#d9534f', fontWeight: 600, padding: '1rem', background: '#ffebee', borderRadius: '12px', display: 'inline-block' }}>Doanh nghiệp chưa cung cấp email liên hệ.</span>
             )}
           </div>
 
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

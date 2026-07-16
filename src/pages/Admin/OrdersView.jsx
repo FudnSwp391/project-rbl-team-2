@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import { RefreshCw, Search, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+};
 
 const OrdersView = () => {
   const [orders, setOrders] = useState([]);
@@ -76,18 +86,34 @@ const OrdersView = () => {
   };
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <DollarSign color="var(--primary)" />
-          Lịch sử Thanh toán
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ position: 'relative' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-0.5px', margin: 0, fontFamily: 'var(--font-heading)' }}>
+          Lịch sử thanh toán ({filteredOrders.length})
         </h2>
-        <button onClick={fetchOrders} style={iconBtnStyle} title="Làm mới">
-          <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+        <button 
+          onClick={fetchOrders} 
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+            background: 'linear-gradient(135deg, #EA580C, #C2410C)',
+            color: '#ffffff',
+            fontWeight: '600',
+            padding: '0.7rem 1.4rem',
+            borderRadius: '12px',
+            border: 'none', 
+            boxShadow: '0 4px 15px rgba(234, 88, 12, 0.2)',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(234, 88, 12, 0.3)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(234, 88, 12, 0.2)'; }}
+          title="Làm mới"
+        >
+          <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> Làm mới
         </button>
-      </div>
+      </motion.div>
 
-      <div className="glass-card" style={{ padding: '1.5rem' }}>
+      <motion.div variants={itemVariants} className="glass-card" style={{ padding: '2rem', borderRadius: '24px', boxShadow: '0 15px 35px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} size={20} />
@@ -107,23 +133,23 @@ const OrdersView = () => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '1rem 0' }}>Mã Đơn</th>
-                  <th style={{ padding: '1rem 0' }}>Người dùng</th>
-                  <th style={{ padding: '1rem 0' }}>Gói dịch vụ</th>
-                  <th style={{ padding: '1rem 0' }}>Số tiền</th>
-                  <th style={{ padding: '1rem 0' }}>Trạng thái</th>
-                  <th style={{ padding: '1rem 0' }}>Ngày tạo</th>
+                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: 'linear-gradient(90deg, rgba(234, 88, 12, 0.03), transparent)' }}>
+                  <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Mã Đơn</th>
+                  <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Người dùng</th>
+                  <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Gói dịch vụ</th>
+                  <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Số tiền</th>
+                  <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Trạng thái</th>
+                  <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Ngày tạo</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.length > 0 ? filteredOrders.map(order => (
-                  <tr key={order.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '1rem 0', fontWeight: 'bold', color: 'var(--primary)' }}>{order.order_code}</td>
-                    <td style={{ padding: '1rem 0', fontSize: '0.85rem' }} title={order.user_id}>
+                  <tr key={order.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: '#EA580C', letterSpacing: '0.5px' }}>{order.order_code}</td>
+                    <td style={{ padding: '1.25rem 1rem', fontSize: '0.85rem' }} title={order.user_id}>
                       {order.profiles?.full_name ? (
                         <div>
-                          <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{order.profiles.full_name}</div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{order.profiles.full_name}</div>
                           <div style={{ color: 'var(--text-secondary)' }}>{order.profiles.email}</div>
                         </div>
                       ) : (
@@ -132,10 +158,10 @@ const OrdersView = () => {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '1rem 0' }}>{order.plan_name}</td>
-                    <td style={{ padding: '1rem 0' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.price)}</td>
-                    <td style={{ padding: '1rem 0' }}>{getStatusBadge(order.status)}</td>
-                    <td style={{ padding: '1rem 0', fontSize: '0.9rem' }}>{new Date(order.created_at).toLocaleString('vi-VN')}</td>
+                    <td style={{ padding: '1.25rem 1rem', fontWeight: '600', color: '#334155' }}>{order.plan_name}</td>
+                    <td style={{ padding: '1.25rem 1rem', fontWeight: '600', color: '#1e293b' }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.price)}</td>
+                    <td style={{ padding: '1.25rem 1rem' }}>{getStatusBadge(order.status)}</td>
+                    <td style={{ padding: '1.25rem 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{new Date(order.created_at).toLocaleString('vi-VN')}</td>
                   </tr>
                 )) : (
                   <tr>
@@ -148,13 +174,23 @@ const OrdersView = () => {
             </table>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
-const inputStyle = { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', color: '#000000', outline: 'none' };
-const iconBtnStyle = { background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: 'var(--text-secondary)' };
-const badgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' };
+const inputStyle = {
+  width: '100%',
+  padding: '0.85rem 1rem',
+  borderRadius: '10px',
+  border: '1px solid #cbd5e1',
+  background: '#ffffff',
+  color: '#334155',
+  fontSize: '0.95rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s, box-shadow 0.2s'
+};
+const badgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.85rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' };
 
 export default OrdersView;

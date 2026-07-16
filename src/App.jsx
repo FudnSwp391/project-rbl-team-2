@@ -60,6 +60,18 @@ function AppContent() {
     };
   }, [isInterviewRoute]);
 
+  // Scroll to top on route change
+  useEffect(() => {
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { immediate: true });
+    } else if (window.lenis) {
+      window.lenis.scrollTo(0, { immediate: true });
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
+
+
   if (isInterviewRoute || isAuthRoute) {
     return (
       <>
@@ -283,8 +295,8 @@ function Footer({ setHeight }) {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {[
                 { label: 'Trung tâm trợ giúp', path: '#' },
-                { label: 'Điều khoản sử dụng', path: '#' },
-                { label: 'Chính sách bảo mật', path: '#' }
+                { label: 'Điều khoản sử dụng', path: '/terms' },
+                { label: 'Chính sách bảo mật', path: '/privacy' }
               ].map((item, i) => (
                 <li key={i}>
                   <Link to={item.path} style={{ 
@@ -334,8 +346,8 @@ function Footer({ setHeight }) {
             © 2026 Interview Technology AI. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '2rem' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--color-stone)', cursor: 'pointer', transition: 'color 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-cream)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-stone)'}>Privacy Policy</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--color-stone)', cursor: 'pointer', transition: 'color 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-cream)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-stone)'}>Terms of Service</span>
+            <Link to="/privacy" style={{ fontSize: '0.85rem', color: 'var(--color-stone)', cursor: 'pointer', transition: 'color 0.3s', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-cream)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-stone)'}>Privacy Policy</Link>
+            <Link to="/terms" style={{ fontSize: '0.85rem', color: 'var(--color-stone)', cursor: 'pointer', transition: 'color 0.3s', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-cream)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-stone)'}>Terms of Service</Link>
           </div>
         </div>
       </div>

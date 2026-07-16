@@ -4,6 +4,16 @@ import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useConfirm } from '../../utils/ConfirmContext';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+};
 
 const UsersView = () => {
   const confirm = useConfirm();
@@ -198,9 +208,9 @@ const UsersView = () => {
   );
 
   return (
-    <div className="animate-fade" style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-        <h2>Quản lý Người dùng ({users.length})</h2>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ position: 'relative' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-0.5px', margin: 0, fontFamily: 'var(--font-heading)' }}>Quản lý Người dùng ({users.length})</h2>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <input
             type="text"
@@ -208,29 +218,33 @@ const UsersView = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              padding: '0.75rem 1.25rem',
+              padding: '0.85rem 1.5rem',
               borderRadius: '9999px',
-              border: '1px solid rgba(0,0,0,0.1)',
-              background: 'rgba(255,255,255,0.8)',
-              color: '#333',
-              width: '300px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+              border: '1px solid rgba(44, 40, 36, 0.1)',
+              background: 'rgba(255,255,255,0.9)',
+              color: 'var(--color-charcoal)',
+              width: '320px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+              outline: 'none',
+              transition: 'all 0.3s ease'
             }}
+            onFocus={e => { e.target.style.boxShadow = '0 6px 20px rgba(234, 88, 12, 0.1)'; e.target.style.borderColor = '#EA580C'; }}
+            onBlur={e => { e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.03)'; e.target.style.borderColor = 'rgba(44, 40, 36, 0.1)'; }}
           />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="glass-card" style={{ overflowX: 'auto', padding: 0 }}>
+      <motion.div variants={itemVariants} className="glass-card" style={{ overflowX: 'auto', padding: 0, borderRadius: '24px', boxShadow: '0 15px 35px rgba(0,0,0,0.03)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>ID</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Họ Tên</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Email</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Vai trò</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Gói</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Trạng thái</th>
-              <th style={{ padding: '1rem', fontWeight: '500', textAlign: 'center' }}>Thao tác</th>
+            <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: 'linear-gradient(90deg, rgba(234, 88, 12, 0.03), transparent)' }}>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>ID</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Họ Tên</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Email</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Vai trò</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Gói</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Trạng thái</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', textAlign: 'center' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -284,35 +298,45 @@ const UsersView = () => {
             )}
           </tbody>
         </table>
-      </div>
+      </motion.div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: 'var(--spacing-md)' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
         <button
           disabled={page === 1}
           onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           style={{ ...pageBtnStyle, opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+          onMouseOver={e => { if(page !== 1) e.currentTarget.style.transform = 'translateY(-2px)'}}
+          onMouseOut={e => { if(page !== 1) e.currentTarget.style.transform = 'translateY(0)'}}
         >
           &larr; Prev
         </button>
-        <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontWeight: '600', color: '#334155' }}>
+        <span style={{ padding: '0.6rem 1.25rem', background: '#ffffff', borderRadius: '12px', fontWeight: '700', color: 'var(--color-charcoal)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
           {page} / {totalPages}
         </span>
         <button
           disabled={page === totalPages || totalPages === 0}
           onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           style={{ ...pageBtnStyle, opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
+          onMouseOver={e => { if(page !== totalPages && totalPages !== 0) e.currentTarget.style.transform = 'translateY(-2px)'}}
+          onMouseOut={e => { if(page !== totalPages && totalPages !== 0) e.currentTarget.style.transform = 'translateY(0)'}}
         >
           Next &rarr;
         </button>
-      </div>
+      </motion.div>
 
       {isEditing && createPortal(
         <div style={modalOverlayStyle}>
-          <div className="animate-fade" style={modalContentStyle}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={modalContentStyle}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div>
-                <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: '#1e293b' }}>Chỉnh sửa Người dùng</h2>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Cập nhật vai trò, trạng thái và thông tin tài khoản.</p>
+                <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>Chỉnh sửa Người dùng</h2>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Cập nhật vai trò, trạng thái và thông tin tài khoản.</p>
               </div>
               <button onClick={() => setIsEditing(false)} style={closeBtnStyle}><X size={24} /></button>
             </div>
@@ -417,11 +441,11 @@ const UsersView = () => {
                 <button type="submit" style={{ flex: 1, padding: '0.85rem', background: '#4f46e5', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Lưu thay đổi</button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>,
         document.body
       )}
-    </div>
+    </motion.div>
   );
 };
 
@@ -465,13 +489,14 @@ const modalContentStyle = {
 };
 
 const pageBtnStyle = {
-  padding: '0.5rem 1rem',
-  background: 'var(--primary)',
+  padding: '0.6rem 1.25rem',
+  background: 'linear-gradient(135deg, #EA580C, #C2410C)',
   color: 'white',
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: '12px',
   fontWeight: 'bold',
-  transition: 'transform 0.2s'
+  boxShadow: '0 4px 15px rgba(234, 88, 12, 0.2)',
+  transition: 'transform 0.2s, box-shadow 0.2s'
 };
 
 export default UsersView;

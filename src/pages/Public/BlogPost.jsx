@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
-import { Play, FileText, User, ExternalLink, Calendar, ArrowLeft } from 'lucide-react';
+import { Play, FileText, ExternalLink, Calendar, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import 'react-quill-new/dist/quill.snow.css'; // For rich text styles
 
@@ -49,6 +49,38 @@ const BlogPost = () => {
   const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
+    const fetchBlog = async () => {
+      setLoading(true);
+      setFetchError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from('blogs')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching blog:', error);
+          setFetchError(error.message);
+        } else if (data) {
+          setBlog(data);
+
+          // Increment views silently
+          try {
+            await supabase.rpc('increment_blog_views', { blog_id: id });
+          } catch {
+            // RPC may not exist — that's fine
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setFetchError('Đã xảy ra lỗi khi tải bài viết.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (id) fetchBlog();
   }, [id]);
 
@@ -71,7 +103,7 @@ const BlogPost = () => {
           setAuthorRole('company');
           return;
         }
-      } catch (e) {
+      } catch {
         // Ignore
       }
 
@@ -95,7 +127,7 @@ const BlogPost = () => {
           setAuthorRole(data.role || 'user');
           return;
         }
-      } catch (e) {
+      } catch {
         // Silently handle RLS errors
       }
 
@@ -112,40 +144,7 @@ const BlogPost = () => {
     };
 
     resolveAuthor();
-  }, [blog, user, profile]);
-
-  const fetchBlog = async () => {
-    setLoading(true);
-    setFetchError(null);
-
-    try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching blog:', error);
-        setFetchError(error.message);
-      } else if (data) {
-        setBlog(data);
-
-        // Increment views silently
-        try {
-          await supabase.rpc('increment_blog_views', { blog_id: id });
-        } catch (_) {
-          // RPC may not exist — that's fine
-        }
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setFetchError('Đã xảy ra lỗi khi tải bài viết.');
-    } finally {
-      // ALWAYS stop loading — this fixes the "Đang tải..." forever bug
-      setLoading(false);
-    }
-  };
+  }, [blog, user, profile, profile?.role]);
 
   // Logic cộng điểm cho người đọc blog
   useEffect(() => {
@@ -187,13 +186,13 @@ const BlogPost = () => {
             }
           });
         }
-      } catch (e) {
+      } catch {
         // localStorage might fail
       }
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [user, blog]);
+  }, [user, blog, profile?.role]);
 
   if (loading) {
     return (

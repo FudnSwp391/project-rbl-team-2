@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import { motion } from 'framer-motion';
 
 const JobList = () => {
   const [jobs, setJobs] = useState([]);
@@ -51,15 +52,40 @@ const JobList = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  };
+
   return (
-    <div className="section" style={{ background: 'var(--color-cream)', minHeight: '100vh' }}>
+    <motion.div 
+      className="section" 
+      style={{ background: 'var(--color-cream)', minHeight: '100vh', paddingTop: '120px' }}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <div className="container">
         
-        <div className="reveal is-visible" style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}>
-          <span className="label" style={{ marginBottom: '1rem' }}>Cơ Hội Nghề Nghiệp</span>
-          <h1 style={{ marginBottom: '1rem' }}>Tìm Việc Làm</h1>
-          <p style={{ maxWidth: '600px', margin: '0 auto' }}>Khám phá các vị trí tuyển dụng từ những công ty công nghệ hàng đầu và tìm kiếm bước tiến tiếp theo trong sự nghiệp của bạn.</p>
-        </div>
+        <motion.div variants={itemVariants} style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}>
+          <span style={{ marginBottom: '1rem', background: 'linear-gradient(135deg, rgba(234, 88, 12, 0.1), rgba(194, 65, 12, 0.1))', color: '#EA580C', padding: '0.5rem 1.25rem', borderRadius: '50px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', display: 'inline-block', fontSize: '0.85rem' }}>
+            Cơ Hội Nghề Nghiệp
+          </span>
+          <h1 style={{ fontSize: '2.8rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-1px', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>
+            Tìm Việc Làm
+          </h1>
+          <p style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--color-text-secondary)', fontSize: '1.15rem', fontWeight: 500, lineHeight: 1.6 }}>
+            Khám phá các vị trí tuyển dụng từ những công ty công nghệ hàng đầu và tìm kiếm bước tiến tiếp theo trong sự nghiệp của bạn.
+          </p>
+        </motion.div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>Đang tải danh sách việc làm...</div>
@@ -68,51 +94,110 @@ const JobList = () => {
             Hiện tại chưa có công việc nào đang mở.
           </div>
         ) : (
-          <div className="grid-auto">
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2.5rem' }}>
             {jobs.map((job, index) => (
-              <Link to={`/company/${job.companyId}/job/${job.id}`} key={job.id} className={`glass-card reveal is-visible reveal--delay-${(index % 4) + 1}`} style={{ display: 'flex', flexDirection: 'column', textDecoration: 'none', transition: 'transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo)' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.05em', 
-                    fontWeight: '600',
-                    color: 'var(--color-earth)',
-                    background: 'rgba(255,255,255,0.7)',
-                    padding: '0.3rem 0.8rem',
-                    borderRadius: '50px'
-                  }}>
-                    {job.type}
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{job.posted}</span>
-                </div>
-
-                <h3 style={{ fontSize: '1.4rem', marginBottom: '1rem', lineHeight: '1.3', color: 'var(--color-charcoal)' }}>
-                  {job.title}
-                </h3>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem', flex: 1 }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', overflow: 'hidden' }}>
-                    {job.logo_url ? <img src={job.logo_url} alt={job.company} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🏢'}
+              <motion.div key={job.id} variants={itemVariants} style={{ flex: '1 1 320px', maxWidth: '400px' }}>
+                <Link to={`/company/${job.companyId}/job/${job.id}`} style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  textDecoration: 'none', 
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
+                  height: '100%', 
+                  background: '#ffffff',
+                  borderRadius: '16px', 
+                  padding: '1.5rem', 
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: '6px 6px 0px #e0e7ff',
+                  position: 'relative'
+                }} 
+                onMouseOver={(e) => { 
+                  e.currentTarget.style.transform = 'translate(-4px, -4px)'; 
+                  e.currentTarget.style.boxShadow = '10px 10px 0px #e0e7ff'; 
+                  const btn = e.currentTarget.querySelector('.job-btn');
+                  if(btn) {
+                    btn.style.background = '#EA580C';
+                    btn.style.color = '#ffffff';
+                  }
+                }} 
+                onMouseOut={(e) => { 
+                  e.currentTarget.style.transform = 'translate(0, 0)'; 
+                  e.currentTarget.style.boxShadow = '6px 6px 0px #e0e7ff'; 
+                  const btn = e.currentTarget.querySelector('.job-btn');
+                  if(btn) {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#EA580C';
+                  }
+                }}>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <span style={{ 
+                      fontSize: '0.65rem', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.05em', 
+                      fontWeight: '700',
+                      color: 'var(--color-charcoal)',
+                      background: '#ffffff',
+                      border: '1px solid rgba(0,0,0,0.1)',
+                      padding: '0.3rem 0.8rem',
+                      borderRadius: '50px'
+                    }}>
+                      {job.type}
+                    </span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{job.posted}</span>
                   </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-charcoal)' }}>{job.company}</span>
-                    <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>📍 {job.location}</span>
-                  </div>
-                </div>
-                
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', textAlign: 'center' }}>
-                  <span className="btn btn--outline" style={{ display: 'inline-block', width: '100%', padding: '0.5rem', fontSize: '0.85rem' }}>Xem chi tiết</span>
-                </div>
 
-              </Link>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '1.25rem', lineHeight: '1.35', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', textTransform: 'uppercase' }}>
+                    {job.title}
+                  </h3>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flex: 1 }}>
+                    <div style={{ 
+                      width: '42px', 
+                      height: '42px', 
+                      borderRadius: '50%', 
+                      background: 'linear-gradient(135deg, var(--color-accent-vivid), var(--color-accent))', 
+                      color: 'white',
+                      overflow: 'hidden',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1.2rem',
+                      boxShadow: '0 2px 8px rgba(234, 88, 12, 0.3)',
+                      flexShrink: 0
+                    }}>
+                      {job.logo_url ? <img src={job.logo_url} alt={job.company} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (job.company || 'C').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.95rem', fontWeight: '700', color: 'var(--color-charcoal)' }}>{job.company}</span>
+                      <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '2px', fontWeight: 500 }}>📍 {job.location}</span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', textAlign: 'center', marginTop: 'auto' }}>
+                    <span className="job-btn" style={{ 
+                      display: 'inline-block', 
+                      width: '100%', 
+                      padding: '0.6rem', 
+                      fontSize: '0.9rem', 
+                      fontWeight: 700,
+                      color: '#EA580C',
+                      border: '2px solid #EA580C',
+                      borderRadius: '50px',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      Xem chi tiết
+                    </span>
+                  </div>
+
+                </Link>
+              </motion.div>
             ))}
           </div>
         )}
 
       </div>
-    </div>
+    </motion.div>
   );
 };
 

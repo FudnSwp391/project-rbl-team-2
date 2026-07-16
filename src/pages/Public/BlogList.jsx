@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
@@ -22,24 +22,14 @@ const CATEGORIES = [
 ];
 
 const BlogList = () => {
+  const location = useLocation();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(location.state?.category || 'all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const location = useLocation();
-
   useEffect(() => {
-    fetchBlogs();
-  }, []);
-
-  useEffect(() => {
-    if (location.state?.category) {
-      setSelectedCategory(location.state.category);
-    }
-  }, [location.state]);
-
-  const fetchBlogs = async () => {
+    async function fetchBlogs() {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -94,7 +84,10 @@ const BlogList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  fetchBlogs();
+}, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -119,12 +112,6 @@ const BlogList = () => {
     if (!tags || !tags.length) return 'BÀI VIẾT TỔNG HỢP';
     const cat = CATEGORIES.find(c => tags.includes(c.value));
     return cat ? cat.label.toUpperCase() : 'BÀI VIẾT';
-  };
-
-  const getCustomTags = (tags) => {
-    if (!tags || !tags.length) return [];
-    const categoryValues = CATEGORIES.map(c => c.value);
-    return tags.filter(tag => !categoryValues.includes(tag));
   };
 
   return (

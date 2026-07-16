@@ -4,6 +4,16 @@ import { supabase } from '../../utils/supabaseClient';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useConfirm } from '../../utils/ConfirmContext';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+};
 
 const QuestionBankView = () => {
   const confirm = useConfirm();
@@ -143,55 +153,56 @@ const QuestionBankView = () => {
   };
 
   return (
-    <div className="animate-fade" style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
-        <h2>Ngân hàng Câu hỏi ({questions.length})</h2>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ position: 'relative' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-0.5px', margin: 0, fontFamily: 'var(--font-heading)' }}>Ngân hàng Câu hỏi ({questions.length})</h2>
         <button 
           className="btn-primary" 
           style={{ 
             display: 'flex', alignItems: 'center', gap: '0.5rem', 
-            background: 'linear-gradient(135deg, #ffffff, #e2e8f0)',
-            color: '#000000',
+            background: 'linear-gradient(135deg, #EA580C, #C2410C)',
+            color: '#ffffff',
             fontWeight: '600',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '8px',
+            padding: '0.7rem 1.4rem',
+            borderRadius: '12px',
             border: 'none', 
-            boxShadow: '0 4px 15px rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 4px 15px rgba(234, 88, 12, 0.2)',
             transition: 'all 0.3s ease'
           }} 
           onClick={handleAdd}
-          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(234, 88, 12, 0.3)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(234, 88, 12, 0.2)'; }}
         >
           <Plus size={18} /> Thêm mới
         </button>
-      </div>
+      </motion.div>
 
-      <div className="glass-card" style={{ overflowX: 'auto', padding: 0 }}>
+      <motion.div variants={itemVariants} className="glass-card" style={{ overflowX: 'auto', padding: 0, borderRadius: '24px', boxShadow: '0 15px 35px rgba(0,0,0,0.03)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '50px' }}>ID</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Câu hỏi</th>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '140px' }}>Ngành nghề</th>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '100px' }}>Độ khó</th>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '120px' }}>Loại</th>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '250px' }}>Gợi ý trả lời</th>
-              <th style={{ padding: '1rem', fontWeight: '500', width: '100px', textAlign: 'center' }}>Thao tác</th>
+            <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: 'linear-gradient(90deg, rgba(234, 88, 12, 0.03), transparent)' }}>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', width: '50px' }}>ID</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Câu hỏi</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', width: '140px' }}>Ngành nghề</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', width: '100px' }}>Độ khó</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', width: '120px' }}>Loại</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', width: '250px' }}>Gợi ý trả lời</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', width: '100px', textAlign: 'center' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {questions.map(q => {
               const isOldMCQCorrectAnswer = q.correct_answer === 'A' || q.correct_answer === 'B' || q.correct_answer === 'C' || q.correct_answer === 'D';
               return (
-              <tr key={q.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
+              <tr key={q.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                 <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{q.id.toString().substring(0, 8)}...</td>
-                <td style={{ padding: '1rem' }}>{q.content}</td>
+                <td style={{ padding: '1rem', color: '#1e293b', fontWeight: '500' }}>{q.content}</td>
                 <td style={{ padding: '1rem' }}>{q.industries?.name || 'N/A'}</td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{
-                    color: q.difficulty === 'hard' ? '#ff4d4d' : (q.difficulty === 'medium' ? '#ff9632' : '#32c864'),
-                    fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'capitalize'
+                    color: q.difficulty === 'hard' ? '#ef4444' : (q.difficulty === 'medium' ? '#ea580c' : '#10b981'),
+                    background: q.difficulty === 'hard' ? 'rgba(239, 68, 68, 0.1)' : (q.difficulty === 'medium' ? 'rgba(234, 88, 12, 0.1)' : 'rgba(16, 185, 129, 0.1)'),
+                    padding: '0.35rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase'
                   }}>
                     {q.difficulty}
                   </span>
@@ -213,36 +224,46 @@ const QuestionBankView = () => {
             })}
           </tbody>
         </table>
-      </div>
+      </motion.div>
 
-      {/* Pagination */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: 'var(--spacing-md)' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
         <button
           disabled={page === 1}
           onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           style={{ ...pageBtnStyle, opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+          onMouseOver={e => { if(page !== 1) e.currentTarget.style.transform = 'translateY(-2px)'}}
+          onMouseOut={e => { if(page !== 1) e.currentTarget.style.transform = 'translateY(0)'}}
         >
           &larr; Prev
         </button>
-        <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontWeight: '600', color: '#334155' }}>
+        <span style={{ padding: '0.6rem 1.25rem', background: '#ffffff', borderRadius: '12px', fontWeight: '700', color: 'var(--color-charcoal)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
           {page} / {totalPages}
         </span>
         <button
           disabled={page === totalPages || totalPages === 0}
           onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           style={{ ...pageBtnStyle, opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
+          onMouseOver={e => { if(page !== totalPages && totalPages !== 0) e.currentTarget.style.transform = 'translateY(-2px)'}}
+          onMouseOut={e => { if(page !== totalPages && totalPages !== 0) e.currentTarget.style.transform = 'translateY(0)'}}
         >
           Next &rarr;
         </button>
-      </div>
+      </motion.div>
 
       {isEditing && createPortal(
         <div style={modalOverlayStyle}>
-          <div className="animate-fade" style={modalContentStyle} data-lenis-prevent="true">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={modalContentStyle}
+            data-lenis-prevent="true"
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div>
-                <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: '#1e293b' }}>{currentQ.id ? 'Chỉnh sửa Câu hỏi' : 'Thêm Câu hỏi mới'}</h2>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>{currentQ.id ? 'Cập nhật nội dung và thuộc tính câu hỏi.' : 'Điền thông tin bên dưới để thêm câu hỏi vào ngân hàng.'}</p>
+                <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>{currentQ.id ? 'Chỉnh sửa Câu hỏi' : 'Thêm Câu hỏi mới'}</h2>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>{currentQ.id ? 'Cập nhật nội dung và thuộc tính câu hỏi.' : 'Điền thông tin bên dưới để thêm câu hỏi vào ngân hàng.'}</p>
               </div>
               <button onClick={() => setIsEditing(false)} style={closeBtnStyle}><X size={24} /></button>
             </div>
@@ -314,14 +335,14 @@ const QuestionBankView = () => {
               
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
                 <button type="button" onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '0.85rem', background: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'background 0.2s' }} onMouseOver={e => e.target.style.background = '#e2e8f0'} onMouseOut={e => e.target.style.background = '#f1f5f9'}>Hủy bỏ</button>
-                <button type="submit" style={{ flex: 1, padding: '0.85rem', background: '#4f46e5', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>{currentQ.id ? 'Lưu thay đổi' : 'Thêm câu hỏi'}</button>
+                <button type="submit" style={{ flex: 1, padding: '0.85rem', background: '#EA580C', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 15px rgba(234, 88, 12, 0.3)', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>{currentQ.id ? 'Lưu thay đổi' : 'Thêm câu hỏi'}</button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>,
         document.body
       )}
-    </div>
+    </motion.div>
   );
 };
 
@@ -353,13 +374,14 @@ const iconBtnStyle = {
 };
 
 const pageBtnStyle = {
-  padding: '0.5rem 1rem',
-  background: 'var(--primary)',
+  padding: '0.6rem 1.25rem',
+  background: 'linear-gradient(135deg, #EA580C, #C2410C)',
   color: 'white',
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: '12px',
   fontWeight: 'bold',
-  transition: 'transform 0.2s'
+  boxShadow: '0 4px 15px rgba(234, 88, 12, 0.2)',
+  transition: 'transform 0.2s, box-shadow 0.2s'
 };
 
 const closeBtnStyle = { background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.25rem', transition: 'color 0.2s' };

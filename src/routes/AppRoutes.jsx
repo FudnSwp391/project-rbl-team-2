@@ -50,6 +50,8 @@ import BlogList from '../pages/Public/BlogList';
 import BlogPost from '../pages/Public/BlogPost';
 import JobView from '../pages/Public/JobView';
 import JobList from '../pages/Public/JobList';
+import TermsOfService from '../pages/Public/TermsOfService';
+import PrivacyPolicy from '../pages/Public/PrivacyPolicy';
 
 // User Booking Components
 import MentorDirectory from '../pages/User/MentorDirectory';
@@ -81,6 +83,8 @@ const AppRoutes = () => {
       <Route path="/jobs" element={<JobList />} />
       <Route path="/blogs" element={<BlogList />} />
       <Route path="/blog/:id" element={<BlogPost />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       
       {/* Protected User Routes */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

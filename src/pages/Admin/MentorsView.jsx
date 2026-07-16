@@ -3,6 +3,16 @@ import { supabase } from '../../utils/supabaseClient';
 import { Check, X as XIcon, Eye, Info, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useConfirm } from '../../utils/ConfirmContext';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+};
 
 const MentorsView = () => {
   const confirm = useConfirm();
@@ -173,9 +183,9 @@ const MentorsView = () => {
   };
 
   return (
-    <div className="animate-fade" style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2>{activeTab === 'pending' ? 'Duyệt Đăng Ký Mentor' : 'Quản Lý Danh Sách Mentor'}</h2>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ position: 'relative' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-0.5px', margin: 0, fontFamily: 'var(--font-heading)' }}>{activeTab === 'pending' ? 'Duyệt Đăng Ký Mentor' : 'Quản Lý Danh Sách Mentor'}</h2>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <input
             type="text"
@@ -184,32 +194,36 @@ const MentorsView = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               padding: '0.75rem 1.25rem',
-              borderRadius: '9999px',
-              border: '1px solid rgba(0,0,0,0.1)',
-              background: 'rgba(255,255,255,0.8)',
-              color: '#333',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
               width: '300px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+              outline: 'none',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+              transition: 'border-color 0.2s, box-shadow 0.2s'
             }}
           />
         </div>
-      </div>
+      </motion.div>
 
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid #e2e8f0', marginBottom: '2rem' }}>
         <button
           onClick={() => { setActiveTab('pending'); setPage(1); }}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: '1rem 1.5rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'pending' ? '2px solid #6B7F5C' : '2px solid transparent',
-            color: activeTab === 'pending' ? '#6B7F5C' : '#64748b',
-            fontWeight: '600',
+            borderBottom: activeTab === 'pending' ? '3px solid #EA580C' : '3px solid transparent',
+            color: activeTab === 'pending' ? '#EA580C' : '#64748b',
+            fontWeight: '700',
             cursor: 'pointer',
-            fontSize: '0.95rem',
+            fontSize: '1rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            transition: 'all 0.2s',
+            marginBottom: '-2px'
           }}
         >
           Yêu Cầu Chờ Duyệt 
@@ -218,59 +232,62 @@ const MentorsView = () => {
         <button
           onClick={() => { setActiveTab('managed'); setPage(1); }}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: '1rem 1.5rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'managed' ? '2px solid #6B7F5C' : '2px solid transparent',
-            color: activeTab === 'managed' ? '#6B7F5C' : '#64748b',
-            fontWeight: '600',
+            borderBottom: activeTab === 'managed' ? '3px solid #EA580C' : '3px solid transparent',
+            color: activeTab === 'managed' ? '#EA580C' : '#64748b',
+            fontWeight: '700',
             cursor: 'pointer',
-            fontSize: '0.95rem'
+            fontSize: '1rem',
+            transition: 'all 0.2s',
+            marginBottom: '-2px'
           }}
         >
           Danh Sách Mentor
         </button>
-      </div>
+      </motion.div>
 
-      <div className="glass-card" style={{ overflowX: 'auto', padding: 0 }}>
+      <motion.div variants={itemVariants} className="glass-card" style={{ overflowX: 'auto', padding: 0, borderRadius: '24px', boxShadow: '0 15px 35px rgba(0,0,0,0.03)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Tên Mentor</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Email Liên Hệ</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Chuyên Môn</th>
-              <th style={{ padding: '1rem', fontWeight: '500' }}>Trạng Thái</th>
-              <th style={{ padding: '1rem', fontWeight: '500', textAlign: 'center' }}>Thao Tác</th>
+            <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: 'linear-gradient(90deg, rgba(234, 88, 12, 0.03), transparent)' }}>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Tên Mentor</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Email Liên Hệ</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Chuyên Môn</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)' }}>Trạng Thái</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: '600', color: 'var(--color-charcoal)', textAlign: 'center' }}>Thao Tác</th>
             </tr>
           </thead>
           <tbody>
             {mentors.length > 0 ? mentors.map(mentor => (
               <tr key={mentor.id} style={{ borderBottom: '1px solid var(--glass-border)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                <td style={{ padding: '1rem', fontWeight: '600', color: '#1e293b' }}>
+                <td style={{ padding: '1.25rem 1rem', fontWeight: '600', color: '#1e293b' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     {mentor.avatar_url ? (
-                      <img src={mentor.avatar_url} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                      <img src={mentor.avatar_url} alt="Avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#6B7F5C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(234, 88, 12, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#EA580C' }}>
                         {(mentor.full_name || 'M').charAt(0).toUpperCase()}
                       </div>
                     )}
                     {mentor.full_name}
                   </div>
                 </td>
-                <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{mentor.email || 'N/A'}</td>
-                <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{mentor.expertise || 'N/A'}</td>
-                <td style={{ padding: '1rem' }}>
+                <td style={{ padding: '1.25rem 1rem', color: 'var(--text-secondary)' }}>{mentor.email || 'N/A'}</td>
+                <td style={{ padding: '1.25rem 1rem', color: 'var(--text-secondary)' }}>{mentor.expertise || 'N/A'}</td>
+                <td style={{ padding: '1.25rem 1rem' }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                    color: mentor.status === 'approved' ? '#059669' : (mentor.status === 'rejected' ? '#e11d48' : '#d97706'),
-                    fontWeight: '500', fontSize: '0.9rem', textTransform: 'capitalize'
+                    color: mentor.status === 'approved' ? '#10b981' : (mentor.status === 'rejected' ? '#ef4444' : '#f59e0b'),
+                    background: mentor.status === 'approved' ? 'rgba(16, 185, 129, 0.1)' : (mentor.status === 'rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)'),
+                    padding: '0.35rem 0.75rem', borderRadius: '9999px',
+                    fontWeight: '700', fontSize: '0.75rem', textTransform: 'uppercase'
                   }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: mentor.status === 'approved' ? '#10b981' : (mentor.status === 'rejected' ? '#f43f5e' : '#f59e0b') }} />
                     {mentor.status === 'approved' ? 'Đã duyệt' : (mentor.status === 'rejected' ? 'Từ chối' : 'Chờ duyệt')}
                   </span>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                <td style={{ padding: '1.25rem 1rem', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                   <button onClick={() => setSelectedMentor(mentor)} style={{...iconBtnStyle, background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6'}} title="Xem chi tiết"><Eye size={16} /></button>
                   {activeTab === 'pending' && (
                     <>
@@ -288,47 +305,52 @@ const MentorsView = () => {
               </tr>
             )) : (
               <tr>
-                <td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <td colSpan="5" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                   {loading ? 'Đang tải dữ liệu...' : (activeTab === 'pending' ? 'Không có yêu cầu đăng ký nào đang chờ duyệt' : 'Chưa có Mentor nào trong hệ thống')}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+      </motion.div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: 'var(--spacing-md)' }}>
+      <motion.div variants={itemVariants} style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
         <button
           disabled={page === 1}
           onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', transition: 'transform 0.2s', opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+          style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #EA580C, #C2410C)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', transition: 'transform 0.2s', opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(234, 88, 12, 0.2)' }}
         >
           &larr; Prev
         </button>
-        <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontWeight: '600', color: '#334155' }}>
+        <span style={{ padding: '0.6rem 1.25rem', background: '#ffffff', borderRadius: '12px', fontWeight: '700', color: 'var(--color-charcoal)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
           {page} / {totalPages}
         </span>
         <button
           disabled={page === totalPages || totalPages === 0}
           onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', transition: 'transform 0.2s', opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
+          style={{ padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, #EA580C, #C2410C)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', transition: 'transform 0.2s', opacity: (page === totalPages || totalPages === 0) ? 0.5 : 1, cursor: (page === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 15px rgba(234, 88, 12, 0.2)' }}
         >
           Next &rarr;
         </button>
-      </div>
+      </motion.div>
 
-      {/* Detail Modal */}
       {selectedMentor && (
         <div style={modalOverlayStyle}>
-          <div className="animate-fade" style={modalContentStyle}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            style={modalContentStyle}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(107, 127, 92, 0.1)', color: '#6B7F5C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Info size={24} />
+                <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(234, 88, 12, 0.1)', color: '#EA580C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Info size={28} />
                 </div>
                 <div>
-                  <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: '#1e293b' }}>Thông Tin Đăng Ký Mentor</h2>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Hồ sơ đăng ký của: {selectedMentor.full_name}</p>
+                  <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', color: 'var(--color-charcoal)', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>Thông Tin Đăng Ký Mentor</h2>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Hồ sơ đăng ký của: {selectedMentor.full_name}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedMentor(null)} style={closeBtnStyle}><XIcon size={24} /></button>
@@ -385,7 +407,7 @@ const MentorsView = () => {
                 <label style={labelStyle}>Tài liệu đính kèm (CV / Chứng chỉ)</label>
                 <div style={readOnlyFieldStyle}>
                   {selectedMentor.document_url ? (
-                    <a href={selectedMentor.document_url} target="_blank" rel="noopener noreferrer" style={{ color: '#6B7F5C', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
+                    <a href={selectedMentor.document_url} target="_blank" rel="noopener noreferrer" style={{ color: '#EA580C', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
                       <FileText size={18} />
                       Xem tài liệu đính kèm (PDF)
                     </a>
@@ -397,18 +419,18 @@ const MentorsView = () => {
               
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
                 {selectedMentor.status !== 'approved' && (
-                  <button onClick={() => { handleApprove(selectedMentor); setSelectedMentor(null); }} style={{ flex: 1, padding: '0.85rem', background: '#6B7F5C', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Duyệt Mentor</button>
+                  <button onClick={() => { handleApprove(selectedMentor); setSelectedMentor(null); }} style={{ flex: 1, padding: '0.85rem', background: '#10b981', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'transform 0.2s', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Duyệt Mentor</button>
                 )}
                 {selectedMentor.status !== 'rejected' && (
-                  <button onClick={() => { handleReject(selectedMentor); setSelectedMentor(null); }} style={{ flex: 1, padding: '0.85rem', background: '#e11d48', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Từ Chối Yêu Cầu</button>
+                  <button onClick={() => { handleReject(selectedMentor); setSelectedMentor(null); }} style={{ flex: 1, padding: '0.85rem', background: '#ef4444', border: 'none', color: '#ffffff', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'transform 0.2s', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)' }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>Từ Chối Yêu Cầu</button>
                 )}
                 <button type="button" onClick={() => setSelectedMentor(null)} style={{ flex: selectedMentor.status === 'pending' ? '0 0 auto' : 1, padding: '0.85rem 1.5rem', background: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', transition: 'background 0.2s' }} onMouseOver={e => e.target.style.background = '#e2e8f0'} onMouseOut={e => e.target.style.background = '#f1f5f9'}>Đóng</button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
