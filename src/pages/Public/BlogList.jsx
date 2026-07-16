@@ -158,12 +158,14 @@ const BlogList = () => {
             </div>
 
             {/* Category Pills */}
-            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '0.5rem', width: '100%', justifyContent: 'flex-start', scrollbarWidth: 'none', padding: '0 0.5rem' }}>
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.value}
                   onClick={() => setSelectedCategory(cat.value)}
                   style={{
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                     padding: '0.6rem 1.25rem',
                     borderRadius: '50px',
                     border: selectedCategory === cat.value ? '1px solid #EA580C' : '1px solid rgba(0,0,0,0.06)',
@@ -245,7 +247,7 @@ const BlogList = () => {
                     marginBottom: '1.5rem'
                   }}>
                     <img 
-                      src={blog.type === 'Video' ? 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80' : COVER_IMAGES[index % COVER_IMAGES.length]} 
+                      src={blog.cover_image_url || (blog.type === 'Video' ? 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80' : COVER_IMAGES[index % COVER_IMAGES.length])} 
                       alt={blog.title} 
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
