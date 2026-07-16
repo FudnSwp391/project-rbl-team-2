@@ -42,3 +42,68 @@ body {
 .page-transition-wrapper {
   animation: pageTransitionFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ── Rich Text Editor (ReactQuill) Output Fixes ── */
+.ql-editor {
+  padding: 0 !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.ql-editor h1, 
+.ql-editor h2, 
+.ql-editor h3, 
+.ql-editor h4, 
+.ql-editor h5, 
+.ql-editor h6 {
+  text-transform: none !important;
+  font-family: var(--font-sans) !important;
+  line-height: 1.4 !important;
+  margin-top: 2rem !important;
+  margin-bottom: 1rem !important;
+  font-weight: 700 !important;
+  color: var(--color-charcoal) !important;
+  letter-spacing: normal !important;
+}
+
+.ql-editor h1 { font-size: 2.2rem !important; }
+.ql-editor h2 { font-size: 1.8rem !important; }
+.ql-editor h3 { font-size: 1.5rem !important; }
+.ql-editor h4 { font-size: 1.25rem !important; }
+
+.ql-editor p {
+  font-family: var(--font-sans) !important;
+  font-size: 1.15rem !important;
+  line-height: 1.8 !important;
+  color: #333 !important;
+  margin-bottom: 1.2rem !important;
+  font-weight: 400 !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.ql-editor ul, 
+.ql-editor ol {
+  padding-left: 2rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.ql-editor li {
+  font-family: var(--font-sans) !important;
+  font-size: 1.15rem !important;
+  line-height: 1.8 !important;
+  color: #333 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.ql-editor img {
+  border-radius: 12px;
+  max-width: 100%;
+  margin: 2rem auto;
+  display: block;
+}
+
+/* Quill aligns */
+.ql-editor .ql-align-center { text-align: center; }
+.ql-editor .ql-align-right { text-align: right; }
+.ql-editor .ql-align-justify { text-align: justify; }

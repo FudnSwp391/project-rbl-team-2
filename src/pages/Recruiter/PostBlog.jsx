@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Send, Play } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 const PostBlog = () => {
   const { id } = useParams();
@@ -19,6 +21,20 @@ const PostBlog = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, false] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'image', 'video'],
+      ['clean']
+    ]
+  };
 
   useEffect(() => {
     checkCompanyStatus();
@@ -51,13 +67,38 @@ const PostBlog = () => {
         
       if (error) throw error;
       if (data) {
+        let rawContent = data.content || '';
+        let extractedVideoUrl = data.video_url || '';
+        
+        const videoMatch = rawContent.match(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/);
+        if (videoMatch) {
+          extractedVideoUrl = videoMatch[1];
+          rawContent = rawContent.replace(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/, '').trim();
+        }
+
+        const CATEGORY_VALUES = ['interview-tips', 'tech-skills', 'career-advice', 'industry-trends', 'recruitment'];
+        let extractedCategory = data.category || '';
+        let actualTags = [];
+        
+        if (Array.isArray(data.tags)) {
+          actualTags = data.tags.filter(tag => {
+            if (CATEGORY_VALUES.includes(tag)) {
+              if (!extractedCategory) extractedCategory = tag;
+              return false;
+            }
+            return true;
+          });
+        } else if (typeof data.tags === 'string' && data.tags) {
+          actualTags = [data.tags];
+        }
+
         setFormData({
           title: data.title || '',
-          content: data.content || '',
-          category: data.category || '',
+          content: rawContent,
+          category: extractedCategory,
           cover_image_url: data.cover_image_url || '',
-          video_url: data.video_url || '',
-          tags: Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
+          video_url: extractedVideoUrl,
+          tags: actualTags.join(', '),
         });
       }
     } catch (err) {
@@ -67,7 +108,12 @@ const PostBlog = () => {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleContentChange = (content) => {
+    setFormData(prev => ({ ...prev, content }));
   };
 
   const handleSubmit = async (e, isDraft = false) => {
@@ -136,6 +182,39 @@ const PostBlog = () => {
     return match ? `https://www.youtube.com/embed/${match[1]}` : null;
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('blog-images')
+        .upload(filePath, file);
+
+      if (error) {
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('blog-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, cover_image_url: publicUrl }));
+      alert('Tải ảnh lên thành công!');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Lỗi khi tải ảnh: ' + error.message + '\\n(Lưu ý: Cần tạo bucket "blog-images" ở chế độ Public trên Supabase)');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const embedUrl = getYouTubeEmbedUrl(formData.video_url);
 
   return (
@@ -191,21 +270,28 @@ const PostBlog = () => {
             {/* Cover Image & Category Row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={labelStyle}>Link ảnh bìa (Cover Image URL)</label>
-                <input
-                  type="url"
-                  name="cover_image_url"
-                  value={formData.cover_image_url}
-                  onChange={handleChange}
-                  style={inputStyle}
-                  placeholder="https://..."
-                />
+                <label style={labelStyle}>Ảnh bìa (Tải lên từ máy)</label>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ ...inputStyle, padding: '0.5rem', cursor: 'pointer', flex: 1 }}
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage && <span style={{ fontSize: '0.9rem', color: '#3182CE', fontWeight: '500' }}>Đang tải...</span>}
+                </div>
+                {formData.cover_image_url && (
+                  <div style={{ marginTop: '1rem', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', height: '140px' }}>
+                     <img src={formData.cover_image_url} alt="Cover Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
               </div>
               <div>
                 <label style={labelStyle}>Danh mục</label>
                 <select name="category" value={formData.category} onChange={handleChange} style={inputStyle}>
                   <option value="">Chọn danh mục...</option>
-                  <option value="interview-tips">Mẹo phỏng vấn</option>
+                  <option value="interview-tips">Bí kíp phỏng vấn</option>
                   <option value="tech-skills">Kỹ năng kỹ thuật</option>
                   <option value="career-advice">Tư vấn nghề nghiệp</option>
                   <option value="industry-trends">Xu hướng ngành</option>
@@ -271,14 +357,16 @@ const PostBlog = () => {
               <label style={labelStyle}>
                 Nội dung bài viết <span style={{ color: 'var(--color-accent)' }}>*</span>
               </label>
-              <textarea
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                style={{ ...inputStyle, minHeight: '250px', resize: 'vertical', lineHeight: '1.7' }}
-                placeholder="Viết nội dung bài viết tại đây... (Hỗ trợ Markdown)"
-                required
-              />
+              <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                <ReactQuill 
+                  theme="snow"
+                  value={formData.content}
+                  onChange={handleContentChange}
+                  modules={modules}
+                  placeholder="Viết nội dung bài viết tại đây..."
+                  style={{ height: '400px', marginBottom: '40px' }}
+                />
+              </div>
             </div>
 
             {/* Actions */}

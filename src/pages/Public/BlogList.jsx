@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { motion } from 'framer-motion';
 
@@ -11,13 +12,32 @@ const COVER_IMAGES = [
   'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80'
 ];
 
+const CATEGORIES = [
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Bí kíp phỏng vấn', value: 'interview-tips' },
+  { label: 'Kỹ năng kỹ thuật', value: 'tech-skills' },
+  { label: 'Tư vấn nghề nghiệp', value: 'career-advice' },
+  { label: 'Xu hướng ngành', value: 'industry-trends' },
+  { label: 'Tuyển dụng', value: 'recruitment' },
+];
+
 const BlogList = () => {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const location = useLocation();
 
   useEffect(() => {
     fetchBlogs();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.category) {
+      setSelectedCategory(location.state.category);
+    }
+  }, [location.state]);
 
   const fetchBlogs = async () => {
     try {
@@ -29,9 +49,11 @@ const BlogList = () => {
           title,
           created_at,
           content,
+          cover_image_url,
+          tags,
           profiles!blogs_author_id_fkey (
             full_name,
-            companies (company_name)
+            companies (company_name, status)
           )
         `)
         .eq('status', 'published')
@@ -41,14 +63,28 @@ const BlogList = () => {
       
       const formattedBlogs = (data || []).map(blog => {
         const isVideo = blog.content && blog.content.includes('[VIDEO:');
+        
+        let companyName = null;
+        if (blog.profiles?.companies) {
+          const comps = Array.isArray(blog.profiles.companies) ? blog.profiles.companies : [blog.profiles.companies];
+          const approvedComp = comps.find(c => c.status === 'approved');
+          if (approvedComp) {
+            companyName = approvedComp.company_name;
+          }
+        }
+
         return {
           id: blog.id,
           title: blog.title,
           type: isVideo ? 'Video' : 'Article',
-          date: new Date(blog.created_at).toLocaleDateString(),
-        summary: blog.content ? blog.content.substring(0, 100) + '...' : '',
-        authorName: blog.profiles?.full_name || 'Tác giả',
-        company: blog.profiles?.companies?.[0]?.company_name || null,
+          date: new Date(blog.created_at).toLocaleDateString('vi-VN'),
+          summary: blog.content 
+            ? blog.content.replace(/\[VIDEO:.*?\]/g, '').replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').substring(0, 150) + '...' 
+            : '',
+          authorName: blog.profiles?.full_name || 'Tác giả',
+          company: companyName,
+          cover_image_url: blog.cover_image_url,
+          tags: blog.tags || [],
         };
       });
       
@@ -73,6 +109,24 @@ const BlogList = () => {
     visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
   };
 
+  const filteredBlogs = blogs.filter(blog => {
+    const matchesSearch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) || blog.summary.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || blog.tags.includes(selectedCategory);
+    return matchesSearch && matchesCategory;
+  });
+
+  const getCategoryLabel = (tags) => {
+    if (!tags || !tags.length) return 'BÀI VIẾT TỔNG HỢP';
+    const cat = CATEGORIES.find(c => tags.includes(c.value));
+    return cat ? cat.label.toUpperCase() : 'BÀI VIẾT';
+  };
+
+  const getCustomTags = (tags) => {
+    if (!tags || !tags.length) return [];
+    const categoryValues = CATEGORIES.map(c => c.value);
+    return tags.filter(tag => !categoryValues.includes(tag));
+  };
+
   return (
     <motion.div 
       className="section" 
@@ -83,27 +137,75 @@ const BlogList = () => {
     >
       <div className="container">
         
-        <motion.div variants={itemVariants} style={{ textAlign: 'center', marginBottom: 'var(--spacing-2xl)' }}>
+        <motion.div variants={itemVariants} style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <span style={{ marginBottom: '1rem', background: 'linear-gradient(135deg, rgba(234, 88, 12, 0.1), rgba(194, 65, 12, 0.1))', color: '#EA580C', padding: '0.5rem 1.25rem', borderRadius: '50px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', display: 'inline-block', fontSize: '0.85rem' }}>
             Tài liệu & Góc nhìn
           </span>
           <h1 style={{ fontSize: '2.8rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-charcoal)', letterSpacing: '-1px', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>
             Blog <span style={{ color: '#EA580C' }}>&</span> Kinh Nghiệm
           </h1>
-          <p style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--color-text-secondary)', fontSize: '1.15rem', fontWeight: 500, lineHeight: 1.6 }}>
+          <p style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--color-text-secondary)', fontSize: '1.15rem', fontWeight: 500, lineHeight: 1.6, marginBottom: '2.5rem' }}>
             Khám phá những mẹo phỏng vấn, lời khuyên phát triển sự nghiệp và trải nghiệm thực tế từ các chuyên gia hàng đầu.
           </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
+            {/* Search Bar */}
+            <div style={{ position: 'relative', width: '100%', maxWidth: '500px' }}>
+              <Search size={18} style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)' }} />
+              <input 
+                type="text" 
+                placeholder="Tìm bài viết..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '1rem 1rem 1rem 3.5rem',
+                  borderRadius: '50px',
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  outline: 'none',
+                  fontSize: '0.95rem',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
+                  fontFamily: 'var(--font-sans)'
+                }}
+              />
+            </div>
+
+            {/* Category Pills */}
+            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    borderRadius: '50px',
+                    border: selectedCategory === cat.value ? '1px solid #EA580C' : '1px solid rgba(0,0,0,0.06)',
+                    background: selectedCategory === cat.value ? '#EA580C' : 'white',
+                    color: selectedCategory === cat.value ? 'white' : 'var(--color-text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    transition: 'all 0.2s',
+                    boxShadow: selectedCategory === cat.value ? '0 4px 10px rgba(234, 88, 12, 0.2)' : '0 2px 5px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
+        {/* Blog Grid */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>Đang tải danh sách bài viết...</div>
-        ) : blogs.length === 0 ? (
+        ) : filteredBlogs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
-            Hiện tại chưa có bài viết nào.
+            Không tìm thấy bài viết nào phù hợp.
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2.5rem' }}>
-            {blogs.map((blog, index) => (
+            {filteredBlogs.map((blog, index) => (
               <motion.div key={blog.id} variants={itemVariants}>
                 <Link to={`/blog/${blog.id}`} style={{ 
                   display: 'flex', 
@@ -128,7 +230,7 @@ const BlogList = () => {
                 }}>
                   
                   {/* Badge */}
-                  <div style={{ display: 'flex', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <span style={{ 
                       fontSize: '0.65rem', 
                       textTransform: 'uppercase', 
@@ -141,6 +243,9 @@ const BlogList = () => {
                       borderRadius: '50px'
                     }}>
                       {blog.type === 'Video' ? 'VIDEO' : 'BÀI VIẾT'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#EA580C', fontWeight: '700', textTransform: 'uppercase' }}>
+                      {getCategoryLabel(blog.tags)}
                     </span>
                   </div>
 

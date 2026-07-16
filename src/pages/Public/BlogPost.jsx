@@ -4,6 +4,28 @@ import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import { Play, FileText, User, ExternalLink, Calendar, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import 'react-quill-new/dist/quill.snow.css'; // For rich text styles
+
+const CATEGORIES = [
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Bí kíp phỏng vấn', value: 'interview-tips' },
+  { label: 'Kỹ năng kỹ thuật', value: 'tech-skills' },
+  { label: 'Tư vấn nghề nghiệp', value: 'career-advice' },
+  { label: 'Xu hướng ngành', value: 'industry-trends' },
+  { label: 'Tuyển dụng', value: 'recruitment' },
+];
+
+const getCategoryLabel = (tags) => {
+  if (!tags || !tags.length) return 'Bài viết';
+  const cat = CATEGORIES.find(c => tags.includes(c.value));
+  return cat ? cat.label : 'Bài viết';
+};
+
+const getCategoryValue = (tags) => {
+  if (!tags || !tags.length) return 'all';
+  const cat = CATEGORIES.find(c => tags.includes(c.value));
+  return cat ? cat.value : 'all';
+};
 
 const getYouTubeEmbedUrl = (url) => {
   if (!url) return null;
@@ -197,8 +219,10 @@ const BlogPost = () => {
   const embedUrl = getYouTubeEmbedUrl(rawVideoUrl);
   const isVideo = !!rawVideoUrl;
   
-  // Clean content from the [VIDEO: ...] tag if it's there
-  let cleanContent = (blog.content || '').replace(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/, '');
+  // Clean content from the [VIDEO: ...] tag if it's there and replace non-breaking spaces
+  let cleanContent = (blog.content || '')
+    .replace(/\[VIDEO:\s*(https?:\/\/[^\]]+)\]/, '')
+    .replace(/&nbsp;/g, ' ');
 
   // Format date
   const formattedDate = blog.created_at 
@@ -226,7 +250,7 @@ const BlogPost = () => {
     >
       <div className="container container--narrow">
         
-        <motion.div variants={itemVariants} style={{ marginBottom: '2rem' }}>
+        <motion.div variants={itemVariants} style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
           <Link to="/blogs" style={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
@@ -269,8 +293,27 @@ const BlogPost = () => {
             }}>
               <ArrowLeft size={16} />
             </span>
-            Quay lại danh sách Blog
+            Quay lại
           </Link>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+            <Link to="/blogs" style={{ color: 'var(--color-charcoal)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}
+              onMouseOver={(e) => e.target.style.color = '#3182ce'}
+              onMouseOut={(e) => e.target.style.color = 'var(--color-charcoal)'}
+            >Blog</Link>
+            <span>›</span>
+            <Link 
+              to="/blogs" 
+              state={{ category: getCategoryValue(blog.tags) }}
+              style={{ color: 'var(--color-charcoal)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}
+              onMouseOver={(e) => e.target.style.color = '#3182ce'}
+              onMouseOut={(e) => e.target.style.color = 'var(--color-charcoal)'}
+            >
+              {getCategoryLabel(blog.tags)}
+            </Link>
+            <span>›</span>
+            <span style={{ color: 'var(--color-charcoal)', fontWeight: 600 }}>{blog.title}</span>
+          </div>
         </motion.div>
 
         <motion.article variants={itemVariants} className="glass-card" style={{ padding: '0', overflow: 'hidden', borderRadius: '24px', boxShadow: '0 20px 40px rgba(44, 40, 36, 0.05)' }}>
@@ -392,13 +435,13 @@ const BlogPost = () => {
 
             {/* Content Body */}
             <div 
-              className="blog-content" 
+              className="blog-content ql-editor" 
               style={{
                 fontFamily: 'var(--font-sans)',
+                padding: 0 // Override quill default padding
               }}
-              dangerouslySetInnerHTML={{ 
-              __html: cleanContent.replace(/\n/g, '<br/>').replace(/### (.*?)(?:<br\/>|$)/g, '<h3 style="margin-top: 2.5rem; margin-bottom: 1rem; font-family: var(--font-serif); font-size: 1.5rem; color: var(--color-charcoal);">$1</h3>') 
-            }} />
+              dangerouslySetInnerHTML={{ __html: cleanContent }} 
+            />
 
             {/* Tags */}
             {blog.tags && Array.isArray(blog.tags) && blog.tags.length > 0 && (
