@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import { Trash2 } from 'lucide-react';
+import { useConfirm } from '../../utils/ConfirmContext';
 
 const BlogManagement = () => {
+  const confirm = useConfirm();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,6 +52,24 @@ const BlogManagement = () => {
     } catch (err) {
       console.error('Error publishing blog:', err);
       alert('Failed to publish blog.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const isConfirmed = await new Promise(resolve => confirm({ 
+      message: 'Bạn có chắc chắn muốn xóa bài viết này?', 
+      isDanger: true, 
+      onConfirm: () => resolve(true), 
+      onCancel: () => resolve(false) 
+    }));
+    if (!isConfirmed) return;
+    try {
+      const { error } = await supabase.from('blogs').delete().eq('id', id);
+      if (error) throw error;
+      setBlogs(prev => prev.filter(b => b.id !== id));
+    } catch (err) {
+      console.error('Error deleting blog:', err);
+      alert('Lỗi khi xóa bài viết: ' + err.message);
     }
   };
 
@@ -127,6 +148,24 @@ const BlogManagement = () => {
                   {blog.status === 'published' && (
                     <Link to={`/blog/${blog.id}`} className="btn btn--outline" style={{ flex: 1, padding: '0.5rem', justifyContent: 'center', textAlign: 'center' }}>View</Link>
                   )}
+                  <button
+                    onClick={() => handleDelete(blog.id)}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      border: '1px solid rgba(192, 57, 43, 0.2)',
+                      background: 'rgba(192, 57, 43, 0.05)',
+                      borderRadius: '50px',
+                      cursor: 'pointer',
+                      color: '#c0392b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s'
+                    }}
+                    title="Xóa bài viết"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             ))}
