@@ -4,7 +4,7 @@ import {
   Sparkles, Upload, FileText, Zap, ArrowRight,
   X, CheckCircle, AlertCircle, FileUp, Briefcase,
   ChevronLeft, Clock, Target, Brain, Shield,
-  TrendingUp, Star, Users
+  TrendingUp, Star, Users, History
 } from 'lucide-react';
 import '../../assets/styles/interview-theme.css';
 import './InterviewLanding.css';
@@ -112,6 +112,16 @@ export default function InterviewLanding() {
           <h1 className="landing-hero__title">
             Sẵn sàng cho buổi phỏng vấn tiếp theo?
           </h1>
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+            <button 
+              className="iv-btn iv-btn--secondary iv-glass"
+              style={{ padding: '0.6rem 1.25rem', gap: '0.5rem', color: 'var(--color-charcoal)' }}
+              onClick={() => navigate('/interview/history')}
+            >
+              <History size={18} />
+              Xem lịch sử phỏng vấn
+            </button>
+          </div>
         </div>
 
         {/* Mode Selection Cards */}

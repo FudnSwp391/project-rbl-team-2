@@ -47,8 +47,6 @@ const MentorDirectory = () => {
   return (
     <div className="section" style={{ 
       backgroundColor: '#fdfbf7', 
-      backgroundImage: 'linear-gradient(rgba(234, 88, 12, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(234, 88, 12, 0.05) 1px, transparent 1px)',
-      backgroundSize: '50px 50px',
       minHeight: '100vh', 
       paddingTop: '120px',
       position: 'relative',

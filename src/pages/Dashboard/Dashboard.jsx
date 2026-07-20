@@ -10,10 +10,10 @@ const StreakOverlay = ({ streak, onClose }) => {
   const [displayNumber, setDisplayNumber] = useState(Math.max(0, streak - 1));
 
   useEffect(() => {
-    // Nhảy số sau khi video chạy được 1 lúc (ví dụ 1.2s)
+    // Nhảy số sau khi video chạy được 1 lúc
     const timer = setTimeout(() => {
       setDisplayNumber(streak);
-    }, 1200);
+    }, 500);
     return () => clearTimeout(timer);
   }, [streak]);
 
@@ -123,7 +123,10 @@ const Dashboard = () => {
         savedData.points = profile.points;
       }
       if (profile.streak_days !== undefined && profile.streak_days !== savedData.streak) {
-        savedData.streak = profile.streak_days;
+        // Chỉ cập nhật từ DB nếu DB lớn hơn Local (tránh stale read) hoặc bị reset về 0
+        if (profile.streak_days === 0 || profile.streak_days > savedData.streak) {
+          savedData.streak = profile.streak_days;
+        }
       }
     }
     
@@ -319,18 +322,7 @@ const Dashboard = () => {
               Streak Days
             </p>
 
-            <button 
-              onClick={() => setShowStreakAnimation(true)}
-              style={{ 
-                position: 'absolute', top: '1rem', right: '1rem', 
-                fontSize: '0.7rem', padding: '4px 8px', 
-                background: 'rgba(255,255,255,0.3)', color: '#1a2733',
-                border: '1px solid rgba(0,0,0,0.1)', borderRadius: '6px', 
-                cursor: 'pointer', zIndex: 10, fontWeight: 600
-              }}
-            >
-              Test Hiệu Ứng
-            </button>
+
             
             {/* Viền vàng phía sau (Background shape) */}
             <div style={{

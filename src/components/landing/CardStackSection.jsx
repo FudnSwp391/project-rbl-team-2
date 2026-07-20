@@ -2,6 +2,9 @@ import React, { useRef, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './CardStackSection.css';
+import videoProject3 from '../../assets/Video Project 3.mp4';
+import videoProject4 from '../../assets/Video Project 4.mp4';
+import videoProject7 from '../../assets/Video Project 7.mp4';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,6 +15,7 @@ const steps = [
     description: 'Đăng ký miễn phí, hoàn thiện hồ sơ và tải lên CV để AI hiểu rõ về bạn.',
     icon: '👤',
     accent: '#c4956a',
+    video: videoProject3,
   },
   {
     number: '02',
@@ -19,6 +23,7 @@ const steps = [
     description: 'Lựa chọn vị trí, ngành nghề và cấp độ phỏng vấn phù hợp mục tiêu.',
     icon: '🎯',
     accent: '#35a78c',
+    video: videoProject4,
   },
   {
     number: '03',
@@ -26,6 +31,7 @@ const steps = [
     description: 'Tham gia phỏng vấn AI, nhận feedback chi tiết và liên tục cải thiện.',
     icon: '🚀',
     accent: '#d06b3e',
+    video: videoProject7,
   },
 ];
 
@@ -189,15 +195,37 @@ const CardStackSection = () => {
                   </div>
 
                   {/* Giữa: Tab nội dung */}
-                  <div className="card-stack-tab" style={{ borderColor: `rgba(255,255,255,0.05)` }}>
-                    <div className="card-stack-tab-placeholder">
-                      <div className="card-stack-icon" style={{ color: step.accent }}>
-                        {step.icon}
+                  <div className="card-stack-tab" style={{ 
+                    borderColor: `rgba(255,255,255,0.05)`, 
+                    backgroundColor: step.video ? '#fff' : '#1C1C1C' 
+                  }}>
+                    {step.video ? (
+                      <video 
+                        src={step.video} 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        style={{ 
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          transform: 'scale(1.35)'
+                        }}
+                      />
+                    ) : (
+                      <div className="card-stack-tab-placeholder">
+                        <div className="card-stack-icon" style={{ color: step.accent }}>
+                          {step.icon}
+                        </div>
+                        <span className="card-stack-tab-hint" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>
+                          Nội dung tab
+                        </span>
                       </div>
-                      <span className="card-stack-tab-hint" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>
-                        Nội dung tab
-                      </span>
-                    </div>
+                    )}
                   </div>
 
                   {/* Phải: Mô tả */}
