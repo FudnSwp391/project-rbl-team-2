@@ -7,10 +7,10 @@ import { Frown, FileText, RefreshCw } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 import CloudDivider from '../../components/common/CloudDivider';
-import heroVideo from '../../assets/hero.mp4';
+const heroVideo = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/hero.mp4";
 import featureInterview from '../../assets/Person_conducting_remote_interview_2K_202607160837.jpeg';
 import featureCv from '../../assets/Computer_monitor_displaying_CV_a…_202607160903.jpeg';
-import featureChallenge from '../../assets/hãy_tạo_video_liên_quan_có_ngư.mp4';
+const featureChallenge = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/h_y_t_o_video_li_n_quan_c__ng_.mp4";
 import featureFeedback from '../../assets/Computer_screen_with_two_images_202607161033.jpeg';
 import problemIllustration1 from '../../assets/problem-illustration-1.png';
 import problemIllustration2 from '../../assets/problem-illustration-2.png';

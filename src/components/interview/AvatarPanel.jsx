@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import interviewerVideo from '../../assets/Một_người_phỏng_vấn_nữ__chuyên.mp4';
+const interviewerVideo = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/M_t_ng__i_ph_ng_v_n_n___chuy_n.mp4";
 
 export function AvatarPanel({ isPlaying = false, volume = 0, isThinking = false }) {
   const videoRef = useRef(null);

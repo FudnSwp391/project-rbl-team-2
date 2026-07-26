@@ -4,7 +4,7 @@ import { useAuth } from '../../utils/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import { Eye, EyeOff, Mail, User, X } from 'lucide-react';
 import './Auth.css';
-import demoVideo from '../../assets/demo.mp4';
+const demoVideo = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/demo.mp4";
 
 const getPasswordStrength = (pass) => {
   if (!pass) return { label: '', color: 'transparent', width: '0%' };

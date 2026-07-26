@@ -2,9 +2,9 @@ import React, { useRef, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './CardStackSection.css';
-import videoProject3 from '../../assets/Video Project 3.mp4';
-import videoProject4 from '../../assets/Video Project 4.mp4';
-import videoProject7 from '../../assets/Video Project 7.mp4';
+const videoProject3 = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/Video_Project_3.mp4";
+const videoProject4 = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/Video_Project_4.mp4";
+const videoProject7 = "https://hitcsegxyxvxpyusfyge.supabase.co/storage/v1/object/public/videos/Video_Project_7.mp4";
 gsap.registerPlugin(ScrollTrigger);
 
 const steps = [
