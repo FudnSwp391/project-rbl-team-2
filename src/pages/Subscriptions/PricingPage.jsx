@@ -254,7 +254,7 @@ const PricingPage = () => {
             right: '1rem', 
             width: '135px', 
             height: '75px', 
-            background: 'url(/assets/cloud02.svg) center/contain no-repeat', 
+            background: 'url(/cloud02.svg) center/contain no-repeat', 
             color: 'white', 
             display: 'flex', 
             alignItems: 'center', 
