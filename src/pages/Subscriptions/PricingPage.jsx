@@ -254,7 +254,7 @@ const PricingPage = () => {
             right: '1rem', 
             width: '135px', 
             height: '75px', 
-            background: 'url(/assets/cloud02.svg) center/contain no-repeat', 
+            background: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 65\"><circle cx=\"30\" cy=\"35\" r=\"22\" fill=\"%23EA580C\"/><circle cx=\"60\" cy=\"25\" r=\"25\" fill=\"%23EA580C\"/><circle cx=\"90\" cy=\"35\" r=\"22\" fill=\"%23EA580C\"/><rect x=\"30\" y=\"25\" width=\"60\" height=\"32\" fill=\"%23EA580C\"/></svg>') center/contain no-repeat", 
             color: 'white', 
             display: 'flex', 
             alignItems: 'center', 

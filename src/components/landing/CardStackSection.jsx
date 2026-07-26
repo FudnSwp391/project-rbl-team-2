@@ -5,7 +5,6 @@ import './CardStackSection.css';
 import videoProject3 from '../../assets/Video Project 3.mp4';
 import videoProject4 from '../../assets/Video Project 4.mp4';
 import videoProject7 from '../../assets/Video Project 7.mp4';
-
 gsap.registerPlugin(ScrollTrigger);
 
 const steps = [
